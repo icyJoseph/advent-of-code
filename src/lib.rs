@@ -10,9 +10,8 @@ pub fn solve_day_one(filename: &str) -> i32 {
         .fold(0, |acc, x| acc + day_one::calc_fuel_for_mass_and_fuel(x))
 }
 
-pub fn solve_day_two(filename: &str) -> String {
+pub fn solve_day_two(filename: &str, target_output: usize) -> String {
     let commands = fs::read_to_string(filename).expect("Error reading input");
-    let target_output = 19690720;
 
     let memory = day_two::parse(&commands);
     let max_index = memory.len();
@@ -22,14 +21,14 @@ pub fn solve_day_two(filename: &str) -> String {
 
     'outer: for i in 0..max_index {
         'inner: for j in 0..max_index {
-            let edited = day_two::replace(day_two::parse(&commands), i, j);
+            let output = *(day_two::write(day_two::replace(day_two::parse(&commands), i, j)))
+                .first()
+                .expect("Panic");
 
-            let output = day_two::write(&edited);
-
-            if output[0] == target_output {
+            if output == target_output {
                 noun = i;
                 verb = j;
-                println!("noun: {}, verb: {}, head: {}", i, j, output[0]);
+                println!("noun: {}, verb: {}, head: {}", i, j, output);
                 break 'outer;
             }
         }

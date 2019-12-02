@@ -7,16 +7,6 @@ pub enum OP {
     Error,
 }
 
-fn resolve(step: Result<usize, std::num::ParseIntError>) -> OP {
-    match step {
-        Ok(1) => OP::Add,
-        Ok(2) => OP::Mult,
-        Ok(99) => OP::Halt,
-        Ok(val) => OP::Value(val),
-        Err(_) => OP::Error,
-    }
-}
-
 fn resolve_usize(step: usize) -> OP {
     match step {
         1 => OP::Add,
@@ -26,37 +16,26 @@ fn resolve_usize(step: usize) -> OP {
     }
 }
 
-pub fn parse(commands: &String) -> Vec<OP> {
+pub fn parse(commands: &String) -> Vec<usize> {
     return commands
         .split_terminator(',')
-        .map(|x| resolve(x.parse::<usize>()))
+        .map(|x| x.parse::<usize>().expect("Failed to parse"))
         .collect();
 }
 
-pub fn replace(mut commands: Vec<OP>, first: usize, second: usize) -> Vec<OP> {
-    commands[1] = resolve_usize(first);
-    commands[2] = resolve_usize(second);
+pub fn replace(mut commands: Vec<usize>, first: usize, second: usize) -> Vec<usize> {
+    commands.insert(1, first);
+    commands.remove(2);
+    commands.insert(2, second);
+    commands.remove(3);
     return commands;
 }
 
-pub fn extract_value(option: Option<&OP>) -> usize {
-    match option {
-        Some(OP::Value(x)) => *x,
-        Some(OP::Add) => 1,
-        Some(OP::Mult) => 2,
-        Some(OP::Halt) => 99,
-        _ => panic!("Tried to extract unknown value!"),
-    }
-}
-
-pub fn write(operations: &Vec<OP>) -> Vec<usize> {
-    let mut result: Vec<usize> = operations[..]
-        .iter()
-        .map(|x| extract_value(Some(&x)))
-        .collect();
+pub fn write(operations: Vec<usize>) -> Vec<usize> {
+    let mut result: Vec<usize> = operations[..].to_vec();
 
     let mut next = 0;
-    for (index, _) in operations.iter().enumerate() {
+    for index in 0..operations.len() {
         if next < operations.len() && next == index {
             let op = resolve_usize(result[index]);
             match op {
