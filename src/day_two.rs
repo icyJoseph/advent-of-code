@@ -16,9 +16,13 @@ fn resolve_usize(step: usize) -> OP {
     }
 }
 
-pub fn parse(commands: &String) -> Vec<usize> {
-    return commands
-        .split_terminator(',')
+pub fn segment(commands: &String) -> Vec<&str> {
+    commands.split_terminator(',').collect()
+}
+
+pub fn parse(segments: &Vec<&str>) -> Vec<usize> {
+    return segments
+        .iter()
         .map(|x| x.parse::<usize>().expect("Failed to parse"))
         .collect();
 }
@@ -68,7 +72,11 @@ fn usize_to_string(vector: Vec<usize>) -> Vec<String> {
     vector.iter().map(|x| x.to_string()).collect()
 }
 
-pub fn join(results: Vec<usize>, pattern: &str) -> String {
+pub fn join(results: Vec<usize>, pattern: Option<&str>) -> String {
     let as_string: Vec<String> = usize_to_string(results);
-    return as_string.join(pattern);
+    if let Some(pattern) = pattern {
+        return as_string.join(pattern);
+    } else {
+        return as_string.join(",");
+    }
 }
