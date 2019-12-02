@@ -26,16 +26,16 @@ fn resolve_usize(step: usize) -> OP {
     }
 }
 
-pub fn parse(commands: String) -> Vec<OP> {
+pub fn parse(commands: &String) -> Vec<OP> {
     return commands
         .split_terminator(',')
         .map(|x| resolve(x.parse::<usize>()))
         .collect();
 }
 
-pub fn replace(mut commands: Vec<OP>) -> Vec<OP> {
-    commands[1] = OP::Value(12);
-    commands[2] = OP::Mult;
+pub fn replace(mut commands: Vec<OP>, first: usize, second: usize) -> Vec<OP> {
+    commands[1] = resolve_usize(first);
+    commands[2] = resolve_usize(second);
     return commands;
 }
 
@@ -88,4 +88,9 @@ pub fn write(operations: &Vec<OP>) -> Vec<usize> {
 pub fn join(results: Vec<usize>) -> String {
     let as_string: Vec<String> = results.iter().map(|x| x.to_string()).collect();
     return as_string.join(",");
+}
+
+pub fn join_noun_verb(results: Vec<usize>) -> String {
+    let as_string: Vec<String> = results.iter().map(|x| x.to_string()).collect();
+    return as_string.join("");
 }

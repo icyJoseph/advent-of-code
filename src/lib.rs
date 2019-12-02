@@ -12,5 +12,28 @@ pub fn solve_day_one(filename: &str) -> i32 {
 
 pub fn solve_day_two(filename: &str) -> String {
     let commands = fs::read_to_string(filename).expect("Error reading input");
-    day_two::join(day_two::write(&day_two::replace(day_two::parse(commands))))
+    let target_output = 19690720;
+
+    let memory = day_two::parse(&commands);
+    let max_index = memory.len();
+
+    let mut noun = 0;
+    let mut verb = 0;
+
+    'outer: for i in 0..max_index {
+        'inner: for j in 0..max_index {
+            let edited = day_two::replace(day_two::parse(&commands), i, j);
+
+            let output = day_two::write(&edited);
+
+            if output[0] == target_output {
+                noun = i;
+                verb = j;
+                println!("noun: {}, verb: {}, head: {}", i, j, output[0]);
+                break 'outer;
+            }
+        }
+    }
+
+    return day_two::join_noun_verb(vec![noun, verb]);
 }
