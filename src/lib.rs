@@ -34,5 +34,5 @@ pub fn solve_day_two(filename: &str, target_output: usize) -> String {
         }
     }
 
-    return day_two::join_noun_verb(vec![noun, verb]);
+    return day_two::join(vec![noun, verb], "");
 }

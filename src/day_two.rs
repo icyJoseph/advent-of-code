@@ -64,12 +64,11 @@ pub fn write(operations: Vec<usize>) -> Vec<usize> {
     return result;
 }
 
-pub fn join(results: Vec<usize>) -> String {
-    let as_string: Vec<String> = results.iter().map(|x| x.to_string()).collect();
-    return as_string.join(",");
+fn usize_to_string(vector: Vec<usize>) -> Vec<String> {
+    vector.iter().map(|x| x.to_string()).collect()
 }
 
-pub fn join_noun_verb(results: Vec<usize>) -> String {
-    let as_string: Vec<String> = results.iter().map(|x| x.to_string()).collect();
-    return as_string.join("");
+pub fn join(results: Vec<usize>, pattern: &str) -> String {
+    let as_string: Vec<String> = usize_to_string(results);
+    return as_string.join(pattern);
 }
