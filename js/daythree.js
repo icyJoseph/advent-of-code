@@ -78,18 +78,36 @@ const pathAsMatrix = path =>
 
 const distance = ([a, b]) => Math.abs(a) + Math.abs(b);
 
+const stepsToIntersection = (intersection, cable) => {
+  const crossIndex = cable.findIndex(path => {
+    return checkIfCross(intersection, path);
+  });
+
+  const lastCross = cable[crossIndex];
+
+  return cable
+    .slice(0, crossIndex)
+    .concat([[lastCross[0], lastCross[1], intersection[0], intersection[1]]])
+    .map(([x0, y0, x1, y1]) => Math.abs(x0 - x1) + Math.abs(y0 - y1))
+    .reduce((prev, acc) => prev + acc, 0);
+};
+
+const combinedStepsToIntersection = (intersection, ...paths) =>
+  paths.reduce(
+    (prev, curr) => prev + stepsToIntersection(intersection, curr),
+    0
+  );
+
 fs.readFile(
   path.resolve(__dirname, "../", "input/example.in"),
   "utf-8",
   (err, data) => {
     if (err) return console.log(err);
 
-    const [left, right] = data
+    const [leftPath, rightPath] = data
       .split("\n")
-      .map(path => path.split(",").map(parseInstructions));
-
-    const leftPath = pathAsMatrix(left);
-    const rightPath = pathAsMatrix(right);
+      .map(path => path.split(",").map(parseInstructions))
+      .map(cable => pathAsMatrix(cable));
 
     const intersections = rightPath.reduce((prev, curr) => {
       const cross = leftPath
@@ -104,30 +122,9 @@ fs.readFile(
 
     const combinedSteps = intersections
       .reduce((prev, curr) => {
-        const leftCross = leftPath.findIndex(path => {
-          return checkIfCross(curr, path);
-        });
+        const steps = combinedStepsToIntersection(curr, leftPath, rightPath);
 
-        const rightCross = rightPath.findIndex(path => {
-          return checkIfCross(curr, path);
-        });
-
-        const lastLeft = leftPath[leftCross];
-        const lastRight = rightPath[rightCross];
-
-        const leftSteps = leftPath
-          .slice(0, leftCross)
-          .concat([[lastLeft[0], lastLeft[1], curr[0], curr[1]]])
-          .map(([x0, y0, x1, y1]) => Math.abs(x0 - x1) + Math.abs(y0 - y1))
-          .reduce((prev, acc) => prev + acc, 0);
-
-        const rightSteps = rightPath
-          .slice(0, rightCross)
-          .concat([[lastRight[0], lastRight[1], curr[0], curr[1]]])
-          .map(([x0, y0, x1, y1]) => Math.abs(x0 - x1) + Math.abs(y0 - y1))
-          .reduce((prev, acc) => prev + acc, 0);
-
-        return prev.concat(leftSteps + rightSteps);
+        return prev.concat(steps);
       }, [])
       .filter(x => x > 0);
 
