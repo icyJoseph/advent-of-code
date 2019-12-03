@@ -79,7 +79,7 @@ const pathAsMatrix = path =>
 const distance = ([a, b]) => Math.abs(a) + Math.abs(b);
 
 fs.readFile(
-  path.resolve(__dirname, "../", "input/day_three.in"),
+  path.resolve(__dirname, "../", "input/example.in"),
   "utf-8",
   (err, data) => {
     if (err) return console.log(err);
@@ -91,29 +91,46 @@ fs.readFile(
     const leftPath = pathAsMatrix(left);
     const rightPath = pathAsMatrix(right);
 
-    const intersections = rightPath
+    const intersections = rightPath.reduce((prev, curr) => {
+      const cross = leftPath
+        .map(vector => {
+          return calculateCrossingPoint(curr, vector);
+        })
+        .filter(e => e);
+      //   .map(x => distance(x));
+      return prev.concat(cross);
+    }, []);
+    //   .filter(x => x > 0);
+
+    const combinedSteps = intersections
       .reduce((prev, curr) => {
-        const cross = leftPath
-          .map(vector => {
-            return calculateCrossingPoint(curr, vector);
-          })
-          .filter(e => e)
-          .map(x => distance(x));
-        return prev.concat(cross);
+        const leftCross = leftPath.findIndex(path => {
+          return checkIfCross(curr, path);
+        });
+
+        const rightCross = rightPath.findIndex(path => {
+          return checkIfCross(curr, path);
+        });
+
+        const lastLeft = leftPath[leftCross];
+        const lastRight = rightPath[rightCross];
+
+        const leftSteps = leftPath
+          .slice(0, leftCross)
+          .concat([[lastLeft[0], lastLeft[1], curr[0], curr[1]]])
+          .map(([x0, y0, x1, y1]) => Math.abs(x0 - x1) + Math.abs(y0 - y1))
+          .reduce((prev, acc) => prev + acc, 0);
+
+        const rightSteps = rightPath
+          .slice(0, rightCross)
+          .concat([[lastRight[0], lastRight[1], curr[0], curr[1]]])
+          .map(([x0, y0, x1, y1]) => Math.abs(x0 - x1) + Math.abs(y0 - y1))
+          .reduce((prev, acc) => prev + acc, 0);
+
+        return prev.concat(leftSteps + rightSteps);
       }, [])
       .filter(x => x > 0);
 
-    console.log(Math.min(...intersections));
-
-    // const combinedSteps = intersections.reduce((prev, curr) => {
-    //   const leftSteps = leftPath.filter(path => {
-    //     console.log(path, curr);
-    //     return checkIfCross(curr, path);
-    //   });
-
-    //   console.log(leftSteps);
-
-    //   return prev;
-    // }, []);
+    console.log(Math.min(...combinedSteps));
   }
 );
