@@ -45,7 +45,7 @@ const checkIfCross = (point, [x0, y0, x1, y1]) => {
 };
 
 const parseInstructions = instruction => {
-  const [inst, step] = instruction.match(/[UDLR]+|[\d]+/gi);
+  const [inst, step] = [instruction.substring(0, 1), instruction.substring(1)];
   return [inst, parseInt(step)];
 };
 
