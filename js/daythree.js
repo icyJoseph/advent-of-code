@@ -99,7 +99,7 @@ const combinedStepsToIntersection = (intersection, ...paths) =>
   );
 
 fs.readFile(
-  path.resolve(__dirname, "../", "input/example.in"),
+  path.resolve(__dirname, "../", "input/day_three.in"),
   "utf-8",
   (err, data) => {
     if (err) return console.log(err);
@@ -120,6 +120,10 @@ fs.readFile(
     }, []);
     //   .filter(x => x > 0);
 
+    const closest = intersections.map(distance).filter(x => x > 0);
+
+    console.log("Closest intersection occurs at:", Math.min(...closest));
+
     const combinedSteps = intersections
       .reduce((prev, curr) => {
         const steps = combinedStepsToIntersection(curr, leftPath, rightPath);
@@ -128,6 +132,6 @@ fs.readFile(
       }, [])
       .filter(x => x > 0);
 
-    console.log(Math.min(...combinedSteps));
+    console.log("Least combined steps: ", Math.min(...combinedSteps));
   }
 );
