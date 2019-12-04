@@ -36,3 +36,53 @@ pub fn solve_day_two(filename: &str, target_output: usize) -> String {
 
     return day_two::join(vec![noun, verb], Some(""));
 }
+
+pub fn rule_one(digits: &Vec<u32>) -> bool {
+    digits.len() == 6
+}
+
+pub fn rule_two(digits: &Vec<u32>) -> bool {
+    for (index, digit) in digits.iter().enumerate() {
+        let next = digits.get(index + 1);
+        if let Some(val) = next {
+            if *val == *digit {
+                return true;
+            }
+            continue;
+        }
+    }
+    return false;
+}
+
+pub fn rule_three(digits: &Vec<u32>) -> bool {
+    for (index, digit) in digits.iter().enumerate() {
+        let next = digits.get(index + 1).or(Some(&digit)).unwrap();
+        if *next < *digit {
+            return false;
+        }
+    }
+    return true;
+}
+
+pub fn solve_day_four(lower: u32, upper: u32) -> (usize, usize) {
+    let funcs = [rule_one, rule_two, rule_three];
+
+    let mut problem_one: Vec<u32> = vec![];
+    let problem_two: Vec<u32> = vec![];
+
+    for number in lower..=upper {
+        let digits: Vec<u32> = number
+            .to_string()
+            .chars()
+            .map(|x| x.to_digit(10).unwrap())
+            .collect();
+
+        let matches_problem_one = funcs.iter().fold(true, |prev, curr| prev && curr(&digits));
+
+        if matches_problem_one {
+            problem_one.push(number);
+        }
+    }
+    println!("{}", problem_one.len());
+    return (problem_one.len(), problem_two.len());
+}
