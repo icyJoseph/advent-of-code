@@ -26,22 +26,6 @@ pub fn bunch_check(
     return false;
 }
 
-pub fn strict_rule_two(digits: &Vec<u32>) -> bool {
-    let mut cloned = digits.clone();
-    cloned.insert(0, 0);
-    for (index, digit) in cloned.iter().enumerate() {
-        let behind_index = if index == 0 { 0 } else { index - 1 };
-        let behind = cloned.get(behind_index);
-        let next = cloned.get(index + 1);
-        let last = cloned.get(index + 2);
-
-        if bunch_check(digit, behind, next, last) {
-            return true;
-        }
-    }
-    return false;
-}
-
 pub fn some<T>(vector: &Vec<T>, predicate: fn(&T, usize, &Vec<T>) -> bool) -> bool {
     for (index, item) in vector.iter().enumerate() {
         if predicate(item, index, vector) {
@@ -81,6 +65,22 @@ pub fn increments(digit: &u32, index: usize, digits: &Vec<u32>) -> bool {
 
 pub fn rule_three(digits: &Vec<u32>) -> bool {
     every::<u32>(&digits, increments)
+}
+
+pub fn single_bunch(digit: &u32, index: usize, digits: &Vec<u32>) -> bool {
+    let behind = if index == 0 {
+        Some(&0)
+    } else {
+        digits.get(index - 1)
+    };
+    let next = digits.get(index + 1);
+    let last = digits.get(index + 2);
+
+    bunch_check(digit, behind, next, last)
+}
+
+pub fn strict_rule_two(digits: &Vec<u32>) -> bool {
+    some::<u32>(&digits, single_bunch)
 }
 
 pub fn number_to_digits(number: u32) -> Vec<u32> {
