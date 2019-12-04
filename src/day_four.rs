@@ -55,8 +55,6 @@ pub fn every<T>(vector: &Vec<T>, predicate: fn(&T, usize, &Vec<T>) -> bool) -> b
     for (index, item) in vector.iter().enumerate() {
         if !predicate(item, index, vector) {
             return false;
-        } else {
-            continue;
         }
     }
     return true;
