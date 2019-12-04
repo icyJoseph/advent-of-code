@@ -41,6 +41,48 @@ pub fn rule_one(digits: &Vec<u32>) -> bool {
     digits.len() == 6
 }
 
+pub fn strict_rule_two(digits: &Vec<u32>) -> bool {
+    for (index, digit) in digits.iter().enumerate() {
+        let next = digits.get(index + 1);
+        let last = digits.get(index + 2);
+        if index == 0 {
+            if let Some(next_pivot) = next {
+                let partial = *digit == *next_pivot;
+                if let Some(last_pivot) = last {
+                    let matches = partial && *digit != *last_pivot;
+                    if matches {
+                        return true;
+                    }
+                } else {
+                    if partial {
+                        return true;
+                    }
+                }
+            }
+            continue;
+        }
+
+        let behind = digits.get(index - 1);
+
+        if let Some(behind_pivot) = behind {
+            if let Some(next_pivot) = next {
+                let partial = *digit != *behind_pivot && *digit == *next_pivot;
+                if let Some(last_pivot) = last {
+                    let matches = partial && *digit != *last_pivot;
+                    if matches {
+                        return true;
+                    }
+                } else {
+                    if partial {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    return false;
+}
+
 pub fn rule_two(digits: &Vec<u32>) -> bool {
     for (index, digit) in digits.iter().enumerate() {
         let next = digits.get(index + 1);
@@ -66,9 +108,10 @@ pub fn rule_three(digits: &Vec<u32>) -> bool {
 
 pub fn solve_day_four(lower: u32, upper: u32) -> (usize, usize) {
     let funcs = [rule_one, rule_two, rule_three];
+    let stric_funcs = [rule_one, strict_rule_two, rule_three];
 
     let mut problem_one: Vec<u32> = vec![];
-    let problem_two: Vec<u32> = vec![];
+    let mut problem_two: Vec<u32> = vec![];
 
     for number in lower..=upper {
         let digits: Vec<u32> = number
@@ -78,11 +121,19 @@ pub fn solve_day_four(lower: u32, upper: u32) -> (usize, usize) {
             .collect();
 
         let matches_problem_one = funcs.iter().fold(true, |prev, curr| prev && curr(&digits));
+        let matches_problem_two = stric_funcs
+            .iter()
+            .fold(true, |prev, curr| prev && curr(&digits));
 
         if matches_problem_one {
             problem_one.push(number);
         }
+
+        if matches_problem_two {
+            problem_two.push(number);
+        }
     }
     println!("{}", problem_one.len());
+    println!("{}", problem_two.len());
     return (problem_one.len(), problem_two.len());
 }
