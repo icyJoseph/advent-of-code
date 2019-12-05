@@ -2,6 +2,8 @@
 pub enum OP {
     Add,
     Mult,
+    Input,
+    Output,
     Halt,
     Value(usize),
     Error,
@@ -11,6 +13,8 @@ fn resolve_usize(step: usize) -> OP {
     match step {
         1 => OP::Add,
         2 => OP::Mult,
+        3 => OP::Input,
+        4 => OP::Output,
         99 => OP::Halt,
         val => OP::Value(val),
     }
@@ -44,6 +48,7 @@ pub fn write(operations: Vec<usize>) -> Vec<usize> {
             let op = resolve_usize(result[index]);
             match op {
                 OP::Add => {
+                    // position mode
                     let pos_left: usize = result[index + 1];
                     let pos_right: usize = result[index + 2];
                     let pos_result: usize = result[index + 3];
@@ -52,6 +57,7 @@ pub fn write(operations: Vec<usize>) -> Vec<usize> {
                     continue;
                 }
                 OP::Mult => {
+                    // position mode
                     let pos_left: usize = result[index + 1];
                     let pos_right: usize = result[index + 2];
                     let pos_result: usize = result[index + 3];
