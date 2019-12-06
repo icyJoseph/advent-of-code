@@ -21,6 +21,21 @@ const aggregateOrbiters = (src, { node, orbiters }) => {
   return all;
 };
 
+function findParentHood(tree, node) {
+  let current = node;
+  let acc = [];
+
+  while (1) {
+    const parent = tree.find(({ orbiters }) => orbiters.includes(current));
+    if (!parent) {
+      break;
+    }
+    current = parent.node;
+    acc.push(parent.node);
+  }
+  return acc;
+}
+
 fs.readFile(
   path.resolve(__dirname, "../", "input/day_six.in"),
   "utf-8",
@@ -51,7 +66,14 @@ fs.readFile(
         });
       }, [])
       .reduce((prev, { orbiters }) => orbiters.length + prev, 0);
-      
+
     console.log(total);
+
+    const branch = findParentHood(tree, "YOU");
+    const sanBranch = findParentHood(tree, "SAN");
+
+    const [cross] = branch.filter(entry => sanBranch.indexOf(entry) >= 0);
+
+    console.log(branch.indexOf(cross) + sanBranch.indexOf(cross));
   }
 );
