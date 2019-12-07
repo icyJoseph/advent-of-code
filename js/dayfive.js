@@ -37,6 +37,7 @@ const mutateMemory = (
       memory[
         immediateMode === thirdInputMode ? third : memory[third].cell
       ] = parseCell(`${parseInt(leftSum) + parseInt(rightSum)}`);
+      // console.log("sum", `${parseInt(leftSum) + parseInt(rightSum)}`);
       return { skip: 4 };
     case "2":
       const factorA =
@@ -51,13 +52,16 @@ const mutateMemory = (
       memory[
         immediateMode === thirdInputMode ? third : memory[third].cell
       ] = parseCell(`${parseInt(factorA) * parseInt(factorB)}`);
+      // console.log("mult", `${parseInt(factorA) * parseInt(factorB)}`);
       return { skip: 4 };
     case "3":
       const write =
         immediateMode === firstInputMode ? first : memory[first].cell;
       memory[parseInt(write)] = parseCell(`${input}`);
 
-      return { skip: 2 };
+      console.assert(memory[write].cell === input);
+
+      return { skip: 2, increaseInputIndex: true };
     case "4":
       const read =
         immediateMode === firstInputMode ? first : memory[first].cell;
@@ -161,55 +165,58 @@ function parseCell(cell) {
 
       return {
         operation,
-        cell: parseInt(cell),
+        cell,
         secondInputMode,
         firstInputMode,
         thirdInputMode
       };
     }
   }
+
   return { cell };
 }
 
-fs.readFile(
-  path.resolve(__dirname, "../", "input/day_five.in"),
-  "utf-8",
-  (err, data) => {
-    if (err) return console.log(err);
+// fs.readFile(
+//   path.resolve(__dirname, "../", "input/day_five.in"),
+//   "utf-8",
+//   (err, data) => {
+//     if (err) return console.log(err);
 
-    const memory = data.split(",").map(cell => parseCell(cell));
+//     const memory = data.split(",").map(cell => parseCell(cell));
 
-    let output;
-    let input = "5";
-    let next = 0;
-    let index = 0;
+//     let output;
+//     let input = "5";
+//     let next = 0;
+//     let index = 0;
 
-    try {
-      outer: while (true) {
-        if (next === index) {
-          if (memory[index].operation) {
-            const { skip = 0, data, jumpTo } = mutateMemory(
-              memory,
-              memory[index],
-              index,
-              input
-            );
-            if (data) output = data;
-            if (jumpTo) {
-              next = jumpTo;
-              index = jumpTo;
-              continue outer;
-            } else {
-              next = next + skip;
-            }
-          }
-        }
-        index = index + 1;
-      }
-    } catch (err) {
-      console.log(err);
-    } finally {
-      console.log("output", output);
-    }
-  }
-);
+//     try {
+//       outer: while (true) {
+//         if (next === index) {
+//           if (memory[index].operation) {
+//             const { skip = 0, data, jumpTo } = mutateMemory(
+//               memory,
+//               memory[index],
+//               index,
+//               input
+//             );
+//             if (data) output = data;
+//             if (jumpTo) {
+//               next = jumpTo;
+//               index = jumpTo;
+//               continue outer;
+//             } else {
+//               next = next + skip;
+//             }
+//           }
+//         }
+//         index = index + 1;
+//       }
+//     } catch (err) {
+//       console.log(err);
+//     } finally {
+//       console.log("output", output);
+//     }
+//   }
+// );
+
+module.exports = { parseCell, mutateMemory, operations };
