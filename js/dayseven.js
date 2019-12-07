@@ -8,6 +8,13 @@ function runner(memory, inputs) {
   let index = 0;
   let inputIndex = 0;
 
+  if (memory.state) {
+    output = memory.state.output;
+    next = memory.state.next;
+    index = memory.state.index;
+    inputIndex = memory.state.inputIndex;
+  }
+
   try {
     outer: while (true) {
       if (next === index) {
@@ -23,8 +30,26 @@ function runner(memory, inputs) {
             index,
             inputs[inputIndex]
           );
-          if (increaseInputIndex) inputIndex = inputIndex + 1;
-          if (data) output = data;
+          if (increaseInputIndex) {
+            if (inputIndex === 0) {
+              inputIndex = inputIndex + 1;
+            }
+          }
+
+          if (data) {
+            output = data;
+
+            memory.state = {
+              output,
+              next: next + skip,
+              index,
+              inputIndex,
+              inputs
+            };
+
+            break outer;
+          }
+
           if (jumpTo) {
             next = jumpTo;
             index = jumpTo;
@@ -37,9 +62,8 @@ function runner(memory, inputs) {
       index = index + 1;
     }
   } catch (err) {
-    // console.log(err);
+    throw output;
   }
-
   return output;
 }
 
@@ -56,19 +80,33 @@ fs.readFile(
     })
       .filter(x => [...new Set(x)].length === 5)
       .filter(num =>
-        num.every(digit => ["0", "1", "2", "3", "4"].includes(digit))
+        num.every(digit => ["5", "6", "7", "8", "9"].includes(digit))
       )
-      .forEach(inputs => {
-        const output = Array.from({ length: 5 }, (_, i) => i).reduce(
-          (prev, curr) =>
-            runner(
-              data.split(",").map(cell => intCode.parseCell(cell)),
-              [inputs[curr], prev]
-            ),
-          "0"
+      .forEach(phases => {
+        const amps = Array.from({ length: 5 }, (_, i) => i).map(() =>
+          data.split(",").map(cell => intCode.parseCell(cell))
         );
-        // console.log(output);
-        outputs.push({ inputs, output });
+
+        let iteration = 0;
+        let inputs = [phases[0], "0"];
+
+        while (1) {
+          try {
+            output = runner(amps[iteration % 5], inputs);
+            iteration = iteration + 1;
+            inputs = [phases[iteration % 5], output];
+          } catch (err) {
+            output = err;
+            if (iteration % 5 === 4) {
+              break;
+            } else {
+              iteration = iteration + 1;
+              inputs = [phases[iteration % 5], output];
+              continue;
+            }
+          }
+        }
+        outputs.push({ phases, output });
       });
 
     outputs.sort((a, b) => parseInt(b.output) - parseInt(a.output));
