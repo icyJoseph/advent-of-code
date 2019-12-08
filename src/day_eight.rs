@@ -13,7 +13,7 @@ pub fn resolve_to_pixel(value: char) -> Pixel {
     }
 }
 
-pub fn pretty_print(image: Vec<Vec<Pixel>>) {
+pub fn pretty_print(image: Vec<Vec<Pixel>>) -> String {
     let mut buffer = String::new();
     for row in image {
         let output: Vec<char> = row
@@ -30,9 +30,10 @@ pub fn pretty_print(image: Vec<Vec<Pixel>>) {
     }
 
     println!("{}", buffer);
+    return buffer;
 }
 
-pub fn decode_stream(raw_data: String, width: &usize, height: &usize) {
+pub fn decode_stream(raw_data: String, width: &usize, height: &usize) -> String {
     let stream: Vec<Pixel> = raw_data.chars().map(|x| resolve_to_pixel(x)).collect();
     let size = width * height;
 
@@ -54,5 +55,5 @@ pub fn decode_stream(raw_data: String, width: &usize, height: &usize) {
 
         image[row][col] = *value;
     }
-    pretty_print(image);
+    return pretty_print(image);
 }
