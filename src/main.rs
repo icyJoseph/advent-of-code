@@ -3,15 +3,9 @@ use std::env;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let arg1 = &args[1];
-    let arg2 = &args[2];
+    let filename = &args[1];
+    let width = &args[2].parse::<usize>().expect("Could not parse width");
+    let height = &args[3].parse::<usize>().expect("Could not parse height");
 
-    let lower = arg1.parse::<u32>().expect("Problem parsing lower bound");
-    let upper = arg2.parse::<u32>().expect("Problem parsing upper bound");
-    let result = advent_of_code::solve_day_four(lower, upper);
-
-    println!(
-        "Day four, from: {} to: {}, result: {:?}",
-        lower, upper, result
-    );
+    advent_of_code::solve_day_eight(filename, width, height);
 }

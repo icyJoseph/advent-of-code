@@ -1,4 +1,5 @@
 use std::fs;
+pub mod day_eight;
 pub mod day_four;
 pub mod day_one;
 pub mod day_two;
@@ -40,4 +41,9 @@ pub fn solve_day_two(filename: &str, target_output: usize) -> String {
 
 pub fn solve_day_four(lower: u32, upper: u32) -> (usize, usize) {
     return day_four::find_numbers(lower, upper);
+}
+
+pub fn solve_day_eight(filename: &str, width: &usize, height: &usize) {
+    let raw_data = fs::read_to_string(filename).expect("Error reading input");
+    day_eight::decode_stream(raw_data, width, height);
 }
