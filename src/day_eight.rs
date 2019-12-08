@@ -1,11 +1,11 @@
 #[derive(Debug, Clone, Copy)]
-pub enum Pixel {
+enum Pixel {
     Black,
     White,
     Transparent,
 }
 
-pub fn resolve_to_pixel(value: char) -> Pixel {
+fn resolve_to_pixel(value: char) -> Pixel {
     match value {
         '0' => Pixel::Black,
         '1' => Pixel::White,
@@ -13,7 +13,7 @@ pub fn resolve_to_pixel(value: char) -> Pixel {
     }
 }
 
-pub fn pretty_print(image: Vec<Vec<Pixel>>) -> String {
+fn pretty_print(image: Vec<Vec<Pixel>>) -> String {
     let mut buffer = String::new();
     for row in image {
         let output: Vec<char> = row
