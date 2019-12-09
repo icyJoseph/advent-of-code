@@ -4,44 +4,50 @@ const intCode = require("./dayfive");
 
 function runner(memory, input) {
   let output;
-  let next = 0;
-  let index = 0;
+  let pointer = 0;
   let relativeBase = 0;
+
+  if (memory.state) {
+    output = memory.state.output;
+    pointer = memory.state.pointer;
+    relativeBase = memory.state.relativeBase;
+  }
 
   try {
     outer: while (true) {
-      if (next === index) {
-        if (memory[index].operation) {
-          const {
-            skip = 0,
-            data,
-            jumpTo,
-            newRelativeBase
-          } = intCode.mutateMemory(
-            memory,
-            memory[index],
-            index,
-            input,
+      if (memory[pointer].operation) {
+        const {
+          skip = 0,
+          data,
+          jumpTo,
+          newRelativeBase
+        } = intCode.mutateMemory(
+          memory,
+          memory[pointer],
+          pointer,
+          input,
+          relativeBase
+        );
+        if (newRelativeBase !== undefined) {
+          relativeBase = newRelativeBase;
+        }
+
+        if (data) {
+          output = data;
+          memory.state = {
+            output,
+            pointer: pointer + next,
             relativeBase
-          );
-          if (newRelativeBase !== undefined) {
-            relativeBase = newRelativeBase;
-          }
+          };
+        }
 
-          if (data) {
-            output = data;
-          }
-
-          if (jumpTo !== undefined) {
-            next = jumpTo;
-            index = jumpTo;
-            continue outer;
-          } else {
-            next = next + skip;
-          }
+        if (jumpTo !== undefined) {
+          pointer = jumpTo;
+          continue outer;
+        } else {
+          pointer = pointer + skip;
         }
       }
-      index = index + 1;
     }
   } catch (err) {
     throw output;
