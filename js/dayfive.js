@@ -3,7 +3,51 @@ const path = require("path");
 
 const positionMode = "0";
 const immediateMode = "1";
-const operations = ["1", "2", "3", "4", "5", "6", "7", "8", "99"];
+const relativeMode = "2";
+const operations = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "99"];
+
+const emptyMemory = { cell: "0" };
+
+const readOrEmpty = (memory, index) =>
+  memory[parseInt(index)] ? memory[parseInt(index)] : { ...emptyMemory };
+
+function operationMode(mode, index, memory, relativeBase) {
+  switch (mode) {
+    case positionMode:
+      return readOrEmpty(
+        memory,
+        operationModeIO(mode, index, memory, relativeBase)
+      ).cell;
+    case immediateMode:
+      return readOrEmpty(
+        memory,
+        operationModeIO(mode, index, memory, relativeBase)
+      ).cell;
+    case relativeMode:
+      return readOrEmpty(
+        memory,
+        parseInt(operationModeIO(mode, index, memory, relativeBase))
+      ).cell;
+    default:
+      throw new Error("Bad MODE");
+  }
+}
+
+function operationModeIO(mode, index, memory, relativeBase) {
+  switch (mode) {
+    case positionMode:
+      return parseInt(readOrEmpty(memory, index).cell);
+    case immediateMode:
+      return index;
+    case relativeMode:
+      return (
+        parseInt(relativeBase) +
+        parseInt(readOrEmpty(memory, parseInt(index)).cell)
+      );
+    default:
+      throw new Error("Bad MODE");
+  }
+}
 
 const mutateMemory = (
   memory,
@@ -14,66 +58,84 @@ const mutateMemory = (
     thirdInputMode = positionMode
   },
   index,
-  input
+  input,
+  relativeBase
 ) => {
   if (operation === "99") {
     throw new Error("HALT");
   }
+
   const first = index + 1;
   const second = index + 2;
   const third = index + 3;
 
   switch (operation) {
     case "1":
-      const leftSum =
-        immediateMode === firstInputMode
-          ? memory[first].cell
-          : memory[memory[first].cell].cell;
-      const rightSum =
-        immediateMode === secondInputMode
-          ? memory[second].cell
-          : memory[memory[second].cell].cell;
+      const leftSum = operationMode(
+        firstInputMode,
+        first,
+        memory,
+        relativeBase
+      );
+
+      const rightSum = operationMode(
+        secondInputMode,
+        second,
+        memory,
+        relativeBase
+      );
 
       memory[
-        immediateMode === thirdInputMode ? third : memory[third].cell
-      ] = parseCell(`${parseInt(leftSum) + parseInt(rightSum)}`);
+        operationModeIO(thirdInputMode, third, memory, relativeBase)
+      ] = parseCell(`${BigInt(leftSum) + BigInt(rightSum)}`);
 
       return { skip: 4 };
     case "2":
-      const factorA =
-        immediateMode === firstInputMode
-          ? memory[first].cell
-          : memory[memory[first].cell].cell;
-      const factorB =
-        immediateMode === secondInputMode
-          ? memory[second].cell
-          : memory[memory[second].cell].cell;
+      const factorA = operationMode(
+        firstInputMode,
+        first,
+        memory,
+        relativeBase
+      );
+
+      const factorB = operationMode(
+        secondInputMode,
+        second,
+        memory,
+        relativeBase
+      );
 
       memory[
-        immediateMode === thirdInputMode ? third : memory[third].cell
-      ] = parseCell(`${parseInt(factorA) * parseInt(factorB)}`);
+        operationModeIO(thirdInputMode, third, memory, relativeBase)
+      ] = parseCell(`${BigInt(factorA) * BigInt(factorB)}`);
+
       return { skip: 4 };
     case "3":
-      const write =
-        immediateMode === firstInputMode ? first : memory[first].cell;
+      memory[
+        operationModeIO(firstInputMode, first, memory, relativeBase)
+      ] = parseCell(`${input}`);
 
-      memory[parseInt(write)] = parseCell(`${input}`);
+      return { skip: 2 };
 
-      return { skip: 2, increaseInputIndex: true };
     case "4":
-      const read =
-        immediateMode === firstInputMode ? first : memory[first].cell;
-      return { skip: 2, data: memory[read].cell };
+      const read = operationModeIO(firstInputMode, first, memory, relativeBase);
+
+      return { skip: 2, data: readOrEmpty(memory, read).cell };
     case "5":
       // jump if true
-      const firstNonZero =
-        immediateMode === firstInputMode
-          ? memory[first].cell
-          : memory[memory[first].cell].cell;
-      const pointer =
-        immediateMode === secondInputMode
-          ? memory[second].cell
-          : memory[memory[second].cell].cell;
+      const firstNonZero = operationMode(
+        firstInputMode,
+        first,
+        memory,
+        relativeBase
+      );
+
+      const pointer = operationMode(
+        secondInputMode,
+        second,
+        memory,
+        relativeBase
+      );
 
       if (parseInt(firstNonZero) !== 0) {
         return { jumpTo: parseInt(pointer) };
@@ -82,14 +144,19 @@ const mutateMemory = (
 
     case "6":
       // jump if false
-      const firstZero =
-        immediateMode === firstInputMode
-          ? memory[first].cell
-          : memory[memory[first].cell].cell;
-      const jumpTo =
-        immediateMode === secondInputMode
-          ? memory[second].cell
-          : memory[memory[second].cell].cell;
+      const firstZero = operationMode(
+        firstInputMode,
+        first,
+        memory,
+        relativeBase
+      );
+
+      const jumpTo = operationMode(
+        secondInputMode,
+        second,
+        memory,
+        relativeBase
+      );
 
       if (parseInt(firstZero) === 0) {
         return { jumpTo: parseInt(jumpTo) };
@@ -97,38 +164,57 @@ const mutateMemory = (
       return { skip: 3 };
 
     case "7":
-      const lesser =
-        immediateMode === firstInputMode
-          ? memory[first].cell
-          : memory[memory[first].cell].cell;
-      const greater =
-        immediateMode === secondInputMode
-          ? memory[second].cell
-          : memory[memory[second].cell].cell;
+      const lesser = operationMode(firstInputMode, first, memory, relativeBase);
+
+      const greater = operationMode(
+        secondInputMode,
+        second,
+        memory,
+        relativeBase
+      );
 
       memory[
-        immediateMode === thirdInputMode ? third : memory[third].cell
-      ] = parseCell(lesser < greater ? "1" : "0");
+        operationModeIO(thirdInputMode, third, memory, relativeBase)
+      ] = parseCell(BigInt(lesser) < BigInt(greater) ? "1" : "0");
 
       return { skip: 4 };
 
     case "8":
-      const equalLeft =
-        immediateMode === firstInputMode
-          ? memory[first].cell
-          : memory[memory[first].cell].cell;
-      const equalRight =
-        immediateMode === secondInputMode
-          ? memory[second].cell
-          : memory[memory[second].cell].cell;
+      const equalLeft = operationMode(
+        firstInputMode,
+        first,
+        memory,
+        relativeBase
+      );
+
+      const equalRight = operationMode(
+        secondInputMode,
+        second,
+        memory,
+        relativeBase
+      );
 
       memory[
-        immediateMode === thirdInputMode ? third : memory[third].cell
-      ] = parseCell(equalLeft === equalRight ? "1" : "0");
+        operationModeIO(thirdInputMode, third, memory, relativeBase)
+      ] = parseCell(BigInt(equalLeft) === BigInt(equalRight) ? "1" : "0");
 
       return { skip: 4 };
+    case "9":
+      const baseModifier = operationMode(
+        firstInputMode,
+        first,
+        memory,
+        relativeBase
+      );
+
+      const newRelativeBase = parseInt(relativeBase) + parseInt(baseModifier);
+
+      return {
+        newRelativeBase,
+        skip: 2
+      };
     default:
-      console.log("Error");
+      throw new Error("Bad Int Code");
   }
 };
 

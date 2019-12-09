@@ -67,49 +67,55 @@ function runner(memory, inputs) {
   return output;
 }
 
-fs.readFile(
-  path.resolve(__dirname, "../", "input/day_seven.in"),
-  "utf-8",
-  (err, data) => {
-    if (err) return console.log(err);
+function solve() {
+  fs.readFile(
+    path.resolve(__dirname, "../", "input/day_seven.in"),
+    "utf-8",
+    (err, data) => {
+      if (err) return console.log(err);
 
-    let outputs = [];
+      let outputs = [];
 
-    Array.from({ length: 100_000 }, (_, i) => {
-      return ["0", "0", "0", "0", ...i.toString().split("")].slice(-5);
-    })
-      .filter(x => [...new Set(x)].length === 5)
-      .filter(num =>
-        num.every(digit => ["5", "6", "7", "8", "9"].includes(digit))
-      )
-      .forEach(phases => {
-        const amps = Array.from({ length: 5 }, (_, i) => i).map(() =>
-          data.split(",").map(cell => intCode.parseCell(cell))
-        );
+      Array.from({ length: 100_000 }, (_, i) => {
+        return ["0", "0", "0", "0", ...i.toString().split("")].slice(-5);
+      })
+        .filter(x => [...new Set(x)].length === 5)
+        .filter(num =>
+          num.every(digit => ["5", "6", "7", "8", "9"].includes(digit))
+        )
+        .forEach(phases => {
+          const amps = Array.from({ length: 5 }, (_, i) => i).map(() =>
+            data.split(",").map(cell => intCode.parseCell(cell))
+          );
 
-        let iteration = 0;
-        let inputs = [phases[0], "0"];
+          let iteration = 0;
+          let inputs = [phases[0], "0"];
 
-        while (1) {
-          try {
-            output = runner(amps[iteration % 5], inputs);
-            iteration = iteration + 1;
-            inputs = [phases[iteration % 5], output];
-          } catch (err) {
-            output = err;
-            if (iteration % 5 === 4) {
-              break;
-            } else {
+          while (1) {
+            try {
+              output = runner(amps[iteration % 5], inputs);
               iteration = iteration + 1;
               inputs = [phases[iteration % 5], output];
-              continue;
+            } catch (err) {
+              output = err;
+              if (iteration % 5 === 4) {
+                break;
+              } else {
+                iteration = iteration + 1;
+                inputs = [phases[iteration % 5], output];
+                continue;
+              }
             }
           }
-        }
-        outputs.push({ phases, output });
-      });
+          outputs.push({ phases, output });
+        });
 
-    outputs.sort((a, b) => parseInt(b.output) - parseInt(a.output));
-    console.log(outputs[0]);
-  }
-);
+      outputs.sort((a, b) => parseInt(b.output) - parseInt(a.output));
+      console.log(outputs[0]);
+    }
+  );
+}
+
+// solve()
+
+module.exports = { runner };
