@@ -3,18 +3,20 @@ const path = require("path");
 
 const empty = ".";
 
+const toCoords = point => point.split(".").map(x => parseInt(x));
+
 const blockedByObject = (asteroids, pointA, pointC) => {
   const targets = Object.keys(asteroids).filter(
     key => key !== pointC && key !== pointA
   );
 
-  const [xA, yA] = pointA.split(".").map(x => parseInt(x));
-  const [xC, yC] = pointC.split(".").map(x => parseInt(x));
+  const [xA, yA] = toCoords(pointA);
+  const [xC, yC] = toCoords(pointC);
 
   //   const slope = [yC - yA, xC - xA]; // future optimization
 
   const blockedBy = targets.find(key => {
-    const [xB, yB] = key.split(".").map(x => parseInt(x));
+    const [xB, yB] = toCoords(key);
 
     if (
       xB <= Math.max(xA, xC) &&
@@ -31,8 +33,8 @@ const blockedByObject = (asteroids, pointA, pointC) => {
 };
 
 const distance = (pointA, pointC) => {
-  const [xA, yA] = pointA.split(".").map(x => parseInt(x));
-  const [xC, yC] = pointC.split(".").map(x => parseInt(x));
+  const [xA, yA] = toCoords(pointA);
+  const [xC, yC] = toCoords(pointC);
   return Math.abs(xC - xA) + Math.abs(yC - yA);
 };
 
@@ -68,8 +70,8 @@ const toPolar = ([dx, dy]) => {
 };
 
 const calcAngle = (pointA, pointC) => {
-  const [xA, yA] = pointA.split(".").map(x => parseInt(x));
-  const [xC, yC] = pointC.split(".").map(x => parseInt(x));
+  const [xA, yA] = toCoords(pointA);
+  const [xC, yC] = toCoords(pointC);
   return toPolar([xC - xA, yC - yA]);
 };
 
@@ -147,6 +149,7 @@ fs.readFile(
           .map(key => withAngle[key][rotation])
           .filter(x => x);
 
+        console.log("Rotation:", rotation, "Destroyed:", destroyed.length);
         return [...prev, ...destroyed];
       },
       []
