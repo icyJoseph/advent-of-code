@@ -36,7 +36,7 @@ function runner(memory, input) {
           output = data;
           memory.state = {
             output,
-            pointer: pointer + next,
+            pointer: pointer + skip,
             relativeBase
           };
         }
