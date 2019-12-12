@@ -1,6 +1,15 @@
 const fs = require("fs");
 const path = require("path");
 
+function gcd(a, b) {
+  if (!b) return b === 0 ? a : NaN;
+  return gcd(b, a % b);
+}
+
+function lcm(a, b) {
+  return (a / gcd(a, b)) * b;
+}
+
 const applyGravity = (position, otherMoons, vComponent, axis) => {
   const _axisPos = position[axis];
   const _relAxisPos = otherMoons.map(x => x[0]).map(pos => pos[axis]);
@@ -34,7 +43,6 @@ fs.readFile(
   (err, data) => {
     if (err) return console.log(err);
 
-    const steps = 1000;
     const initial = [0, 0, 0];
 
     const moons = data
@@ -48,34 +56,49 @@ fs.readFile(
       )
       .map(moon => [moon, initial]);
 
-    const universe = {};
+    let last = moons;
+    let periods = [];
+    let step = 0;
 
-    const simulated = Array.from({ length: steps }, (_, i) => i).reduce(
-      prev => {
-        const [last] = prev.slice(-1);
-        const curr = last.map((moon, i) =>
-          newPosition(moon, last.slice(0, i).concat(last.slice(i + 1)))
-        );
+    const axes = [0, 1, 2];
+    let [xSnapshots, ySnapshots, zSnapshots] = axes.map(() => new Set());
 
-        const snapshot = curr
-          .slice(0)
-          .flat(Infinity)
-          .join(".");
+    while (periods.filter(x => x).length < 3) {
+      const newPositions = last.map((moon, i) =>
+        newPosition(
+          moon,
+          last.filter((_, j) => j !== i)
+        )
+      );
 
-        universe[snapshot] = true;
+      const [x, y, z] = [0, 1, 2].map(axis =>
+        newPositions.map(([pos, vel]) => `${pos[axis]}.${vel[axis]}`).join(".")
+      );
 
-        return prev.concat([curr]);
-      },
-      [moons]
-    );
+      if (!periods[0] && xSnapshots.has(x)) {
+        console.log("found x", step);
+        periods[0] = step;
+      } else {
+        xSnapshots.add(x);
+      }
+      if (!periods[1] && ySnapshots.has(y)) {
+        console.log("found y", step);
+        periods[1] = step;
+      } else {
+        ySnapshots.add(y);
+      }
+      if (!periods[2] && zSnapshots.has(z)) {
+        console.log("found z", step);
+        periods[2] = step;
+      } else {
+        zSnapshots.add(z);
+      }
 
-    const [end] = simulated.slice(-1);
+      step = step + 1;
+      last = newPositions;
+    }
 
-    const totalEnergy = end
-      .map(x => x.map(y => energy(y)))
-      .map(x => x[0] * x[1])
-      .reduce((acc, curr) => curr + acc, 0);
-
-    console.log(totalEnergy);
+    const systemPeriod = periods.reduce(lcm);
+    console.log(systemPeriod);
   }
 );
