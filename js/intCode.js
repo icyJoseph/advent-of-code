@@ -289,7 +289,7 @@ function runner(memory, input) {
             pointer: pointer + skip,
             relativeBase
           };
-          if (output.length === 2) {
+          if (output.length === 3) {
             break outer;
           }
         }
