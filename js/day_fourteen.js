@@ -4,20 +4,11 @@ const path = require("path");
 const ORE = "ORE";
 const FUEL = "FUEL";
 
-const balanceEq = (left, right, amount) => {
-  const [_coef] = right.trim().split(" ");
-  const coef = Math.ceil(amount / parseInt(_coef));
-
-  const parts = left
-    .split(",")
-    .map(sub => sub.trim().split(" "))
-    .map(([q, name]) => `${parseInt(q) * coef} ${name}`);
-
-  return parts;
-};
+let needed = { [FUEL]: 1 };
+let leftovers = {};
 
 fs.readFile(
-  path.resolve(__dirname, "../", "input/example.in"),
+  path.resolve(__dirname, "../", "input/day_fourteen.in"),
   "utf-8",
   (err, data) => {
     if (err) return console.log(err);
@@ -26,89 +17,62 @@ fs.readFile(
 
     const equations = reactions.reduce((prev, reaction) => {
       const equation = reaction.split("=>");
-
-      if (equation[1].includes(FUEL)) {
-        return prev;
-      }
-
       return [...prev, equation];
     }, []);
 
-    const [fuelEq] = reactions.filter(equation => equation.includes(FUEL));
+    while (1) {
+      const keys = Object.keys(needed);
+      if (keys.length === 1 && keys[0] === ORE) {
+        break;
+      } else {
+        keys.forEach(key => {
+          if (key === ORE) return;
 
-    const [components] = fuelEq.split("=>");
-
-    const basics = equations.filter(equation => {
-      const [left] = equation;
-      return left.includes(ORE);
-    });
-
-    const basicKeys = basics.reduce((prev, curr) => {
-      const [, right] = curr;
-      const [, name] = right.trim().split(" ");
-
-      return {
-        ...prev,
-        [name]: true
-      };
-    }, {});
-
-    console.log({ basicKeys });
-
-    const calculators = basics.reduce((prev, curr) => {
-      const [left, right] = curr;
-      const [_ore] = left.split(" ");
-      const [_coef, name] = right.trim().split(" ");
-
-      return {
-        ...prev,
-        [name]: amount => {
-          return parseInt(_ore) * Math.ceil(amount / parseInt(_coef));
-        }
-      };
-    }, {});
-
-    let toBasics = components.split(",");
-
-    let done = false;
-
-    while (!done) {
-      toBasics = toBasics
-        .map(component => component.trim().split(" "))
-        .map(([amount, name]) => {
-          const equation = equations.find(expr => {
-            const [left, right] = expr;
-            return right.includes(name) && !left.includes(ORE);
+          const equation = equations.find(equation => {
+            const [, right] = equation;
+            return right.includes(key);
           });
 
-          if (equation) {
-            return balanceEq(...equation, parseInt(amount));
+          const [left, right] = equation;
+
+          let { [key]: value } = needed;
+
+          const [required, chemical] = right.trim().split(" ");
+
+          const excess = required * Math.ceil(value / required) - value;
+
+          // do we make more than we need?
+          if (excess > 0) {
+            leftovers[chemical] = excess;
           }
-          return `${amount} ${name}`;
-        })
-        .flat();
 
-      done = toBasics.every(equation => {
-        const [, key] = equation.split(" ");
-        return basicKeys[key];
-      });
+          left.split(",").forEach(input => {
+            const [qty, name] = input.trim().split(" ");
+            const amount = qty * Math.ceil(value / required);
+
+            const newNeto = (needed[name] || 0) + amount;
+            const leftOver = leftovers[name] || 0;
+            if (leftOver === 0) {
+              // nothing left over
+              needed[name] = newNeto;
+            } else if (leftOver > amount) {
+              // don't need more
+              leftovers[name] = leftOver - amount;
+            } else {
+              // use up whatever is leftover
+              needed[name] = newNeto - leftOver;
+              leftovers[name] = 0;
+            }
+          });
+
+          let { [key]: omit, ...rest } = needed;
+
+          needed = rest;
+        });
+      }
     }
-
-    const summary = toBasics.reduce((prev, curr) => {
-      const [amount, name] = curr.split(" ");
-      return {
-        ...prev,
-        [name]: prev[name] ? prev[name] + parseInt(amount) : parseInt(amount)
-      };
-    }, {});
-
-    console.log({ basics, summary });
-
-    const total = Object.keys(summary).reduce((prev, curr) => {
-      const fn = calculators[curr](summary[curr]);
-      return fn + prev;
-    }, 0);
-
-    console.log(total);
+    console.log(needed);
   }
 );
+
+// right 1590844
