@@ -259,7 +259,7 @@ function parseCell(cell) {
 }
 
 function runner(memory, input) {
-  let output = [];
+  let output;
   let pointer = 0;
   let relativeBase = 0;
 
@@ -283,15 +283,13 @@ function runner(memory, input) {
         }
 
         if (data) {
-          output.push(data);
+          output = data;
           memory.state = {
             output,
             pointer: pointer + skip,
             relativeBase
           };
-          if (output.length === 3) {
-            break outer;
-          }
+          break;
         }
 
         if (jumpTo !== undefined) {

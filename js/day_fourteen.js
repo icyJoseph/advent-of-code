@@ -4,8 +4,7 @@ const path = require("path");
 const ORE = "ORE";
 const FUEL = "FUEL";
 
-let needed = { [FUEL]: 1 };
-let leftovers = {};
+const ONE_TRILLION = 1000000000000;
 
 fs.readFile(
   path.resolve(__dirname, "../", "input/day_fourteen.in"),
@@ -20,59 +19,73 @@ fs.readFile(
       return [...prev, equation];
     }, []);
 
-    while (1) {
-      const keys = Object.keys(needed);
-      if (keys.length === 1 && keys[0] === ORE) {
-        break;
-      } else {
-        keys.forEach(key => {
-          if (key === ORE) return;
+    let ore = 0;
+    let start = 1180000;
 
-          const equation = equations.find(equation => {
-            const [, right] = equation;
-            return right.includes(key);
-          });
+    while (ore !== ONE_TRILLION) {
+      let needed = { [FUEL]: start };
+      let leftovers = {};
 
-          const [left, right] = equation;
+      inner: while (1) {
+        const keys = Object.keys(needed);
+        if (keys.length === 1 && keys[0] === ORE) {
+          ore = needed[ORE];
+          break inner;
+        } else {
+          keys.forEach(key => {
+            if (key === ORE) return;
 
-          let { [key]: value } = needed;
+            const equation = equations.find(equation => {
+              const [, right] = equation;
+              return right.includes(key);
+            });
 
-          const [required, chemical] = right.trim().split(" ");
+            const [left, right] = equation;
 
-          const excess = required * Math.ceil(value / required) - value;
+            let { [key]: value } = needed;
 
-          // do we make more than we need?
-          if (excess > 0) {
-            leftovers[chemical] = excess;
-          }
+            const [required, chemical] = right.trim().split(" ");
 
-          left.split(",").forEach(input => {
-            const [qty, name] = input.trim().split(" ");
-            const amount = qty * Math.ceil(value / required);
+            const excess = required * Math.ceil(value / required) - value;
 
-            const newNeto = (needed[name] || 0) + amount;
-            const leftOver = leftovers[name] || 0;
-            if (leftOver === 0) {
-              // nothing left over
-              needed[name] = newNeto;
-            } else if (leftOver > amount) {
-              // don't need more
-              leftovers[name] = leftOver - amount;
-            } else {
-              // use up whatever is leftover
-              needed[name] = newNeto - leftOver;
-              leftovers[name] = 0;
+            // do we make more than we need?
+            if (excess > 0) {
+              leftovers[chemical] = excess;
             }
+
+            left.split(",").forEach(input => {
+              const [qty, name] = input.trim().split(" ");
+              const amount = qty * Math.ceil(value / required);
+
+              const newNeto = (needed[name] || 0) + amount;
+              const leftOver = leftovers[name] || 0;
+              if (leftOver === 0) {
+                // nothing left over
+                needed[name] = newNeto;
+              } else if (leftOver > amount) {
+                // don't need more
+                leftovers[name] = leftOver - amount;
+              } else {
+                // use up whatever is leftover
+                needed[name] = newNeto - leftOver;
+                leftovers[name] = 0;
+              }
+            });
+
+            let { [key]: omit, ...rest } = needed;
+
+            needed = rest;
           });
+        }
+      }
 
-          let { [key]: omit, ...rest } = needed;
-
-          needed = rest;
-        });
+      console.log(start, ore);
+      if (ore > ONE_TRILLION) {
+        start = start - 1;
+      } else if (ore < ONE_TRILLION) {
+        start = start + 1;
       }
     }
-    console.log(needed);
+    console.log({ ore, start, missing: ONE_TRILLION - ore });
   }
 );
-
-// right 1590844
