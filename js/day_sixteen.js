@@ -3,31 +3,31 @@ const path = require("path");
 
 const oneDigit = num => (Math.abs(num) > 9 ? num % 10 : num);
 
-const FFT = (inputs, iteration, base) => {
-  const zipLen = inputs.length;
+const toSlice = iteration => step => {
+  const from = (2 * step + 1) * iteration + 2 * step;
+  const to = from + iteration;
+  return { from, to, multiplier: step % 2 === 0 ? 1 : -1 };
+};
 
-  const _inputs = inputs.slice(iteration);
+const FFT = (inputs, iteration) => {
+  const fn = toSlice(iteration);
+  let accumulated = 0;
+  let k = 0;
+  it: while (1) {
+    const { from, to, multiplier } = fn(k);
 
-  const pattern = base
-    .map(x => Array.from({ length: iteration + 1 }, () => x))
-    .flat();
+    const sub =
+      inputs.slice(from, to + 1).reduce((acc, curr) => acc + curr, 0) *
+      multiplier;
 
-  const repeats = Math.floor(zipLen / pattern.length);
-  const tail = zipLen % pattern.length;
+    accumulated = accumulated + sub;
 
-  const head = pattern.shift();
-
-  pattern.push(head);
-
-  const zip = Array.from({ length: repeats }, () => pattern)
-    .concat(pattern.slice(0, tail))
-    .flat()
-    .slice(iteration);
-
-  return oneDigit(
-    // Math.abs(inputs.reduce((acc, curr, index) => acc + curr * zip[index], 0))
-    Math.abs(_inputs.reduce((acc, curr, index) => acc + curr * zip[index], 0))
-  );
+    k = k + 1;
+    if (to > inputs.length) {
+      break it;
+    }
+  }
+  return oneDigit(Math.abs(accumulated));
 };
 
 fs.readFile(
