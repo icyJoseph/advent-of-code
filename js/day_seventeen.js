@@ -3,7 +3,7 @@ const path = require("path");
 const intCode = require("./intCode");
 
 const SCAFFOLD = "#";
-const SPACE = ".";
+const SPACE = "•";
 const NEWLINE = "\n";
 
 const UP = "^";
@@ -12,14 +12,14 @@ const LEFT = "<";
 const RIGHT = ">";
 const LOST = "X";
 
-const isRobot = code => {
-  return [UP, DOWN, LEFT, RIGHT].includes(code);
-};
-
 const ASCII_SCAFOLD = "35";
 const ASCII_SPACE = "46";
 const ASCII_NEWLINE = "10";
 const ASCII_LOST = "94";
+
+const isRobot = code => {
+  return [UP, DOWN, LEFT, RIGHT].includes(code);
+};
 
 const drawScreen = canvas =>
   console.log(
@@ -29,7 +29,8 @@ const drawScreen = canvas =>
   );
 
 const drawPixel = code => {
-  if (isRobot(code)) return code;
+  if (isRobot(code)) return String.fromCharCode(code);
+
   switch (code) {
     case ASCII_SCAFOLD:
       return SCAFFOLD;
@@ -40,8 +41,36 @@ const drawPixel = code => {
     case ASCII_LOST:
       return LOST;
     default:
-      throw new Error(`Invalid Code ${code}`);
+      //   console.log("Odd code", code);
+      return String.fromCharCode(code);
   }
+};
+
+const parseCode = code => {
+  const ret = code
+    .split("\n")
+    .map(row => row.trim())
+    .filter(e => e)
+    .map(row =>
+      row
+        .split(",")
+        .map(code => code.split("").map(x => x.charCodeAt(0)))
+        // .flat(Infinity)
+        // .map(res => {
+        //   console.log(res);
+        //   return res;
+        // })
+        .reduce((prev, curr, index, src) => {
+          if (index === src.length || index === 0) {
+            return [...prev, curr];
+          }
+          return [...prev, `${",".charCodeAt(0)}`, curr];
+        }, [])
+        .flat(Infinity)
+        .concat(ASCII_NEWLINE)
+    );
+
+  return ret.flat().map(x => `${x}`);
 };
 
 // left to right characters
@@ -52,16 +81,33 @@ fs.readFile(
   (err, data) => {
     if (err) return console.log(err);
 
-    const program = data.split(",").map(x => intCode.parseCell(x));
+    const program = ["2", ...data.split(",").slice(1)]
+      .flat()
+      .map(x => intCode.parseCell(x));
+
+    const code = `
+    A,A,B,C,C,A,B,C,A,B
+    L,12,L,12,R,12
+    L,8,L,8,R,12,L,8,L,8
+    L,10,R,8,R,12
+    y
+    `;
+
+    console.log("Compiling");
+    const input = parseCode(code);
+    // console.log(input);
+
     let outputs = [];
 
     try {
       while (1) {
-        const output = intCode.runner(program);
+        const output = intCode.runner(program, input);
+        // console.log("output", output, String.fromCharCode(output));
         outputs.push(output);
       }
     } catch (e) {
-      console.log(e);
+      console.log("Err", e);
+      drawScreen(outputs);
     }
 
     const width = outputs.findIndex(x => x === ASCII_NEWLINE) + 1;
@@ -71,8 +117,6 @@ fs.readFile(
     const plot = Array.from({ length: height }, (_, i) =>
       outputs.slice(i * width, (i + 1) * width)
     ).filter(x => x.length === width);
-
-    console.log(plot);
 
     const nodes = plot
       .map((row, y) => {
@@ -98,9 +142,8 @@ fs.readFile(
     const alignment = nodes.reduce((prev, { x, y }) => prev + x * y, 0);
 
     console.log(width, height);
-    console.log(outputs);
-    drawScreen(outputs);
-    console.log(nodes);
+    // console.log(nodes);
     console.log(alignment);
+    console.log("dust", outputs[outputs.length - 1]);
   }
 );

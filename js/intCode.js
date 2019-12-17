@@ -112,7 +112,7 @@ const mutateMemory = (
         operationModeIO(firstInputMode, first, memory, relativeBase)
       ] = parseCell(`${input}`);
 
-      return { skip: 2 };
+      return { skip: 2, increaseInputPointer: true };
 
     case "4":
       const read = operationModeIO(firstInputMode, first, memory, relativeBase);
@@ -262,24 +262,36 @@ function runner(memory, input) {
   let output;
   let pointer = 0;
   let relativeBase = 0;
+  let inputPointer = 0;
 
   if (memory.state) {
     pointer = memory.state.pointer;
     relativeBase = memory.state.relativeBase;
+    inputPointer = memory.state.inputPointer;
   }
 
   try {
     outer: while (true) {
       if (memory[pointer].operation) {
-        const { skip = 0, data, jumpTo, newRelativeBase } = mutateMemory(
+        const {
+          skip = 0,
+          data,
+          jumpTo,
+          newRelativeBase,
+          increaseInputPointer
+        } = mutateMemory(
           memory,
           memory[pointer],
           pointer,
-          input,
+          input[inputPointer],
+
           relativeBase
         );
         if (newRelativeBase !== undefined) {
           relativeBase = newRelativeBase;
+        }
+        if (increaseInputPointer) {
+          inputPointer = inputPointer + 1;
         }
 
         if (data) {
@@ -287,7 +299,8 @@ function runner(memory, input) {
           memory.state = {
             output,
             pointer: pointer + skip,
-            relativeBase
+            relativeBase,
+            inputPointer
           };
           break;
         }
