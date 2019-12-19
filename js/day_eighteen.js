@@ -7,6 +7,9 @@ const ENTRANCE = "@";
 const keys = "abcdefghijklmnopqrstuvwxyz";
 const doors = keys.toUpperCase();
 
+const bots = ["1", "2", "3", "4"];
+const isEntrance = cell => bots.includes(cell);
+
 const isKey = cell => keys.includes(cell);
 const isDoor = cell => doors.includes(cell);
 const isKeyOrDoor = cell => isKey(cell) || isDoor(cell);
@@ -67,7 +70,7 @@ const toNodeMap = maze => {
       ...prev,
       ...row.reduce((acc, cell, x) => {
         // only from keys or the entrance
-        if (keys.includes(cell) || cell === ENTRANCE) {
+        if (isKey(cell) || isEntrance(cell)) {
           return { ...acc, [cell]: distanceToRest([x, y], maze) };
         }
         return acc;
@@ -92,41 +95,50 @@ fs.readFile(
 
     const allKeys = [...new Set(keyNodes)];
 
-    let start = {
-      [`${ENTRANCE}.${""}`]: 0
-    };
+    let totalPossibilites = [];
 
-    const possibilities = allKeys.reduce(prev => {
-      let next = {};
+    for (const bot of bots) {
+      const possibilities = allKeys.reduce(
+        prev => {
+          let next = {};
 
-      Object.entries(prev).forEach(([meta, _distance]) => {
-        const [curr, currKeys] = meta.split(".");
+          Object.entries(prev).forEach(([meta, _distance]) => {
+            const [curr, currKeys] = meta.split(".");
 
-        for (let undone of allKeys) {
-          if (!currKeys.includes(undone)) {
-            let { distance, path } = nodeMap[curr][undone];
+            for (let undone of allKeys) {
+              if (!currKeys.includes(undone)) {
+                if (nodeMap[curr][undone]) {
+                  let { distance, path } = nodeMap[curr][undone];
 
-            const reachable = isReachable(path, currKeys);
+                  const reachable = isReachable(path, currKeys);
 
-            if (reachable) {
-              distance = distance + _distance;
-              let newKeys = [...new Set([...currKeys, undone])];
+                  if (reachable) {
+                    distance = distance + _distance;
+                    let newKeys = [...new Set([...currKeys, undone])];
 
-              const newMeta = `${undone}.${newKeys.sort().join("")}`;
+                    const newMeta = `${undone}.${newKeys.sort().join("")}`;
 
-              const largerDistance = distance < (next[newMeta] || 0);
+                    const largerDistance = distance < (next[newMeta] || 0);
 
-              if (!next[newMeta] || largerDistance) {
-                next[newMeta] = distance;
+                    if (!next[newMeta] || largerDistance) {
+                      next[newMeta] = distance;
+                    }
+                  }
+                }
               }
             }
-          }
+          });
+          return next;
+        },
+        {
+          [`${bot}.${""}`]: 0
         }
-      });
-      return next;
-    }, start);
+      );
 
+      console.log("loop", Object.values(possibilities));
+      totalPossibilites.push(possibilities);
+    }
     console.log(nodeMap);
-    console.log("loop", Object.values(possibilities));
+    console.log(totalPossibilites);
   }
 );

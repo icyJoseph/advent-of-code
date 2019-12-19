@@ -267,7 +267,7 @@ function runner(memory, input) {
   if (memory.state) {
     pointer = memory.state.pointer;
     relativeBase = memory.state.relativeBase;
-    inputPointer = memory.state.inputPointer;
+    // inputPointer = memory.state.inputPointer;
   }
 
   try {
@@ -284,7 +284,6 @@ function runner(memory, input) {
           memory[pointer],
           pointer,
           input[inputPointer],
-
           relativeBase
         );
         if (newRelativeBase !== undefined) {
@@ -300,7 +299,7 @@ function runner(memory, input) {
             output,
             pointer: pointer + skip,
             relativeBase,
-            inputPointer
+            // inputPointer
           };
           break;
         }
