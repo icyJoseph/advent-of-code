@@ -53,26 +53,29 @@ fs.readFile(
     If there is ground at the given distance, the register will be true; 
     if there is a hole, the register will be false.
 
+    For part one D & (!A || !B || !C) works
+    For part two extend with (E || H) => D & (!A || !B || !C) & (E || H)
 
-    NOT A T => set T as true when there's a hole in A
-    
-    ######A##########
-    #####AB##########
-
-    #####A##D########
-
-    #####ABC#########
-    #####AB#C########
+    One must reset the Temp variable!
+    NOT T T
+    AND T T
 
     */
 
     const code = `
+    NOT B T
+    OR T J
+    NOT A T
+    OR T J
     NOT C T
     OR T J
     AND D J
-    NOT A T
-    OR T J
-    WALK
+    NOT T T
+    AND T T
+    OR E T
+    OR H T
+    AND T J
+    RUN
     `;
 
     const input = parseCode(code);
