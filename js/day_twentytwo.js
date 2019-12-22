@@ -46,18 +46,46 @@ const reducer = (deck, action) => {
   }
 };
 
+const indexReducer = length => (index, action) => {
+  switch (action.type) {
+    case NEW_STACK:
+      const middle =
+        length % 2 === 0 ? (length - 1) / 2 : Math.floor(length / 2);
+      if (index < middle) {
+        return middle + (middle - index);
+      } else if (index > middle) {
+        return middle + middle - index;
+      }
+      return index;
+    case INCREMENT:
+      const increment = action.payload;
+      return (index * increment) % length;
+    case CUT:
+      const cut = Math.abs(action.payload);
+      if (action.payload < 0) {
+        const offset = length - cut;
+        if (index < cut) {
+          return index + cut;
+        }
+        return index - offset;
+      } else {
+        if (index < cut) {
+          // index inside the cut
+          return length - cut + index;
+        }
+        return index - cut;
+      }
+  }
+};
+
 fs.readFile(
   path.resolve(__dirname, "../", "input/day_twentytwo.in"),
   "utf-8",
   (err, data) => {
     if (err) return console.log(err);
 
-    const length = 10007;
-    // still ordered from 0 to 10006
-
-    const deck = Array.from({ length }, (_, i) => i);
-
     const instructions = data.split("\n");
+
     const actions = instructions.map(instruction => {
       if (instruction.includes(NEW_STACK)) {
         return { type: NEW_STACK, payload: null };
@@ -72,20 +100,25 @@ fs.readFile(
       }
     });
 
-    const newDeck = actions.reduce(
-      (prev, curr) => {
-        const next = reducer(prev, curr);
-        if (next.length !== deck.length) {
-          console.log(curr);
-          throw new Error(`${curr.type} ${curr.payload}`);
-        }
-        return next;
-      },
-      [...deck]
-    );
+    const length = 10007 || 119_315_717_514_047;
+    const total = 1 || 101_741_582_076_661;
 
-    console.log(newDeck);
+    let iteration = 0;
+    let result;
 
-    console.log(newDeck.indexOf(2019));
+    const reducer = indexReducer(length);
+
+    while (iteration < total) {
+      //   if (iteration % 100 === 0) console.log(iteration);
+      result = actions.reduce((prev, action) => {
+        return reducer(prev, action);
+      }, 2019);
+
+      iteration = iteration + 1;
+    }
+
+    console.log({ result });
+
+    // part one: 7860
   }
 );
