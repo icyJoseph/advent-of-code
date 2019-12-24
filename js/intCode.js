@@ -56,7 +56,8 @@ const mutateMemory = (
   },
   index,
   input,
-  relativeBase
+  relativeBase,
+  address
 ) => {
   if (operation === "99") {
     throw new Error("HALT");
@@ -108,9 +109,13 @@ const mutateMemory = (
 
       return { skip: 4 };
     case "3":
+      const next = input.read ? input.read(address) : input;
+      if (!input.read) {
+        console.log("Booting", address);
+      }
       memory[
         operationModeIO(firstInputMode, first, memory, relativeBase)
-      ] = parseCell(`${input}`);
+      ] = parseCell(`${next}`);
 
       return { skip: 2, increaseInputPointer: true };
 
@@ -258,63 +263,57 @@ function parseCell(cell) {
   return { cell };
 }
 
-function runner(memory, input) {
-  let output;
+function runner(memory, address, input) {
+  let output = [];
   let pointer = 0;
   let relativeBase = 0;
-  let inputPointer = 0;
+  let running = false;
 
   if (memory.state) {
+    output = memory.state.output;
     pointer = memory.state.pointer;
     relativeBase = memory.state.relativeBase;
-    inputPointer = memory.state.inputPointer;
+    running = memory.state.running;
   }
 
   try {
-    outer: while (true) {
-      if (memory[pointer].operation) {
-        const {
-          skip = 0,
-          data,
-          jumpTo,
-          newRelativeBase,
-          increaseInputPointer
-        } = mutateMemory(
-          memory,
-          memory[pointer],
-          pointer,
-          input[inputPointer],
-          relativeBase
-        );
-        if (newRelativeBase !== undefined) {
-          relativeBase = newRelativeBase;
-        }
-        if (increaseInputPointer) {
-          inputPointer = inputPointer + 1;
-        }
+    if (memory[pointer].operation) {
+      const { skip = 0, data, jumpTo, newRelativeBase } = mutateMemory(
+        memory,
+        memory[pointer],
+        pointer,
+        running ? input : address,
+        relativeBase,
+        address
+      );
+      running = true;
+      if (newRelativeBase !== undefined) {
+        relativeBase = newRelativeBase;
+      }
 
-        if (data) {
-          output = data;
-          memory.state = {
-            output,
-            pointer: pointer + skip,
-            relativeBase,
-            inputPointer
-          };
-          break;
-        }
+      if (data !== undefined) {
+        console.log({ data });
+        output.push(data);
+      }
 
-        if (jumpTo !== undefined) {
-          pointer = jumpTo;
-          continue outer;
-        } else {
-          pointer = pointer + skip;
-        }
+      if (jumpTo !== undefined) {
+        pointer = jumpTo;
+      } else {
+        pointer = pointer + skip;
       }
     }
   } catch (err) {
+    console.log(err);
     throw err;
   }
+
+  memory.state = {
+    output,
+    pointer,
+    relativeBase,
+    running
+  };
+  // console.log(output);
   return output;
 }
 
