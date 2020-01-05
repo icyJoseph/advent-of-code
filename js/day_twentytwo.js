@@ -77,38 +77,6 @@ const indexReducer = length => (index, action) => {
   }
 };
 
-const inverseIndexReducer = length => (index, action) => {
-  switch (action.type) {
-    case NEW_STACK:
-      return length - index - 1n;
-    case INCREMENT:
-      const increment = action.payload;
-      let coef = 0n;
-      let origin;
-      while (1) {
-        if ((coef * length + index) % increment === 0n) {
-          origin = (coef * length + index) / increment;
-          break;
-        }
-        coef = coef + 1n;
-      }
-      return origin;
-    case CUT:
-      const cut = Math.abs(action.payload);
-      if (action.payload < 0n) {
-        if (index < cut) {
-          return index + length - cut;
-        }
-        return index - cut;
-      } else {
-        if (index < length - cut) {
-          return cut + index - length;
-        }
-        return index + cut;
-      }
-  }
-};
-
 const linearEqReducer = length => ([a, b], action) => {
   switch (action.type) {
     case NEW_STACK:
@@ -160,6 +128,12 @@ const inverse = length => (m, b, y) => {
 
 const fastInverse = length => m => {
   // https://www.cs.cmu.edu/~adamchik/21-127/lectures/congruences_print.pdf
+  // Fermat's little theorem
+  // a ^ p -1 = 1;
+  // a * x % L = 1;
+  // a * x = a ^ p - 1
+  // x = a ^ p - 2
+  // a * x % L = r => (a ^ p - 2) * r
   const bin = (length - 2n)
     .toString(2)
     .split("")
@@ -182,7 +156,9 @@ fs.readFile(
   "utf-8",
   (err, data) => {
     if (err) return console.log(err);
+
     console.group("Part 1");
+
     const instructions = data.split("\n");
 
     const actions = instructions.map(instruction => {
@@ -201,8 +177,6 @@ fs.readFile(
 
     const small = 10007n;
     const large = 119_315_717_514_047n;
-
-    const total = 101_741_582_076_661n;
 
     // part 1
     const reducer = linearEqReducer(small);
@@ -223,10 +197,6 @@ fs.readFile(
 
     // m transforms as k * m;
     // b transforms as p * b + q;
-    const Am = [
-      [m, 0n],
-      [0n, 0n]
-    ];
 
     const [, p_q] = actions.reduce((prev, action) => reducer(prev, action), [
       0n,
@@ -235,13 +205,16 @@ fs.readFile(
 
     const q = b;
     const p = (p_q - q) % small;
-    const Ab = [
-      [p, q],
-      [0n, 1n]
+
+    const A = [
+      [m, 0n, 0n, 0n],
+      [0n, 0n, 0n, 0n],
+      [0n, 0n, p, q],
+      [0n, 0n, 0n, 1n]
     ];
 
-    const [[m_0]] = dotProduct(small)(Am, [[1n], [0n]]);
-    const [[b_0]] = dotProduct(small)(Ab, [[0n], [1n]]);
+    const initial = [[1n], [0n], [0n], [1n]];
+    const [[m_0], _, [b_0]] = dotProduct(small)(A, initial);
 
     console.assert(m_0 === m);
     console.assert(b_0 === b);
@@ -250,7 +223,6 @@ fs.readFile(
     console.log(`Card ${x_1} is now at position ${y}`);
 
     // proving that using matrices works
-
     const [m_2, b_2] = actions.reduce((prev, action) => reducer(prev, action), [
       m,
       b
@@ -266,27 +238,30 @@ fs.readFile(
       b_3
     ]);
 
-    const Am2 = dotProduct(small)(Am, Am);
-    const Ab2 = dotProduct(small)(Ab, Ab);
-    const Am4 = dotProduct(small)(Am2, Am2);
-    const Ab4 = dotProduct(small)(Ab2, Ab2);
-    const [[m_4_]] = dotProduct(small)(Am4, [[1n], [0n]]);
-    const [[b_4_]] = dotProduct(small)(Ab4, [[0n], [1n]]);
+    // passing through the reducer 4 times is the same as A^4 times the initial vector
+    const A2 = dotProduct(small)(A, A);
+    const A4 = dotProduct(small)(A2, A2);
+    const [[m_4_], , [b_4_]] = dotProduct(small)(A4, initial);
 
     console.assert(m_4 === smallNormalizer(m_4_));
     console.assert(b_4 === smallNormalizer(b_4_));
     console.groupEnd();
+
     // part 2
 
     console.group("Part 2");
+    const total = 101_741_582_076_661n;
+
     const binary = BigInt(total)
       .toString(2)
       .split("")
       .reverse();
 
     const I = [
-      [1n, 0n],
-      [0n, 1n]
+      [1n, 0n, 0n, 0n],
+      [0n, 1n, 0n, 0n],
+      [0n, 0n, 1n, 0n],
+      [0n, 0n, 0n, 1n]
     ];
 
     const largeReducer = linearEqReducer(large);
@@ -303,57 +278,36 @@ fs.readFile(
       [0n, 1n]
     );
 
-    // M varies with this matrix
-    const AX = [
-      [M, 0n],
-      [0n, 0n]
-    ];
-
     const Q = B;
     const P = (P_Q - Q) % large;
 
-    // B varies with this matrix
-    const AB = [
-      [P, Q],
-      [0n, 1n]
+    // M and B vary with this matrix
+    const A_Large = [
+      [M, 0n, 0n, 0n],
+      [0n, 0n, 0n, 0n],
+      [0n, 0n, P, Q],
+      [0n, 0n, 0n, 1n]
     ];
 
     // modular matrix multiplication
     const matrixMult = dotProduct(large);
 
-    const mMatrices = binary
+    const matrices = binary
       .reduce(
         (prev, _) => {
           const [last] = prev.slice(-1);
           return [...prev, matrixMult(last, last)];
         },
-        [AX]
+        [A_Large]
       )
       .filter((_, index) => binary[index] === "1");
 
-    const mMatrix = mMatrices.reduce((prev, curr) => {
-      return matrixMult(prev, curr);
-    }, I);
+    const matrix = matrices.reduce((prev, curr) => matrixMult(prev, curr), I);
 
-    const bMatrices = binary
-      .reduce(
-        (prev, _) => {
-          const [last] = prev.slice(-1);
-          return [...prev, matrixMult(last, last)];
-        },
-        [AB]
-      )
-      .filter((_, index) => binary[index] === "1");
-
-    const bMatrix = bMatrices.reduce((prev, curr) => {
-      return matrixMult(prev, curr);
-    }, I);
-
-    const [[M_]] = matrixMult(mMatrix, [[1n], [0n]]);
-
-    const [[B_]] = matrixMult(bMatrix, [[0n], [1n]]);
+    const [[M_], , [B_]] = matrixMult(matrix, initial);
 
     const largeNormalizer = normal(large);
+
     const M_large = largeNormalizer(M_);
     const B_large = largeNormalizer(B_);
 
