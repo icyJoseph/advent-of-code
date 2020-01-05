@@ -46,6 +46,7 @@ const reducer = (deck, action) => {
   }
 };
 
+// notice from here how each pass is just a linear transformation
 const indexReducer = length => (index, action) => {
   switch (action.type) {
     case NEW_STACK:
@@ -90,9 +91,9 @@ const linearEqReducer = length => ([a, b], action) => {
   }
 };
 
-const normal = length => val => {
+const mod = length => val => {
   if (val < 0n) {
-    return length - normal(length)(-val);
+    return length - mod(length)(-val);
   }
   return val % length;
 };
@@ -122,33 +123,62 @@ const inverse = length => (m, b, y) => {
     }
     k = k + 1n;
   }
-  // for length very large, this would take very long
-  return normal(length)(c / m);
+  // for length very large, this takes very long
+  return mod(length)(c / m);
 };
 
-const fastInverse = length => m => {
-  // https://www.cs.cmu.edu/~adamchik/21-127/lectures/congruences_print.pdf
-  // Fermat's little theorem
-  // a ^ p -1 = 1;
-  // a * x % L = 1;
-  // a * x = a ^ p - 1
-  // x = a ^ p - 2
-  // a * x % L = r => (a ^ p - 2) * r
-  const bin = (length - 2n)
+const binaryExp = length => (
+  number,
+  seed,
+  prod = (x, y) => (x * y) % length,
+  identity = 1n
+) => {
+  const binary = number
     .toString(2)
     .split("")
     .reverse();
 
-  return bin
+  return binary
     .reduce(
       prev => {
         const [last] = prev.slice(-1);
-        return [...prev, (last * last) % length];
+        return [...prev, prod(last, last)];
       },
-      [m]
+      [seed]
     )
-    .filter((_, i) => bin[i] === "1")
-    .reduce((prev, curr) => (prev * curr) % length, 1n);
+    .filter((_, i) => binary[i] === "1")
+    .reduce((prev, curr) => prod(prev, curr), identity);
+};
+
+const fastModInv = length => m => {
+  // https://www.cs.cmu.edu/~adamchik/21-127/lectures/congruences_print.pdf
+  // Fermat's little theorem
+  // m ^ p -1 = 1;
+  // which means that in
+  // m * x % L = 1;
+  // we can replace
+  // m * x = m ^ p - 1
+  // and return
+  // x = m ^ p - 2
+  // so we have to calculate m ^ length - 2n
+  // PROOF:
+  // length must be PRIME and m < length, L = length
+  // all values of n % L for L prime and 0 < n < L are:
+  // 1,2,3,4,...,L-1 % L on all, set 1
+  // m * (1,2,3,...,L-1) % L on all
+  // m,2m,3m,...,m(L-1) % L on all, set 2
+  // 1. set 1 and 2 contain all different numbers
+  // 2. none of their elements is a multiple of L
+  // Conclusion: set 1 and set 2 are the same, but rearranged
+  // because a * b = b * a
+  // m * 2m * 3m *....* m (L-1) % L on all = 1 * 2 * 3 *...* L - 1 % L on all
+  // m ^ (L-1) * (L-1)! % L = (L-1)! % L
+  // since (L-1)! is not a factor of L prime, then
+  // m ^ (L-1) % L= 1 % L
+  // Finally, m * x % L = m ^ (L-1) % L => x = m ^ (L-2)
+  // Another way is to say m * m ^ -1 * m ^ (L-1) % L = 1 => m * m ^(L-2) % L = 1 = m * x % L
+  // so x = m ^ (L-2)
+  return binaryExp(length)(length - 2n, m);
 };
 
 fs.readFile(
@@ -157,6 +187,7 @@ fs.readFile(
   (err, data) => {
     if (err) return console.log(err);
 
+    // part 1
     console.group("Part 1");
 
     const instructions = data.split("\n");
@@ -176,9 +207,7 @@ fs.readFile(
     });
 
     const small = 10007n;
-    const large = 119_315_717_514_047n;
 
-    // part 1
     const reducer = linearEqReducer(small);
 
     const [m, b] = actions.reduce((prev, action) => reducer(prev, action), [
@@ -186,7 +215,7 @@ fs.readFile(
       0n
     ]);
 
-    const smallNormalizer = normal(small);
+    const smallNormalizer = mod(small);
     const smallInverter = inverse(small);
 
     const x = 2019n;
@@ -197,7 +226,7 @@ fs.readFile(
 
     // m transforms as k * m;
     // b transforms as p * b + q;
-
+    // calculate p_q
     const [, p_q] = actions.reduce((prev, action) => reducer(prev, action), [
       0n,
       1n
@@ -250,19 +279,8 @@ fs.readFile(
     // part 2
 
     console.group("Part 2");
+    const large = 119_315_717_514_047n;
     const total = 101_741_582_076_661n;
-
-    const binary = BigInt(total)
-      .toString(2)
-      .split("")
-      .reverse();
-
-    const I = [
-      [1n, 0n, 0n, 0n],
-      [0n, 1n, 0n, 0n],
-      [0n, 0n, 1n, 0n],
-      [0n, 0n, 0n, 1n]
-    ];
 
     const largeReducer = linearEqReducer(large);
 
@@ -291,37 +309,41 @@ fs.readFile(
 
     // modular matrix multiplication
     const matrixMult = dotProduct(large);
+    // we need an identity value for a product
+    const I = [
+      [1n, 0n, 0n, 0n],
+      [0n, 1n, 0n, 0n],
+      [0n, 0n, 1n, 0n],
+      [0n, 0n, 0n, 1n]
+    ];
 
-    const matrices = binary
-      .reduce(
-        (prev, _) => {
-          const [last] = prev.slice(-1);
-          return [...prev, matrixMult(last, last)];
-        },
-        [A_Large]
-      )
-      .filter((_, index) => binary[index] === "1");
-
-    const matrix = matrices.reduce((prev, curr) => matrixMult(prev, curr), I);
+    // calculates M, M^2, M^4,...for all digits and keeps those
+    // with digit equal to 1 in the binary input
+    // returns M * M ^2 * M ^ 4 (matrices is already filtered)
+    const matrix = binaryExp(large)(total, A_Large, matrixMult, I);
 
     const [[M_], , [B_]] = matrixMult(matrix, initial);
 
-    const largeNormalizer = normal(large);
+    const largeNormalizer = mod(large);
 
     const M_large = largeNormalizer(M_);
     const B_large = largeNormalizer(B_);
 
-    console.log(`After ${total} shuffles: ${M_large}*x+ ${B_large}`);
+    console.log(
+      `After ${total} shuffles, linear transform: ${M_large} * x + ${B_large}`
+    );
 
-    const largeModInverter = fastInverse(large);
+    const modInverter = fastModInv(large);
 
-    // solving m*x_large % L = r
-    // first m*x_inv_mod % L = 1
+    // solving M * x_large % L = r
+    // first M * x_inv_mod % L = 1
     // then x_large = x_inv_mod * r
+    // because m * x % L = r => (m ^ p - 2) * r
+    // where x_inv_mod = m ^ p - 2
     const req = 2020n;
-    const x_inv = largeModInverter(M_large);
+    const x_inv_mod = modInverter(M_large);
     const r = largeNormalizer(req - B_large);
-    const x_large = largeNormalizer(x_inv * r);
+    const x_large = largeNormalizer(x_inv_mod * r);
 
     console.log(`Card at position ${req}, was originally: ${x_large}`);
 
