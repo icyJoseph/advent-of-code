@@ -4,53 +4,67 @@ const intCode = require("./intCode");
 
 function Buffer(address) {
   return {
+    addr: address,
     q: [],
     _q: [],
+    readEmptyQ: 0,
     buff(x, y) {
-      this._q.push(y, x);
+      this._q.push(x, y);
     },
     flush() {
-      this.q.push(...this._q);
+      this.q = [...this.q, ...this._q];
       this._q = [];
     },
-    add(x, y) {
-      this.q.push(y, x);
+    overwrite(x, y) {
+      this.q = [x, y];
     },
-    read(reader) {
-      const ret = this.q.pop() || -1;
-      //   console.log("Reading", address, "Reader", reader, {
-      //     ret,
-      //     next: this.q,
-      //     buffed: this._q
-      //   });
-
+    drain() {
+      const ret = [...this.q];
+      this.q = [];
       return ret;
     },
+    read() {
+      if (this.q.length === 0) {
+        this.readEmptyQ = this.readEmptyQ + 1;
+        return -1;
+      }
+
+      const ret = this.q.shift();
+      this.readEmptyQ = 0;
+      return ret;
+    },
+    isIdle() {
+      return (
+        this.q.length === 0 && this._q.length === 0 && this.readEmptyQ > 1000
+      );
+    },
     inspect() {
-      console.log(this.q, this._q);
+      console.log("Inspect", {
+        address,
+        q: this.q,
+        _q: this._q
+      });
     }
   };
 }
 
 function NetworkInterfaceController(data, address, bus) {
   let program = [...data.split(",").map(x => intCode.parseCell(x))];
+  let output = [];
 
-  return () => {
+  return it => {
     try {
-      const output = intCode.runner(program, address, bus[address]);
+      output = intCode.runner(program, address, bus[address]);
       if (output.length === 3) {
         const [dest, x, y] = output;
-        // console.log("Output from Address", address, {
-        //   output
-        // });
-        // bus[address].inspect();
-        // bus[dest].inspect();
+
+        console.log(it, `${address} -> [x:${x}, y:${y}] -> ${dest}`);
 
         if (dest === "255") {
-          console.log({ x, y });
-          throw y;
+          bus.monitor.overwrite(x, y);
+        } else {
+          bus[parseInt(dest)].buff(x, y);
         }
-        bus[parseInt(dest)].buff(x, y);
         program.state.output = [];
       }
     } catch (e) {
@@ -65,19 +79,53 @@ fs.readFile(
   (err, data) => {
     if (err) return console.log(err);
 
-    const bus = Array.from({ length: 50 }, (_, i) => new Buffer(i));
+    const NAT = Array.from({ length: 50 }, (_, i) => new Buffer(i));
+
+    NAT.monitor = new Buffer(255);
 
     const network = Array.from({ length: 50 }, (_, i) => {
-      return new NetworkInterfaceController(data, i, bus);
+      return new NetworkInterfaceController(data, i, NAT);
     });
 
+    const natY = [];
+    let it = 0;
+    let idleNat = "";
     try {
       while (1) {
-        bus.forEach(buffer => buffer.flush());
-        network.forEach(network => network());
+        NAT.forEach(buffer => buffer.flush());
+
+        network.forEach(runner => runner(it));
+
+        const idle = NAT.every(buffer => buffer.isIdle());
+
+        const idle_ = NAT.filter(buff => buff.isIdle())
+          .map(buffer => buffer.addr)
+          .join(",");
+
+        if (idleNat !== idle_) {
+          console.log(it, "Idle:", idle_);
+          idleNat = idle_;
+          NAT.monitor.inspect();
+        }
+
+        if (idle) {
+          const [x, y] = NAT.monitor.drain();
+          console.log(it, "All IDLE. Sending:", { x, y });
+
+          if (y && x) {
+            natY.push(y);
+
+            if (natY[natY.length - 2] === natY[natY.length - 1]) {
+              throw natY[natY.length - 2];
+            }
+
+            NAT[0].buff(x, y);
+          }
+        }
+        it = it + 1;
       }
     } catch (e) {
-      console.log("Y", e);
+      console.log("First successive Y", e);
     }
   }
 );

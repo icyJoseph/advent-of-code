@@ -6,7 +6,7 @@ const operations = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "99"];
 const emptyMemory = { cell: "0" };
 
 const readOrEmpty = (memory, index) =>
-  memory[parseInt(index)] ? memory[parseInt(index)] : { ...emptyMemory };
+  memory[BigInt(index)] ? memory[BigInt(index)] : { ...emptyMemory };
 
 function operationMode(mode, index, memory, relativeBase) {
   switch (mode) {
@@ -23,7 +23,7 @@ function operationMode(mode, index, memory, relativeBase) {
     case relativeMode:
       return readOrEmpty(
         memory,
-        parseInt(operationModeIO(mode, index, memory, relativeBase))
+        BigInt(operationModeIO(mode, index, memory, relativeBase))
       ).cell;
     default:
       throw new Error("Bad MODE");
@@ -33,13 +33,12 @@ function operationMode(mode, index, memory, relativeBase) {
 function operationModeIO(mode, index, memory, relativeBase) {
   switch (mode) {
     case positionMode:
-      return parseInt(readOrEmpty(memory, index).cell);
+      return BigInt(readOrEmpty(memory, index).cell);
     case immediateMode:
       return index;
     case relativeMode:
       return (
-        parseInt(relativeBase) +
-        parseInt(readOrEmpty(memory, parseInt(index)).cell)
+        BigInt(relativeBase) + BigInt(readOrEmpty(memory, BigInt(index)).cell)
       );
     default:
       throw new Error("Bad MODE");
@@ -113,6 +112,7 @@ const mutateMemory = (
       if (!input.read) {
         console.log("Booting", address);
       }
+
       memory[
         operationModeIO(firstInputMode, first, memory, relativeBase)
       ] = parseCell(`${next}`);
@@ -139,7 +139,7 @@ const mutateMemory = (
         relativeBase
       );
 
-      if (parseInt(firstNonZero) !== 0) {
+      if (firstNonZero !== "0") {
         return { jumpTo: parseInt(pointer) };
       }
       return { skip: 3 };
@@ -160,7 +160,7 @@ const mutateMemory = (
         relativeBase
       );
 
-      if (parseInt(firstZero) === 0) {
+      if (firstZero === "0") {
         return { jumpTo: parseInt(jumpTo) };
       }
       return { skip: 3 };
@@ -292,7 +292,7 @@ function runner(memory, address, input) {
       }
 
       if (data !== undefined) {
-        console.log({ data });
+        // console.log({ data });
         output.push(data);
       }
 
@@ -313,7 +313,7 @@ function runner(memory, address, input) {
     relativeBase,
     running
   };
-  // console.log(output);
+
   return output;
 }
 
