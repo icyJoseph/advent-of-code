@@ -47,47 +47,81 @@ const reducer = (deck, action) => {
 };
 
 // notice from here how each pass is just a linear transformation
-const indexReducer = length => (index, action) => {
+const _indexReducer = length => (index, action) => {
   switch (action.type) {
     case NEW_STACK:
-      const middle = length % 2n === 0n ? (length - 1n) / 2n : length / 2;
-      if (index < middle) {
+      const middle = length % 2n === 0n ? (length - 1n) / 2n : length / 2n;
+      if (index !== middle) {
         return middle + (middle - index);
-      } else if (index > middle) {
-        return middle + middle - index;
       }
       return index;
     case INCREMENT:
       const increment = action.payload;
       return (index * increment) % length;
     case CUT:
-      const cut = Math.abs(action.payload);
-      if (action.payload < 0n) {
-        const offset = length - cut;
+      const cut = action.payload;
+      if (cut < 0n) {
         if (index < cut) {
-          return index + cut;
+          return index - cut;
         }
-        return index - offset;
+        return index - length - cut;
       } else {
         if (index < cut) {
-          // index inside the cut
-          return length - cut + index;
+          return index + length - cut;
         }
         return index - cut;
       }
   }
 };
 
-const linearEqReducer = length => ([a, b], action) => {
+// an even better approach
+const __indexReducer = length => (index, action) => {
   switch (action.type) {
     case NEW_STACK:
-      return [-a % length, (length - 1n - b) % length];
+      return length - 1n - index;
     case INCREMENT:
       const increment = action.payload;
-      return [(a * increment) % length, (b * increment) % length];
+      return (index * increment) % length;
     case CUT:
       const cut = action.payload;
-      return [a % length, (b - cut) % length];
+      if (cut < 0n) {
+        if (index < cut) {
+          return index - cut;
+        }
+        return index - length - cut;
+      } else {
+        if (index < cut) {
+          return index + length - cut;
+        }
+        return index - cut;
+      }
+  }
+};
+
+// a very curated indexReducer, after applying %length to the cut outputs
+const indexReducer = length => (index, action) => {
+  switch (action.type) {
+    case NEW_STACK:
+      return length - 1n - index;
+    case INCREMENT:
+      const increment = action.payload;
+      return (index * increment) % length;
+    case CUT:
+      const cut = action.payload;
+      return index - cut;
+  }
+};
+
+const linearEqReducer = length => ([m, b], action) => {
+  switch (action.type) {
+    case NEW_STACK:
+      return [-m % length, (length - 1n - b) % length];
+    case INCREMENT:
+      const increment = action.payload;
+      return [(m * increment) % length, (b * increment) % length];
+    case CUT:
+      const cut = action.payload;
+      return [m % length, (b - cut) % length];
   }
 };
 
@@ -214,6 +248,10 @@ fs.readFile(
       1n,
       0n
     ]);
+
+    // console.log(
+    //   actions.reduce((prev, curr) => _indexReducer(10007n)(prev, curr), 2019n)
+    // );
 
     const smallNormalizer = mod(small);
     const smallInverter = inverse(small);
@@ -342,7 +380,7 @@ fs.readFile(
     // where x_inv_mod = m ^ p - 2
     const req = 2020n;
     const x_inv_mod = modInverter(M_large);
-    const r = largeNormalizer(req - B_large);
+    const r = req - B_large;
     const x_large = largeNormalizer(x_inv_mod * r);
 
     console.log(`Card at position ${req}, was originally: ${x_large}`);
