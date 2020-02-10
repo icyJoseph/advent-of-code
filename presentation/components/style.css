@@ -1,3 +1,12 @@
+:root {
+  --intro-time: 6;
+  --intro-time-delay: 1;
+  --logo-time: 5;
+  --logo-time-delay: calc(var(--intro-time) + var(--intro-time-delay) + 1);
+  --crawl-time: 30;
+  --crawl-time-delay: calc(var(--logo-time) + var(--logo-time-delay) + 1);
+}
+
 .fade {
   position: relative;
   width: 100%;
@@ -30,7 +39,8 @@
   font-weight: 400;
   color: rgb(75, 213, 238);
   opacity: 0;
-  animation: intro 6s ease-out 1s;
+  animation: intro calc(var(--intro-time) * 1s) ease-out
+    calc(var(--intro-time-delay) * 1s);
 }
 
 .logo {
@@ -42,7 +52,8 @@
   color: #feda4a;
   z-index: 1;
   opacity: 0;
-  animation: logo 9s ease-out 8s;
+  animation: logo calc(var(--logo-time) * 1s) ease-out
+    calc(var(--logo-time-delay) * 1s);
 }
 
 .crawl {
@@ -50,7 +61,8 @@
   top: 99999px;
   transform-origin: 100% 100%;
   will-change: top transform;
-  animation: crawl 30s 18s linear;
+  animation: crawl calc(var(--crawl-time) * 1s) linear
+    calc(var(--crawl-time-delay) * 1s);
 }
 
 .crawl > .title {

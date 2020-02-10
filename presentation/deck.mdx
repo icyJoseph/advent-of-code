@@ -1,4 +1,4 @@
-import { themes } from "mdx-deck";
+import { themes, Split } from "mdx-deck";
 import { Crawl } from "./components/Crawl";
 import { Highlighter } from './components/Highlighter';
 
@@ -8,9 +8,16 @@ import EvolveLeaderboard from './assets/evolve-leaderboard.png';
 
 
 export const theme = themes.future;
+theme.styles = {
+  ...themes.future.styles, 
+  li: {
+    ...themes.future.styles.li,
+    margin:'0.25em'
+  }
+}
 
 
-# AoC 2019
+# AoC 2019 🎅
 
 ---
 
@@ -37,94 +44,23 @@ export const theme = themes.future;
 
 ---
 
-## Stats
+## Stats 🌟🌟
 
 <img src={Stats} alt="Stats" style={{width:'600px'}} />
 
 ---
 
-## How did my client do?
+## How did my client do? 🥈
 
 <img src={AdfenixLeaderboard} alt="Adfenix LeaderBoard"  style={{width:'900px'}} />
 
 ---
 
-## How did we do?
+## How did we do? 🥇
 
 
 <img src={EvolveLeaderboard} alt="Evolve LeaderBoard"  style={{width:'900px'}}/>
 
-
----
-
-## Solving Day 1
-
-To find the fuel required for a module take its mass:
-
-- divide by three,
-- round down,
-- and subtract 2.
-
----
-
-<Highlighter language="rust" >
-{`pub fn calc_fuel_for_mass(mass: i32) -> i32 {
-    (mass / 3) - 2
-}`}
-</Highlighter>
-
----
-
-## The input
-
-Text file with the mass of each module on each line:
-
-<Highlighter language="text">
-{`143843
-144558
-116244
-58650`}
-</Highlighter>
-
-
----
-
-<Highlighter language="rust">
-  {`pub fn solve_day_one(filename: &str) -> i32 {
-    let masses = fs::read_to_string(filename).expect("Error reading input");
-    
-    masses
-        .split_terminator("\\n")
-        .map(|mod_mass| mod_mass.parse::<i32>().unwrap())
-        .fold(0, |acc, mod_mass| {
-            acc + day_one::calc_fuel_for_mass_and_fuel(mod_mass)
-        })
-}`}
-</Highlighter>
-
----
-
-<p style={{textAlign:'center', padding:'2em'}}>
-  What is the sum of the fuel requirements for all of the modules on your
-  spacecraft?
-</p>
-
-
----
-
-<p  style={{padding:'2em'}}>
-
-Fuel itself requires fuel just like a module. 
-
-However, that fuel also requires fuel, and that fuel requires fuel, and so on.
-
-</p>
-
-----
-
-<p style={{padding:'2em'}}>
-    What is the sum of the fuel requirements for all of the modules on your spacecraft when also taking into account the mass of the added fuel?
-</p>
 
 ---
 
@@ -133,87 +69,226 @@ However, that fuel also requires fuel, and that fuel requires fuel, and so on.
 
 ---
 
-## All
+## The Calendar
 
-- Day 1: The Tyranny of the Rocket Equation
-  - Recursion and the rocket equation
-- Day 2: 1202 Program Alarm 
-  - Int Code / Parsing :computer:
-- Day 3: Crossed Wires 
-  - Vectors crossing
+- _Day 1: The Tyranny of the Rocket Equation_
+  - Recursion and the rocket equation 🚀🚀
+- _Day 2: 1202 Program Alarm_ 
+  - **Int Code**: Parse instructions 📖
+- _Day 3: Crossed Wires_
+  - Vectors crossing ↗️ ↘️
 
 ---
 
-- Day 4: Secure Container
-  - Number range validation
-- Day 5: Sunny with a Chance of Asteroids 
-  - Int Code / Diagnosis of ship (Mercury)
-- Day 6: Universal Orbit Map
+- _Day 4: Secure Container_
+  - Number validation within a range
+- _Day 5: Sunny with a Chance of Asteroids_
+  - **Int Code**: Diagnosis of ship 🚀 🏥
+  - In Mercury
+- _Day 6: Universal Orbit Map_
   - Tree node 🌴
 
 ---
 
-- Day 7: Amplification Circuit 🔥🔥
-  - Several Int Code Machine / Multi-thread 💻 ➕ 💻
-- Day 8: Space Image Format
-  - Pixel Matrix 📸
-- Day 9: Sensor Boost 
-  - Leaving Mars! Complete the Int Code Machine
+- _Day 7: Amplification Circuit_ 🔥🔥
+  - **Int Code**: Multi-thread 💻 ➕ 💻
+- _Day 8: Space Image Format_
+  - Pixel Matrix 📸 📸 📸
+- _Day 9: Sensor Boost_
+  - **Int Code**: Complete the Int Code Machine
+  - Leaving Mars! 
 
 ---
 
-- Day 10: Monitoring Station 🔥
-  - Trigonometry / ArcTan
-- Day 11: Space Police
-  - Int Code /More Pixel Matrices
-- Day 12: The N-Body Problem 🔥🔥🔥
-  - Simulated Physics / Periodicity in Chaos
+- _Day 10: Monitoring Station_ 🔥
+  - Trigonometry. Fun with arctan 📐
+- _Day 11: Space Police_
+  - **Int Code**: Run a Pixel Matrix Program 👮‍♀
+- _Day 12: The N-Body Problem_ 🔥🔥🔥
+  - Simulated Physics / Periodicity in Chaos 🌞 🌍 🌎
 
 ---
 
-- Day 13: Care Package 
-  - Int Code / Pinball machine (tons of pixel matrices) 👾
-- Day 14: Space Stoichiometry 🔥🔥🔥
-  - Parsing and cache updates and invalidations ⚗️
-- Day 15: Oxygen System
-  - Int Code / Unknown Maze, and propagation
+- _Day 13: Care Package_ 
+  - **Int Code**: Run a Pinball machine 🎮
+  - Tons of pixel matrices
+- _Day 14: Space Stoichiometry_ 🔥🔥🔥
+  - Parsing 📖
+  - Cache updates and invalidations 📑
+- _Day 15: Oxygen System_
+  - **Int Code**: Command a robot in an unknown maze 🤖
+  - Propagate a signal through the maze
 
 ---
 
-- Day 16: Flawed Frequency Transmission 🔥🔥
+- _Day 16: Flawed Frequency Transmission_ 🔥🔥🔥
   - Fourier Fast Transform <br/> Flawed Frequency Transmission (FFT)
-- Day 17: Set and Forget
-  - Int Code / Vector Crossing + Own scripting language
-- Day 18: Many-Worlds Interpretation 🔥🔥🔥🔥
-  - More mazes, which change as you move 👾👾
+- _Day 17: Set and Forget_
+  - **Int Code**: Vector Crossing + Own scripting language
+- _Day 18: Many-Worlds Interpretation_ 🔥🔥🔥🔥
+  - More mazes, which change as you move 
 
 ---
 
-- Day 19: Tractor Beam 🔥
-  -  Int Code / More matrices, and guessing
-- Day 20: Donut Maze 🔥🔥🔥🔥
-  - Multi dimensional mazes!
-- Day 21: Springdroid Adventure 🔥
-  - Int Code / Videogame, with scripting language
+- _Day 19: Tractor Beam_ 🔥
+  -  **Int Code**: More matrices, and guessing 🤗
+- _Day 20: Donut Maze_ 🔥🔥🔥🔥
+  - Multi dimensional mazes! 🍩
+- _Day 21: Springdroid Adventure_ 🔥
+  - **Int Code**: Videogame, with scripting language 🎮
 
 ---
 
-- Day 22: Slam Shuffle 🔥🔥🔥🔥
+- _Day 22: Slam Shuffle_ 🔥🔥🔥🔥
   - Modulo Arithmetic / Crazyyyy
-- Day 23: Category Six 🔥
-  - Int Code Networks!
-- Day 24: Planet of Discord 🔥🔥🔥
-  - Game of Life, with multi dimensions
+- _Day 23: Category Six_ 🔥
+  - **Int Code**: Networking 💻 📦 💻 📦 💻
+- _Day 24: Planet of Discord_ 🔥🔥🔥
+  - Game of Life in multi dimensions
 
 ---
 
-- Day 25 - I don't know 😄
+- Day 25 - I don't know 🙊🎉🙂
 
 ---
 
 ## Filters
 
-- N body
-- Day 7
-- Problem 22
+- Amplification Circuit
+- The N-Body Problem
+- Slam Shuffle
+- Christmas itself 🎅
 
+--- 
+
+## Strategy
+
+- Parse
+- Abstract
+- Attack
+
+
+---
+
+## Day 1 - Part 1
+
+To find the fuel required for a module take its mass:
+
+
+<Split style={{width:'100%'}}>
+<ul style={{listStyle:'none'}}>
+  <li>divide by three,</li>
+  <li>round down,</li>
+  <li>and subtract 2.</li>
+</ul>
+
+<Highlighter language="rust" custom={{width:'75%', marginRight:"1em"}} >
+{`fn calc_fuel_for_mass(mass: i32) -> i32 {
+    (mass / 3) - 2
+}`}
+</Highlighter>
+
+</Split>
+
+---
+
+## The input
+
+<Split>
+  
+  Text file with the mass of each module on each line
+
+<Highlighter language="text">
+{`143843
+144558
+116244
+117881
+138945
+97456
+58650
+117108
+92832
+65454
+134030
+96221`}
+</Highlighter>
+
+</Split>
+
+---
+
+Process the input file:
+
+<Highlighter language="rust">
+  {`fn solve_day_one(filename: &str) -> i32 {
+    let masses = fs::read_to_string(filename).expect("Error reading input");
+    
+    masses
+        .split_terminator("\\n")
+        .map(|mod_mass| mod_mass.parse::<i32>().unwrap())
+        .fold(0, |acc, mod_mass| {
+            acc + day_one::calc_fuel_for_mass(mod_mass)
+        })
+}`}
+</Highlighter>
+
+---
+
+<Split>
+<div style={{width:"100%", padding:'1em'}}>
+  <p style={{textAlign:'center'}}>
+    What is the sum of the fuel requirements for all of the modules on your
+    spacecraft?
+  </p>
+</div>
+
+<Highlighter language="rust" custom={{marginRight:'1em'}}>
+{`fn main() {
+    let args: Vec<String> = env::args().collect();
+    let filename = &args[1];
+    let result = solve_day_one(filename);
+    println!("{}", result);
+}`}
+</Highlighter>
+</Split>
+
+---
+
+## Part 2
+
+- Fuel itself requires fuel just like a module. 
+- However, that fuel also requires fuel, 
+- and that fuel requires fuel, and so on.
+
+
+----
+
+<Split>
+
+<div style={{width:"100%", padding:'1em'}}>
+    <p style={{textAlign:'center'}}>
+      What is the sum of the fuel requirements for all
+      <br/> of the modules on your spacecraft when also taking into account the mass of the added fuel?
+    </p>
+</div>
+<Highlighter language="rust" custom={{marginRight:'1em'}}>
+  {`fn calc_fuel_for_mass(mass: i32) -> i32 {
+    (mass / 3) - 2
+} \n 
+fn calc_fuel_for_mass_and_fuel(mass: i32) -> i32 {
+    let fuel = calc_fuel_for_mass(mass);
+    
+    if fuel <= 0 {
+        return 0;
+    }
+    return fuel + calc_fuel_for_mass_and_fuel(fuel);
+}`}
+</Highlighter>
+
+</Split>
+
+---
+
+## What's next?
+
+HashCode!
