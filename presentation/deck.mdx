@@ -18,7 +18,9 @@ theme.styles = {
 }
 
 
-# AoC 2019 🎅
+# AoC 2019 🎅🎄
+
+Repo including slides [here](https://github.com/icyJoseph/advent-of-code)
 
 ---
 
@@ -65,17 +67,19 @@ theme.styles = {
 
 ---
 
+## The calendar
+
 🔥 = Kinda difficult <br/>
 🔥🔥🔥🔥🔥 = Oh wow!
 
 ---
 
-## The Calendar
-
 - _Day 1: The Tyranny of the Rocket Equation_
-  - Recursion and the rocket equation 🚀🚀
+  - Recursion and the rocket equation 🚀🚀 
+  - Take off
 - _Day 2: 1202 Program Alarm_ 
-  - **Int Code**: Parse instructions 📖
+  - **Int Code**: Learn to parse a program 📖
+  - Arrive at the Moon
 - _Day 3: Crossed Wires_
   - Vectors crossing ↗️ ↘️
 
@@ -83,9 +87,10 @@ theme.styles = {
 
 - _Day 4: Secure Container_
   - Number validation within a range
+  - Arrive at Venus
 - _Day 5: Sunny with a Chance of Asteroids_
   - **Int Code**: Diagnosis of ship 🚀 🏥
-  - In Mercury
+  - Arrive at Mercury
 - _Day 6: Universal Orbit Map_
   - Tree node 🌴
 
@@ -94,7 +99,8 @@ theme.styles = {
 - _Day 7: Amplification Circuit_ 🔥🔥
   - **Int Code**: Multi-thread 💻 ➕ 💻
 - _Day 8: Space Image Format_
-  - Pixel Matrix 📸 📸 📸
+  - Pixel Matrix 📸 📸 📸 to get a Password
+  - Mars!
 - _Day 9: Sensor Boost_
   - **Int Code**: Complete the Int Code Machine
   - Leaving Mars! 
@@ -105,6 +111,7 @@ theme.styles = {
   - Trigonometry. Fun with arctan 📐
 - _Day 11: Space Police_
   - **Int Code**: Run a Pixel Matrix Program 👮‍♀
+  - On Jupiter's orbit
 - _Day 12: The N-Body Problem_ 🔥🔥🔥
   - Simulated Physics / Periodicity in Chaos 🌞 🌍 🌎
 
@@ -114,8 +121,8 @@ theme.styles = {
   - **Int Code**: Run a Pinball machine 🎮
   - Tons of pixel matrices
 - _Day 14: Space Stoichiometry_ 🔥🔥🔥
-  - Parsing 📖
   - Cache updates and invalidations 📑
+  - Rigns of Saturn
 - _Day 15: Oxygen System_
   - **Int Code**: Command a robot in an unknown maze 🤖
   - Propagate a signal through the maze
@@ -123,11 +130,13 @@ theme.styles = {
 ---
 
 - _Day 16: Flawed Frequency Transmission_ 🔥🔥🔥
-  - Fourier Fast Transform <br/> Flawed Frequency Transmission (FFT)
+  - Fourier Fast Transform
+  - Matrix tricks
 - _Day 17: Set and Forget_
   - **Int Code**: Vector Crossing + Own scripting language
 - _Day 18: Many-Worlds Interpretation_ 🔥🔥🔥🔥
-  - More mazes, which change as you move 
+  - More mazes, which change as you move
+  - Approaching Neptune
 
 ---
 
@@ -135,8 +144,9 @@ theme.styles = {
   -  **Int Code**: More matrices, and guessing 🤗
 - _Day 20: Donut Maze_ 🔥🔥🔥🔥
   - Multi dimensional mazes! 🍩
+  - Pluto (not a planet)
 - _Day 21: Springdroid Adventure_ 🔥
-  - **Int Code**: Videogame, with scripting language 🎮
+  - **Int Code**: Run another videogame, with a scripting language 🎮
 
 ---
 
@@ -146,7 +156,7 @@ theme.styles = {
   - **Int Code**: Networking 💻 📦 💻 📦 💻
 - _Day 24: Planet of Discord_ 🔥🔥🔥
   - Game of Life in multi dimensions
-
+  - Eris (also not a planet)
 ---
 
 - Day 25 - I don't know 🙊🎉🙂
@@ -171,7 +181,7 @@ theme.styles = {
 
 ---
 
-### The Tyranny of the Rocket Equation (1)
+### 1: The Tyranny of the Rocket Equation (1)
 
 To find the fuel required for a module take its mass:
 
@@ -255,7 +265,7 @@ Process the input file:
 
 ---
 
-### The Tyranny of the Rocket Equation (2)
+### 1: The Tyranny of the Rocket Equation (2)
 
 - Fuel itself requires fuel just like a module. 
 - However, that fuel also requires fuel, 
@@ -290,7 +300,7 @@ fn calc_fuel_for_mass_and_fuel(mass: i32) -> i32 {
 
 ---
 
-### The N-Body Problem (2)
+### 12: The N-Body Problem (2)
 
 
 <ul>
@@ -307,7 +317,7 @@ fn calc_fuel_for_mass_and_fuel(mass: i32) -> i32 {
 
 ---
 
-### The N-Body Problem (2)
+### 12: The N-Body Problem (2)
 
 <Highlighter language="javascript" fontSize="0.325em">
 {`const applyGravity = (position, otherMoons, vComponent, axis) => {
@@ -405,13 +415,13 @@ function lcm(a, b) {
 
 ---
 
-### The N-Body Problem Answer
+### 12: The N-Body Problem Answer
 
 <Highlighter language="bash">
-  {`found z 102356
-found y 161428
-found x 286332
-Answer: 295693702908636\n
+  {`Found z 102356
+Found y 161428
+Found x 286332
+Answer 295693702908636\n
 1\.36 (secs) real
 1\.54 (secs) user
 0\.06 (secs) sys
@@ -421,15 +431,50 @@ Answer: 295693702908636\n
 
 ---
 
-### Care Package (2)
+### 13: Care Package (2)
+
+<Split style={{width:'90%'}}>
+
+<Highlighter language="javascript" fontSize="0.25em">
+{`while (1) {
+  if (ball.length > 1 && tile && scores.length > 0) {
+    drawScreen(canvas);
+    const [[x0, y0], [x1, y1]] = ball.map(x => x.map(y => parseInt(y)));
+    const [tileX, tileY] = tile.map(x => parseInt(x));
+    const xCross =
+      x1 + Math.floor(((x1 - x0) * (tileY - y1)) / (y1 - y0)) - 1;\n
+    if (y1 > y0) {
+      // ball coming down
+      if (tileX === xCross) {
+        joystick = NEUTRAL;
+      } else if (tileX > xCross) {
+        joystick = LEFT;
+      } else if (tileX < xCross) {
+        joystick = RIGHT;
+      }
+    } else if (y1 < y0) {
+      // ball going up
+      // follow the ball
+      if (x1 > tileX) {
+        joystick = RIGHT;
+      } else if (x1 <= tileX) {
+        joystick = LEFT;
+      } else {
+        joystick = NEUTRAL;
+      }
+    }
+}`}
+</Highlighter>
 
 <video controls width="500">
     <source src={PinballVideo} type="video/mp4"/>
 </video>
 
+</Split>
+
 ---
 
-### Slam Shuffle (2)
+### 22: Slam Shuffle (2)
 
 - Dev.to [article.](https://dev.to/icyjoseph/advent-of-code-day-22-312b-temp-slug-6762054?preview=c6d8855ace4cb7d9d859c8e70ca6771dc8aecf409214a6dc74e93d9aaaf88f9353677c3cd1c163f2868710eb1bfd845f1ae1e13dc17c878eb0ed8dfa)
 
@@ -442,10 +487,69 @@ Answer: 295693702908636\n
 - Explorer your target language
 - Practice parsing techniques
 
+---
+
+<Highlighter language="javascript" fontSize="0.25em">
+{`componentDidMount() {
+    fetchPokemon()
+    .then(res => {
+      const allPokemon = res;
+      this.setState({
+        allPokemon,
+        currentPokemon: allPokemon.slice(0, numOfPokemonShowing),
+      });
+    })
+    .catch(err => {
+      throw err;
+    })
+}\n
+onShowMore = () => 
+    this.setState(prevState => {
+      const startFromIndex = prevState.currentPokemon.length; 
+      return {
+        currentPokemon: [
+          ...prevState.currentPokemon,
+          ...prevState.allPokemon.slice(startFromIndex, startFromIndex + numOfPokemonShowing)
+        ]
+      }
+});\n
+renderPokemon = () => (
+  this.state.currentPokemon.length > 0 && (
+    this.state.currentPokemon.map((pokemon) => (
+      <Pokemon key={pokemon.id} {...pokemon}/>
+    ))
+);`}
+</Highlighter>
+
+---
+
+<Highlighter language="javascript" fontSize="0.25em">
+{`componentDidMount() {
+  fetchPokemon()
+    .then(allPokemon => 
+      this.setState({
+        allPokemon,
+        loading: false,
+        error: false
+      }))
+    .catch(() => this.setState({ ...initialState, error: true }));
+}\n
+onShowMore = () => 
+    this.setState(prevState => ({
+      numOfPokemonShowing: prevState.numOfPokemonShowing + step
+}));\n
+renderPokemon = () =>
+  this.state.allPokemon
+    .slice(0, this.state.numOfPokemonShowing)
+    .map((item) => (
+      <Pokemon key={item.id} {...item}/>
+));`}
+</Highlighter>
+
 
 ---
 
 ## What's next?
 
-- Feb 20th: HashCode
-- April: CodeJam
+- Feb 20th: [HashCode](https://codingcompetitions.withgoogle.com/hashcode)
+- April: [CodeJam](https://codingcompetitions.withgoogle.com/codejam)
