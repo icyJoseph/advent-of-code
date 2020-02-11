@@ -1,6 +1,7 @@
 /target
 node_modules
 **/*.png
+**/*.mp4
 **/*.rs.bk
 Cargo.lock
 /input

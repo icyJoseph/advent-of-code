@@ -25,21 +25,25 @@ const sliceSubGrid = (dimension, height, grid) =>
   grid.slice(dimension * height, (dimension + 1) * height);
 
 const checkAdj = ({ grid, subGrid, y, _y, x, _x, z, height }) => {
+  const trueDimension = z + (grid.length / height - 1) / 2;
+
   const checkOutOfBounds = !subGrid[y + _y] || !subGrid[y + _y][x + _x];
+
   if (checkOutOfBounds) {
-    if (z === 0) {
+    if (trueDimension === 0) {
       // top dimension
       return EMPTY;
     }
-    // otherwise check the upper dimension
-    const upperSubGrid = sliceSubGrid(z - 1, height, grid);
+    // otherwise check the upper dimensiono
+    const upperSubGrid = sliceSubGrid(trueDimension - 1, height, grid);
     return upperSubGrid[2 + _y][2 + _x];
   }
 
   const checkCenter = y + _y === 2 && x + _x === 2;
 
   if (checkCenter) {
-    const lowerSubGrid = sliceSubGrid(z + 1, height, grid);
+    const lowerSubGrid = sliceSubGrid(trueDimension + 1, height, grid);
+
     if (_y === 0 && _x === -1) {
       // DOWN
       return lowerSubGrid[height - 1] || [...EMPTY_ROW];
@@ -63,15 +67,18 @@ const checkAdj = ({ grid, subGrid, y, _y, x, _x, z, height }) => {
       );
     }
   }
+
   return (subGrid[y + _y] || [])[x + _x] || EMPTY;
 };
 
-const adjBugs = (x, y, z, grid, width, height) => {
-  const subGrid = sliceSubGrid(z, height, grid);
+const adjBugs = ({ x, y, z, grid, width, height }) => {
+  const lowerBound = z + (grid.length / height - 1) / 2;
+
+  const subGrid = sliceSubGrid(lowerBound, height, grid);
 
   return surrounding
-    .map(([_x, _y]) => {
-      const ret = checkAdj({
+    .map(([_x, _y]) =>
+      checkAdj({
         grid,
         subGrid,
         y,
@@ -80,15 +87,13 @@ const adjBugs = (x, y, z, grid, width, height) => {
         _x,
         z,
         height
-      });
-      // console.log({ ret, x, y: y % height, z, _y, _x });
-      return ret;
-    })
+      })
+    )
     .flat(Infinity)
     .reduce((prev, curr) => (curr === BUG ? prev + 1 : prev), 0);
 };
 
-const cell = (init, x, y, z, grid, width, height) => {
+const cell = ({ init, x, y, z, grid, width, height }) => {
   return {
     value: init,
     x,
@@ -98,7 +103,14 @@ const cell = (init, x, y, z, grid, width, height) => {
     width,
     height,
     calc() {
-      this.adj = adjBugs(this.x, this.y, this.z, grid, this.width, this.height);
+      this.adj = adjBugs({
+        x: this.x,
+        y: this.y,
+        z: this.z,
+        grid,
+        width: this.width,
+        height: this.height
+      });
     },
     judge() {
       const curr = this.value;
@@ -120,7 +132,8 @@ const cell = (init, x, y, z, grid, width, height) => {
         }
       }
       // update the grid
-      grid[z * height + y][x] = this.value;
+      const lowerBound = z + (grid.length / height - 1) / 2;
+      grid[lowerBound * height + y][x] = this.value;
     }
   };
 };
@@ -129,7 +142,7 @@ const asMap = scan =>
   scan.map(row => `${row.map(cell => cell.value).join("")}`, "").join("\n");
 
 fs.readFile(
-  path.resolve(__dirname, "../", "input/day_twentyfour.in"),
+  path.resolve(__dirname, "../", "input/example.in"),
   "utf-8",
   (err, data) => {
     if (err) return console.log(err);
@@ -142,7 +155,9 @@ fs.readFile(
     }, []);
 
     const scan = grid.map((row, y) =>
-      row.map((val, x) => cell(val, x, y, 0, grid, 5, 5))
+      row.map((val, x) =>
+        cell({ init: val, x, y, z: 0, grid, width: 5, height: 5 })
+      )
     );
 
     console.assert(asMap(scan) === data, "Cannot convert scan back to data");
@@ -153,13 +168,24 @@ fs.readFile(
 
     while (1) {
       const emptyGrid = createEmptyGrid(5, 5);
-      grid.push(...emptyGrid);
-
       const emptyDimension = emptyGrid.map((row, y) =>
-        row.map((val, x) => cell(val, x, y, minute + 1, grid, 5, 5))
+        row.map((val, x) =>
+          cell({ init: val, x, y, z: minute + 1, grid, width: 5, height: 5 })
+        )
       );
 
+      grid.push(...emptyGrid);
       scan.push(...emptyDimension);
+
+      const emptyUpperGrid = createEmptyGrid(5, 5);
+      const upperEmptyDimension = emptyUpperGrid.map((row, y) =>
+        row.map((val, x) =>
+          cell({ init: val, x, y, z: -(minute + 1), grid, width: 5, height: 5 })
+        )
+      );
+
+      grid.unshift(...emptyUpperGrid);
+      scan.unshift(...upperEmptyDimension);
 
       scan.forEach(row => {
         row.forEach(cell => cell.calc());
@@ -180,12 +206,7 @@ fs.readFile(
 
       // snapshots.add(result);
 
-      const partialNumOfBugs = scan
-        .flat(Infinity)
-        .reduce((acc, curr) => (curr.value === BUG ? acc + 1 : acc), 0);
-
-      console.log({ minute, partialNumOfBugs });
-      if (minute >= 210) {
+      if (minute === 10) {
         break;
       }
     }
@@ -194,7 +215,7 @@ fs.readFile(
       .flat(Infinity)
       .reduce((acc, curr) => (curr.value === BUG ? acc + 1 : acc), 0);
 
-    // console.log(scan.flat(Infinity));
+    // console.log(grid);
     console.log({ minute, numOfBugs });
   }
 );

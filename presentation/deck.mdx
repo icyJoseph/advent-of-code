@@ -5,6 +5,7 @@ import { Highlighter } from './components/Highlighter';
 import Stats from './assets/total-stats.png';
 import AdfenixLeaderboard from "./assets/adfenix-leaderboard.png"
 import EvolveLeaderboard from './assets/evolve-leaderboard.png';
+import PinballVideo from './assets/pinball.mp4';
 
 
 export const theme = themes.future;
@@ -170,7 +171,7 @@ theme.styles = {
 
 ---
 
-## Day 1 - Part 1
+## The Tyranny of the Rocket Equation (1)
 
 To find the fuel required for a module take its mass:
 
@@ -254,7 +255,7 @@ Process the input file:
 
 ---
 
-## Part 2
+## The Tyranny of the Rocket Equation (2)
 
 - Fuel itself requires fuel just like a module. 
 - However, that fuel also requires fuel, 
@@ -289,6 +290,162 @@ fn calc_fuel_for_mass_and_fuel(mass: i32) -> i32 {
 
 ---
 
+## The N-Body Problem (2)
+
+
+<ul>
+<li>Position of 4 moons. All starting with velocity zero.</li>
+<li>How many steps does it take to reach the first <br/> state that exactly matches a previous state?</li>
+</ul>
+
+<Highlighter language="text">
+  {`<x=13, y=-13, z=-2>
+<x=16, y=2, z=-15>
+<x=7, y=-18, z=-12>
+<x=-3, y=-8, z=-8>`}
+</Highlighter>
+
+---
+
+### The N-Body Problem (2)
+
+<Highlighter language="javascript" fontSize="0.325em">
+{`const applyGravity = (position, otherMoons, vComponent, axis) => {
+  const _axisPos = position[axis];
+  const _relAxisPos = otherMoons.map(x => x[0][axis]);
+  const change = _relAxisPos.reduce((prev, curr) => {
+    if (_axisPos === curr) return prev;
+    return _axisPos > curr ? prev - 1 : prev + 1;
+  }, 0);\n
+  return vComponent + change;
+};\n
+const newPosition = ([position, velocity], otherMoons) => {
+  const _velocity = velocity.map((vComponent, axis) =>
+    applyGravity(position, otherMoons, vComponent, axis)
+  );
+  const _position = _velocity.map(
+    (rComponent, axis) => position[axis] + rComponent
+  );\n
+  return [_position, _velocity];
+};`}
+
+</Highlighter>
+
+---
+
+<Highlighter language="javascript" fontSize="0.4em" custom={{margin:"1em"}}>
+  {`fs.readFile(
+  path.resolve(__dirname, "../", "input/day_twelve.in"),
+  "utf-8",
+  (err, data) => {
+    if (err) return console.log(err);\n
+    const initial = [0, 0, 0];\n
+    const moons = data
+      .split("\\n")
+      .map(row =>
+        row
+          .replace("<", "")
+          .replace(">", "")
+          .split(",")
+          .map(x => parseInt(x.split("=").pop()))
+      )
+      .map(moon => [moon, initial]);\n
+    let last = moons;\n
+    let periods = [];\n
+    let step = 0;\n
+    let [xSnapshots, ySnapshots, zSnapshots] = [new Set(), new Set(), new Set()];\n
+    while (periods.filter(x => x).length < 3) {
+      const newPositions = last.map((moon, moonIndex) =>
+        newPosition(moon, [
+          ...last.slice(0, moonIndex),
+          ...last.slice(moonIndex + 1)
+        ])
+      );\n
+      const [x, y, z] = [0, 1, 2].map(axis =>
+        newPositions.map(([pos, vel]) => \`\${pos[axis]}.\${vel[axis]}\`).join(".")
+      );\n
+      if (!periods[0] && xSnapshots.has(x)) {
+        periods[0] = step;
+      } else {
+        xSnapshots.add(x);
+      }\n
+      if (!periods[1] && ySnapshots.has(y)) {
+        periods[1] = step;
+      } else {
+        ySnapshots.add(y);
+      }\n
+      if (!periods[2] && zSnapshots.has(z)) {
+        periods[2] = step;
+      } else {
+        zSnapshots.add(z);
+      }\n
+      step = step + 1;
+      last = newPositions;
+    }
+    console.log(periods.reduce(lcm));
+  }
+);`}
+</Highlighter>
+
+---
+
+[LCM](https://www.calculatorsoup.com/calculators/math/lcm.php)
+
+<Highlighter language="javascript">
+{`function gcd(a, b) {
+  if (!b) return b === 0 ? a : NaN;
+  return gcd(b, a % b);
+}\n
+function lcm(a, b) {
+  return (a / gcd(a, b)) * b;
+}
+`}
+</Highlighter>
+
+
+---
+
+### The N-Body Problem Answer
+
+<Highlighter language="bash">
+  {`found z 102356
+found y 161428
+found x 286332
+Answer: 295693702908636\n
+1\.36 (secs) real
+1\.54 (secs) user
+0\.06 (secs) sys
+118% CPU
+`}
+</Highlighter> 
+
+---
+
+## Care Package (2)
+
+<video controls width="500">
+    <source src={PinballVideo} type="video/mp4"/>
+</video>
+
+---
+
+## Slam Shuffle (2)
+
+- Dev.to [article.](https://dev.to/icyjoseph/advent-of-code-day-22-312b-temp-slug-6762054?preview=c6d8855ace4cb7d9d859c8e70ca6771dc8aecf409214a6dc74e93d9aaaf88f9353677c3cd1c163f2868710eb1bfd845f1ae1e13dc17c878eb0ed8dfa)
+
+---
+
+## Does it help in real life? 🦄🦄
+
+- Step out your coding routine
+- Practice breaking down requirements into abstractions
+- Explorer your target language
+- Practice parsing techniques
+
+
+---
+
 ## What's next?
 
-HashCode!
+- Feb 20th: HashCode
+- April: CodeJam

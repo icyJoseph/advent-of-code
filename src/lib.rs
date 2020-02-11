@@ -8,8 +8,10 @@ pub fn solve_day_one(filename: &str) -> i32 {
     let masses = fs::read_to_string(filename).expect("Error reading input");
     masses
         .split_terminator("\n")
-        .map(|x| x.parse::<i32>().unwrap())
-        .fold(0, |acc, x| acc + day_one::calc_fuel_for_mass_and_fuel(x))
+        .map(|mod_mass| mod_mass.parse::<i32>().unwrap())
+        .fold(0, |acc, mod_mass| {
+            acc + day_one::calc_fuel_for_mass_and_fuel(mod_mass)
+        })
 }
 
 pub fn solve_day_two(filename: &str, target_output: usize) -> String {

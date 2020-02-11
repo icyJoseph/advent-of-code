@@ -12,7 +12,7 @@ function lcm(a, b) {
 
 const applyGravity = (position, otherMoons, vComponent, axis) => {
   const _axisPos = position[axis];
-  const _relAxisPos = otherMoons.map(x => x[0]).map(pos => pos[axis]);
+  const _relAxisPos = otherMoons.map(x => x[0][axis]);
 
   const change = _relAxisPos.reduce((prev, curr) => {
     if (_axisPos === curr) {
@@ -20,6 +20,7 @@ const applyGravity = (position, otherMoons, vComponent, axis) => {
     }
     return _axisPos > curr ? prev - 1 : prev + 1;
   }, 0);
+
   return vComponent + change;
 };
 
@@ -52,7 +53,7 @@ fs.readFile(
           .replace("<", "")
           .replace(">", "")
           .split(",")
-          .map(x => parseInt(x.split("=")[1]))
+          .map(x => parseInt(x.split("=").pop()))
       )
       .map(moon => [moon, initial]);
 
@@ -60,15 +61,18 @@ fs.readFile(
     let periods = [];
     let step = 0;
 
-    const axes = [0, 1, 2];
-    let [xSnapshots, ySnapshots, zSnapshots] = axes.map(() => new Set());
+    let [xSnapshots, ySnapshots, zSnapshots] = [
+      new Set(),
+      new Set(),
+      new Set()
+    ];
 
     while (periods.filter(x => x).length < 3) {
-      const newPositions = last.map((moon, i) =>
-        newPosition(
-          moon,
-          last.filter((_, j) => j !== i)
-        )
+      const newPositions = last.map((moon, moonIndex) =>
+        newPosition(moon, [
+          ...last.slice(0, moonIndex),
+          ...last.slice(moonIndex + 1)
+        ])
       );
 
       const [x, y, z] = [0, 1, 2].map(axis =>

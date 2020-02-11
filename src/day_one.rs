@@ -11,6 +11,7 @@ pub fn calc_fuel_for_mass(mass: i32) -> i32 {
 
 pub fn calc_fuel_for_mass_and_fuel(mass: i32) -> i32 {
     let fuel = calc_fuel_for_mass(mass);
+
     if fuel <= 0 {
         return 0;
     }
