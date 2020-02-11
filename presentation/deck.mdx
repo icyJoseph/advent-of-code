@@ -171,7 +171,7 @@ theme.styles = {
 
 ---
 
-## The Tyranny of the Rocket Equation (1)
+### The Tyranny of the Rocket Equation (1)
 
 To find the fuel required for a module take its mass:
 
@@ -183,7 +183,7 @@ To find the fuel required for a module take its mass:
   <li>and subtract 2.</li>
 </ul>
 
-<Highlighter language="rust" custom={{width:'75%', marginRight:"1em"}} >
+<Highlighter language="rust" custom={{width:'90%', marginRight:"1em"}} >
 {`fn calc_fuel_for_mass(mass: i32) -> i32 {
     (mass / 3) - 2
 }`}
@@ -193,7 +193,7 @@ To find the fuel required for a module take its mass:
 
 ---
 
-## The input
+### The input
 
 <Split>
   
@@ -245,17 +245,17 @@ Process the input file:
 
 <Highlighter language="rust" custom={{marginRight:'1em'}}>
 {`fn main() {
-    let args: Vec<String> = env::args().collect();
-    let filename = &args[1];
-    let result = solve_day_one(filename);
-    println!("{}", result);
+  let args: Vec<String> = env::args().collect();
+  let filename = &args[1];
+  let result = solve_day_one(filename);
+  println!("{}", result);
 }`}
 </Highlighter>
 </Split>
 
 ---
 
-## The Tyranny of the Rocket Equation (2)
+### The Tyranny of the Rocket Equation (2)
 
 - Fuel itself requires fuel just like a module. 
 - However, that fuel also requires fuel, 
@@ -272,7 +272,7 @@ Process the input file:
       <br/> of the modules on your spacecraft when also taking into account the mass of the added fuel?
     </p>
 </div>
-<Highlighter language="rust" custom={{marginRight:'1em'}}>
+<Highlighter language="rust" fontSize="0.4em" custom={{marginRight:'1em'}}>
   {`fn calc_fuel_for_mass(mass: i32) -> i32 {
     (mass / 3) - 2
 } \n 
@@ -290,7 +290,7 @@ fn calc_fuel_for_mass_and_fuel(mass: i32) -> i32 {
 
 ---
 
-## The N-Body Problem (2)
+### The N-Body Problem (2)
 
 
 <ul>
@@ -421,7 +421,7 @@ Answer: 295693702908636\n
 
 ---
 
-## Care Package (2)
+### Care Package (2)
 
 <video controls width="500">
     <source src={PinballVideo} type="video/mp4"/>
@@ -429,7 +429,7 @@ Answer: 295693702908636\n
 
 ---
 
-## Slam Shuffle (2)
+### Slam Shuffle (2)
 
 - Dev.to [article.](https://dev.to/icyjoseph/advent-of-code-day-22-312b-temp-slug-6762054?preview=c6d8855ace4cb7d9d859c8e70ca6771dc8aecf409214a6dc74e93d9aaaf88f9353677c3cd1c163f2868710eb1bfd845f1ae1e13dc17c878eb0ed8dfa)
 
