@@ -5,8 +5,11 @@ import { Highlighter } from './components/Highlighter';
 import Stats from './assets/total-stats.png';
 import AdfenixLeaderboard from "./assets/adfenix-leaderboard.png"
 import EvolveLeaderboard from './assets/evolve-leaderboard.png';
+import Day17 from './assets/day17.png';
+import Day21 from './assets/day21.png';
+import Day22 from './assets/day22.png';
+import Day22Notes from './assets/day22-notes.png';
 import PinballVideo from './assets/pinball.mp4';
-
 
 export const theme = themes.future;
 theme.styles = {
@@ -20,13 +23,21 @@ theme.styles = {
 
 # AoC 2019 🎅🎄
 
-Repo including slides [here](https://github.com/icyJoseph/advent-of-code)
+
+<blockquote cite="https://codingcompetitions.withgoogle.com/codejam/round/0000000000051635/0000000000104e03" style={{width:"75%", fontSize:'0.75em', fontWeight:'400'}}>
+<p style={{marginTop:'0'}}>
+Many problems cannot be approached with <strong>random or 
+brute-force</strong> solutions, but identifying the problems that 
+can be (in Code Jam or the real world) is a <strong>useful skill!</strong>
+</p>
+<footer>-Ian Tullis, <cite>Code Jam 2019</cite></footer>
+</blockquote>
 
 ---
 
 <Crawl
   useIntro
-  title="Day 1"
+  title="Episode I"
   subtitle="The Tyranny of the Rocket Equation"
   paragraphs={[
     "Santa has become stranded at the edge of the Solar System while delivering presents to other planets!",
@@ -133,7 +144,8 @@ Repo including slides [here](https://github.com/icyJoseph/advent-of-code)
   - Fourier Fast Transform
   - Matrix tricks
 - _Day 17: Set and Forget_
-  - **Int Code**: Vector Crossing + Own scripting language
+  - **Int Code**: Vector Crossing 
+  - Make a scripting language
 - _Day 18: Many-Worlds Interpretation_ 🔥🔥🔥🔥
   - More mazes, which change as you move
   - Approaching Neptune
@@ -143,10 +155,11 @@ Repo including slides [here](https://github.com/icyJoseph/advent-of-code)
 - _Day 19: Tractor Beam_ 🔥
   -  **Int Code**: More matrices, and guessing 🤗
 - _Day 20: Donut Maze_ 🔥🔥🔥🔥
-  - Multi dimensional mazes! 🍩
+  - More multi dimensional mazes! 🍩
   - Pluto (not a planet)
 - _Day 21: Springdroid Adventure_ 🔥
-  - **Int Code**: Run another videogame, with a scripting language 🎮
+  - **Int Code**: Run another videogame
+  - Reuse scripting language 🎮
 
 ---
 
@@ -167,6 +180,8 @@ Repo including slides [here](https://github.com/icyJoseph/advent-of-code)
 
 - Amplification Circuit
 - The N-Body Problem
+- Many-Worlds Interpretation
+- Donut Maze
 - Slam Shuffle
 - Christmas itself 🎅
 
@@ -181,7 +196,7 @@ Repo including slides [here](https://github.com/icyJoseph/advent-of-code)
 
 ---
 
-### 1: The Tyranny of the Rocket Equation (1)
+### 1: The Tyranny of the Rocket Equation
 
 To find the fuel required for a module take its mass:
 
@@ -265,7 +280,7 @@ Process the input file:
 
 ---
 
-### 1: The Tyranny of the Rocket Equation (2)
+### 1: The Tyranny of the Rocket Equation
 
 - Fuel itself requires fuel just like a module. 
 - However, that fuel also requires fuel, 
@@ -300,7 +315,7 @@ fn calc_fuel_for_mass_and_fuel(mass: i32) -> i32 {
 
 ---
 
-### 12: The N-Body Problem (2)
+### 12: The N-Body Problem
 
 
 <ul>
@@ -317,7 +332,7 @@ fn calc_fuel_for_mass_and_fuel(mass: i32) -> i32 {
 
 ---
 
-### 12: The N-Body Problem (2)
+### 12: The N-Body Problem
 
 <Highlighter language="javascript" fontSize="0.325em">
 {`const applyGravity = (position, otherMoons, vComponent, axis) => {
@@ -431,7 +446,7 @@ Answer 295693702908636\n
 
 ---
 
-### 13: Care Package (2)
+### 13: Care Package
 
 <Split style={{width:'90%'}}>
 
@@ -474,7 +489,47 @@ Answer 295693702908636\n
 
 ---
 
-### 22: Slam Shuffle (2)
+### 16: Flawed Frequency Transmission
+
+<Highlighter language="javascript" fontSize="0.4em">
+  {`const oneDigit = num =>
+Math.abs(num) > 9 ? Math.abs(num) % 10 : Math.abs(num);\n
+function decode(output, skip) {
+  let result = [];
+  const size = output.length;
+  let row = size - 1;\n
+  while (row >= skip) {
+    result[row] = (result[row + 1] || 0) + output[row];
+    row = row - 1;
+  }\n
+  return result.map(oneDigit);
+}\n
+fs.readFile(
+  path.resolve(__dirname, "../", "input/day_sixteen.in"),
+  "utf-8",
+  (err, data) => {
+    if (err) return console.log(err);\n
+    const initialInput = data.split("").map(x => parseInt(x));
+    const skip = parseInt(initialInput.slice(0, 7).join(""));
+    const repeats = 10000;
+    const inputs = Array.from({ length: repeats }, () => [
+      ...initialInput
+    ]).flat();
+    let output = [...inputs];
+    let phase = 0;\n
+    while (phase < 100) {
+      console.log({ phase });
+      output = decode(output, skip);
+      phase = phase + 1;
+    }\n
+    console.log(output.slice(skip, skip + 8).join(""));
+  }
+);`}
+</Highlighter>
+
+---
+
+### 22: Slam Shuffle
 
 - Dev.to [article.](https://dev.to/icyjoseph/advent-of-code-day-22-312b-temp-slug-6762054?preview=c6d8855ace4cb7d9d859c8e70ca6771dc8aecf409214a6dc74e93d9aaaf88f9353677c3cd1c163f2868710eb1bfd845f1ae1e13dc17c878eb0ed8dfa)
 
@@ -483,11 +538,13 @@ Answer 295693702908636\n
 ## Does it help in real life? 🦄🦄
 
 - Step out your coding routine
-- Practice breaking down requirements into abstractions
-- Explorer your target language
-- Practice parsing techniques
+- Practice: requirements -> abstractions
+- Explore a new language
+- Prepare for whiteboard technical interviews
 
 ---
+
+### Found in the wild
 
 <Highlighter language="javascript" fontSize="0.25em">
 {`componentDidMount() {
@@ -523,6 +580,8 @@ renderPokemon = () => (
 
 ---
 
+### Fixed to this
+
 <Highlighter language="javascript" fontSize="0.25em">
 {`componentDidMount() {
   fetchPokemon()
@@ -546,10 +605,29 @@ renderPokemon = () =>
 ));`}
 </Highlighter>
 
+---
+
+<img src={Day17} alt="day17"/>
+
 
 ---
+
+<img src={Day21} alt="day-21"/>
+
+---
+
+<Split>
+<img src={Day22} alt="day22-whiteboard"/>
+<img src={Day22Notes} alt="day22-notebook"/>
+</Split>
+
+---
+
 
 ## What's next?
 
 - Feb 20th: [HashCode](https://codingcompetitions.withgoogle.com/hashcode)
 - April: [CodeJam](https://codingcompetitions.withgoogle.com/codejam)
+- AoC 2020!
+
+> Repo including solutions and slides [here](https://github.com/icyJoseph/advent-of-code).
