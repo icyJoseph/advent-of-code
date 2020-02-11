@@ -1,5 +1,6 @@
 /target
 node_modules
+presentation/public
 **/*.png
 **/*.mp4
 **/*.rs.bk
