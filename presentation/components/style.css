@@ -2,7 +2,7 @@
   --intro-time: 6;
   --intro-time-delay: 1;
   --logo-time: 5;
-  --logo-time-delay: calc(var(--intro-time) + var(--intro-time-delay) + 1);
+  --logo-time-delay: 0;
   --crawl-time: 30;
   --crawl-time-delay: calc(var(--logo-time) + var(--logo-time-delay) + 1);
 }
@@ -35,7 +35,7 @@
   position: absolute;
   width: 15em;
   margin: 0 auto;
-  font-size: 200%;
+  font-size: 175%;
   font-weight: 400;
   color: rgb(75, 213, 238);
   opacity: 0;
