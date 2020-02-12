@@ -22,12 +22,16 @@ export const Crawl = ({ title = "", subtitle = "", paragraphs = [] }) => {
   }, []);
 
   React.useEffect(() => {
+    let timer;
     if (start) {
-      setTimeout(() => {
-        _ref.current.play();
-        setPlay(true);
+      timer = setTimeout(() => {
+        if (_ref.current) {
+          _ref.current.play();
+          setPlay(true);
+        }
       }, 7000);
     }
+    return () => clearTimeout(timer);
   }, [start]);
 
   return (
