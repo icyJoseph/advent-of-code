@@ -7,6 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start:slides": "mdx-deck deck.mdx",
     "build:slides": "mdx-deck build deck.mdx",
+    "make-200": "cp public/index.html public/200.html -f",
+    "deploy": "yarn make-200 && surge --domain https://massive-magic.surge.sh --project ./public",
     "export:slides": "mdx-deck-export pdf deck.mdx"
   },
   "author": "",
