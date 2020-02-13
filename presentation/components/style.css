@@ -33,7 +33,7 @@
 
 .intro {
   position: absolute;
-  width: 15em;
+  text-align: left;
   margin: 0 auto;
   font-size: 175%;
   font-weight: 400;
@@ -41,6 +41,12 @@
   opacity: 0;
   animation: intro calc(var(--intro-time) * 1s) ease-out
     calc(var(--intro-time-delay) * 1s);
+}
+
+@media (max-width: 525px) {
+  .intro {
+    font-size: 100%;
+  }
 }
 
 .logo {
