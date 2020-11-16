@@ -1,9 +1,9 @@
-/target
-node_modules
-presentation/public
+**/target
+**/node_modules
+**/presentation/public
 **/*.png
 **/*.mp3
 **/*.mp4
 **/*.rs.bk
 Cargo.lock
-/input
+input
