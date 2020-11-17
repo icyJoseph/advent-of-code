@@ -1,7 +1,27 @@
+interface Stream {
+  value: number;
+}
+
+export const stream = (initial: number[]): Stream => {
+  let _value = initial;
+  return {
+    set value(e) {
+      _value.push(e);
+      return;
+    },
+    get value() {
+      if (_value.length === 1) {
+        return _value[0];
+      }
+      return _value.shift() as number;
+    }
+  };
+};
+
 type Memory = {
   memory: number[];
   cursor: number;
-  input: number;
+  input: number | Stream;
   output: number;
   mode: number;
   setMode: (mode: number) => void;
@@ -27,9 +47,9 @@ const readingMode = (mode: number): 0 | 1 => {
 
 export function createMemory(
   memory: number[] = [],
-  cursor: number = 0,
-  input = 0,
-  output = 0
+  input: number | Stream = 0,
+  output = 0,
+  cursor: number = 0
 ): Memory {
   return {
     memory: [...memory],
@@ -86,11 +106,18 @@ export function createMemory(
       return operations(this);
     },
     setInput(payload) {
-      this.input = payload;
+      if (typeof this.input === "number") {
+        this.input = payload;
+        return this;
+      }
+      this.input.value = payload;
       return this;
     },
     readInput() {
-      return this.input;
+      if (typeof this.input === "number") {
+        return this.input;
+      }
+      return this.input.value;
     },
     setOutput() {
       let next = this.next();
@@ -149,3 +176,19 @@ function operations(memory: Memory) {
       throw "Halt";
   }
 }
+
+export const pipe = (memories: Memory[]) => async (
+  initial: number
+): Promise<number> => {
+  let prev = initial;
+
+  for await (const memory of memories) {
+    memory.setInput(prev);
+
+    await memory.tick();
+
+    prev = memory.readOutput();
+  }
+
+  return prev;
+};
