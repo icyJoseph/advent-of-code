@@ -17,3 +17,17 @@ try {
 } finally {
   console.log("Part A:", memoryA.readOutput());
 }
+
+const memoryB = createMemory(input);
+
+memoryB.setInput(5);
+
+try {
+  while (1) {
+    memoryB.tick();
+  }
+} catch (e) {
+  console.log(e);
+} finally {
+  console.log("Part B:", memoryB.readOutput());
+}

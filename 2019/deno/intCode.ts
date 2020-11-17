@@ -15,6 +15,7 @@ type Memory = {
   readInput(): number;
   setOutput(): Memory;
   readOutput(): number;
+  moveCursor(position: number | null): Memory;
 };
 
 const readingMode = (mode: number): 0 | 1 => {
@@ -48,6 +49,7 @@ export function createMemory(
       } else {
         next = this.memory[this.cursor];
       }
+
       this.cursor = this.cursor + 1;
       return next;
     },
@@ -84,9 +86,17 @@ export function createMemory(
     },
     readOutput() {
       return this.output;
+    },
+    moveCursor(position) {
+      if (position === null) return this;
+      this.cursor = position;
+      return this;
     }
   };
 }
+
+const isNil = <T>(val: T | null | undefined): val is null | undefined =>
+  val !== (val ?? !val);
 
 function operations(memory: Memory) {
   const opcode = memory.next();
@@ -103,6 +113,24 @@ function operations(memory: Memory) {
       return memory.write(memory.readInput());
     case 4:
       return memory.setOutput();
+    case 5: {
+      // jump if true
+      let param = memory.read();
+      let target = memory.read();
+      return memory.moveCursor(param !== 0 ? target : null);
+    }
+    case 6: {
+      // jump if false
+      let param = memory.read();
+      let target = memory.read();
+      return memory.moveCursor(param === 0 ? target : null);
+    }
+    case 7:
+      // less than
+      return memory.write(memory.read() < memory.read() ? 1 : 0);
+    case 8:
+      // equal
+      return memory.write(memory.read() === memory.read() ? 1 : 0);
     case 99:
     default:
       throw "Halt";
