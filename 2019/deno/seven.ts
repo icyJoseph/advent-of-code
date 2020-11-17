@@ -4,6 +4,10 @@ const program = await Deno.readTextFile("../input/day_seven.in").then((res) =>
   res.split(",").map(Number)
 );
 
+/**
+ * Part One
+ */
+
 const openLoopSettings = Array.from({ length: 43210 }, (_, i) => i + 1)
   .map((num) => (num > 10000 ? `${num}` : `0${num}`))
   .map((num) => new Set([...num.split("")].map(Number).filter((e) => e <= 4)))
@@ -24,7 +28,11 @@ for await (const setting of openLoopSettings) {
   }
 }
 
-console.log("Part A:", max);
+console.log("Part One:", max);
+
+/**
+ * Part Two
+ */
 
 const closedLoopSettings = Array.from(
   { length: 100000 - 56789 },
@@ -53,4 +61,4 @@ for await (const setting of closedLoopSettings) {
   }
 }
 
-console.log("Part B:", maxClosed);
+console.log("Part Two:", maxClosed);

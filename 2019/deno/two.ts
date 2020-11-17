@@ -4,11 +4,19 @@ const input = await Deno.readTextFile("../input/day_two.in").then((res) =>
   res.split(",").map(Number)
 );
 
+/**
+ * Part One
+ */
+
 const memoryA = createMemory(input);
 
 await memoryA.writeAt(1, 12).writeAt(2, 2).tick();
 
-console.log("Part A:", memoryA.readAt(0));
+console.log("Part One:", memoryA.readAt(0));
+
+/**
+ * Part Two
+ */
 
 const target = 19690720;
 let result = 0;
@@ -22,7 +30,7 @@ for await (const noun of Array.from({ length: 100 }, (_, i) => i)) {
     result = memoryB.readAt(0);
 
     if (result === target) {
-      console.log("Part B:", 100 * noun + verb);
+      console.log("Part Two:", 100 * noun + verb);
       break;
     }
   }
