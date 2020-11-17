@@ -88,7 +88,7 @@ export function createMemory(
       return this.output;
     },
     moveCursor(position) {
-      if (position === null) return this;
+      if (isNil(position)) return this;
       this.cursor = position;
       return this;
     }
