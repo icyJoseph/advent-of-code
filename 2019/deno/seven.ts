@@ -17,9 +17,7 @@ for await (const setting of allPhaseSettings) {
     createMemory(input, stream([setting[index]]))
   );
 
-  const runner = pipe(memories);
-
-  let next = await runner(0);
+  let next = await pipe(memories)(0);
 
   if (next > max) {
     max = next;

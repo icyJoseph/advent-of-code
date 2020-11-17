@@ -6,16 +6,12 @@ const input = await Deno.readTextFile("../input/day_five.in").then((res) =>
 
 const memoryA = createMemory(input);
 
-memoryA.setInput(1);
-
-await memoryA.tick();
+await memoryA.setInput(1).tick();
 
 console.log("Part A:", memoryA.readOutput());
 
 const memoryB = createMemory(input);
 
-memoryB.setInput(5);
-
-await memoryB.tick();
+await memoryB.setInput(5).tick();
 
 console.log("Part B:", memoryB.readOutput());

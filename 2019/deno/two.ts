@@ -6,9 +6,7 @@ const input = await Deno.readTextFile("../input/day_two.in").then((res) =>
 
 const memoryA = createMemory(input);
 
-memoryA.writeAt(1, 12).writeAt(2, 2);
-
-await memoryA.tick();
+await memoryA.writeAt(1, 12).writeAt(2, 2).tick();
 
 console.log("Part A:", memoryA.readAt(0));
 
@@ -19,9 +17,7 @@ for await (const noun of Array.from({ length: 100 }, (_, i) => i)) {
   for await (const verb of Array.from({ length: 100 }, (_, i) => i)) {
     const memoryB = createMemory(input);
 
-    memoryB.writeAt(1, noun).writeAt(2, verb);
-
-    await memoryB.tick();
+    await memoryB.writeAt(1, noun).writeAt(2, verb).tick();
 
     result = memoryB.readAt(0);
 
