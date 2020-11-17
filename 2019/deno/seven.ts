@@ -1,10 +1,10 @@
-import { createMemory, pipe, stream } from "./intCode.ts";
+import { createMemory, openPipe, closedPipe, stream } from "./intCode.ts";
 
-const input = await Deno.readTextFile("../input/day_seven.in").then((res) =>
+const program = await Deno.readTextFile("../input/day_seven.in").then((res) =>
   res.split(",").map(Number)
 );
 
-const allPhaseSettings = Array.from({ length: 43210 }, (_, i) => i + 1)
+const openLoopSettings = Array.from({ length: 43210 }, (_, i) => i + 1)
   .map((num) => (num > 10000 ? `${num}` : `0${num}`))
   .map((num) => new Set([...num.split("")].map(Number).filter((e) => e <= 4)))
   .filter((e) => e.size === 5)
@@ -12,12 +12,12 @@ const allPhaseSettings = Array.from({ length: 43210 }, (_, i) => i + 1)
 
 let max = 0;
 
-for await (const setting of allPhaseSettings) {
+for await (const setting of openLoopSettings) {
   const memories = Array.from({ length: 5 }, (_, index) =>
-    createMemory(input, stream([setting[index]]))
+    createMemory(program, stream(setting[index]))
   );
 
-  let next = await pipe(memories)(0);
+  let next = await openPipe(memories)(0);
 
   if (next > max) {
     max = next;
@@ -25,3 +25,32 @@ for await (const setting of allPhaseSettings) {
 }
 
 console.log("Part A:", max);
+
+const closedLoopSettings = Array.from(
+  { length: 100000 - 56789 },
+  (_, i) => `${i + 56789}`
+)
+  .map((num) => new Set([...num.split("")].map(Number).filter((e) => e > 4)))
+  .filter((e) => e.size === 5)
+  .map((e) => [...e]);
+
+let maxClosed = 0;
+
+for await (const setting of closedLoopSettings) {
+  const streams = Array.from({ length: 5 }, (_, index) => {
+    if (index === 0) return stream(setting[index]);
+    return stream(setting[index]);
+  });
+
+  const memories = Array.from({ length: 5 }, (_, index) =>
+    createMemory(program, streams[index], streams[index === 4 ? 0 : index + 1])
+  );
+
+  let next = await closedPipe(memories)(0);
+
+  if (next > maxClosed) {
+    maxClosed = next;
+  }
+}
+
+console.log("Part B:", maxClosed);
