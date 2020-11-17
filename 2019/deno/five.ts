@@ -8,26 +8,14 @@ const memoryA = createMemory(input);
 
 memoryA.setInput(1);
 
-try {
-  while (1) {
-    memoryA.tick();
-  }
-} catch (e) {
-  console.log(e);
-} finally {
-  console.log("Part A:", memoryA.readOutput());
-}
+await memoryA.tick();
+
+console.log("Part A:", memoryA.readOutput());
 
 const memoryB = createMemory(input);
 
 memoryB.setInput(5);
 
-try {
-  while (1) {
-    memoryB.tick();
-  }
-} catch (e) {
-  console.log(e);
-} finally {
-  console.log("Part B:", memoryB.readOutput());
-}
+await memoryB.tick();
+
+console.log("Part B:", memoryB.readOutput());

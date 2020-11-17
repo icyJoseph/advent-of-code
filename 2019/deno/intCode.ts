@@ -10,7 +10,8 @@ type Memory = {
   readAt(position: number): number;
   writeAt(position: number, value: number): Memory;
   write(value: number): Memory;
-  tick(): Memory;
+  tick(): Promise<Memory>;
+  tickOnce(): Memory;
   setInput(payload: number): Memory;
   readInput(): number;
   setOutput(): Memory;
@@ -70,6 +71,18 @@ export function createMemory(
       return this;
     },
     tick() {
+      return new Promise((resolve) => {
+        try {
+          while (1) {
+            operations(this);
+          }
+        } catch (e) {
+          // console.debug(e);
+          resolve(this);
+        }
+      });
+    },
+    tickOnce() {
       return operations(this);
     },
     setInput(payload) {
