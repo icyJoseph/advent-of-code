@@ -223,7 +223,7 @@ function operations(memory: Memory, throwOnOutput: boolean = false) {
   }
 }
 
-export const openPipe = (memories: Memory[]) => async (
+export const pipe = (memories: Memory[]) => async (
   initial: number
 ): Promise<number> => {
   let prev = initial;
@@ -238,7 +238,7 @@ export const openPipe = (memories: Memory[]) => async (
   return prev;
 };
 
-export const closedPipe = (memories: Memory[]) => async (seed: number) => {
+export const loop = (memories: Memory[]) => async (seed: number) => {
   await Promise.all(memories.map((memory) => memory.tickOnce()));
 
   memories[0].setInput(seed);

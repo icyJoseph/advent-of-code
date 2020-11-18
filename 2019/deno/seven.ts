@@ -1,4 +1,4 @@
-import { createMemory, openPipe, closedPipe, stream } from "./intCode.ts";
+import { createMemory, pipe, loop, stream } from "./intCode.ts";
 
 const program = await Deno.readTextFile("../input/day_seven.in").then((res) =>
   res.split(",").map(Number)
@@ -21,7 +21,7 @@ for await (const setting of openLoopSettings) {
     createMemory(program, stream(setting[index]))
   );
 
-  let next = await openPipe(memories)(0);
+  let next = await pipe(memories)(0);
 
   if (next > max) {
     max = next;
@@ -54,7 +54,7 @@ for await (const setting of closedLoopSettings) {
     createMemory(program, streams[index], streams[index === 4 ? 0 : index + 1])
   );
 
-  let next = await closedPipe(memories)(0);
+  let next = await loop(memories)(0);
 
   if (next > maxClosed) {
     maxClosed = next;
