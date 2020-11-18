@@ -17,14 +17,14 @@ export const stream = (initial: number): Stream => {
 
 export type Memory = {
   memory: number[];
-  cursor: number;
-  halted: boolean;
-  setHalted: () => void;
   input: number | Stream;
   output: number | Stream;
+  cursor: number;
   mode: number;
+  relative: number;
   setMode: (mode: number) => void;
-  next(mode?: 0 | 1): number;
+  setRelative: (rel: number) => Memory;
+  next(mode?: 0 | 1 | 2): number;
   read(): number;
   readAt(position: number): number;
   writeAt(position: number, value: number): Memory;
@@ -38,49 +38,52 @@ export type Memory = {
   readOutput(): number;
   moveCursor(position: number | null): Memory;
   debug: () => Partial<Memory>;
+  halted: boolean;
+  setHalted: () => void;
 };
 
-const readingMode = (mode: number): 0 | 1 => {
-  let ret = mode % 10;
-  if (ret === 0) return ret;
-  return 1;
-};
+const isNil = <T>(val: T | null | undefined): val is null | undefined =>
+  val !== (val ?? !val);
 
 export function createMemory(
   memory: number[] = [],
   input: number | Stream = 0,
   output: number | Stream = 0,
-  cursor: number = 0
+  cursor: number = 0,
+  relative: number = 0
 ): Memory {
   return {
     memory: [...memory],
-    cursor,
     input,
     output,
+    cursor,
     mode: 0,
+    relative,
     setMode(mode) {
       this.mode = mode;
     },
+    setRelative(rel) {
+      this.relative = this.relative + rel;
+      return this;
+    },
     next() {
-      let next;
-      let mode = readingMode(this.mode);
+      const _next = [
+        this.memory[this.cursor],
+        this.cursor,
+        this.memory[this.cursor] + this.relative
+      ][this.mode % 10];
+
       this.mode = Math.floor(this.mode / 10);
-
-      if (mode === 1) {
-        next = this.cursor;
-      } else {
-        next = this.memory[this.cursor];
-      }
-
       this.cursor = this.cursor + 1;
-      return next;
+
+      return _next;
     },
     read() {
       let next = this.next();
       return this.readAt(next);
     },
     readAt(position) {
-      return this.memory[position];
+      return this.memory[position] ?? 0;
     },
     write(value) {
       let next = this.next();
@@ -140,10 +143,10 @@ export function createMemory(
     setOutput() {
       let next = this.next();
       if (typeof this.output === "number") {
-        this.output = this.memory[next];
+        this.output = this.memory[next] ?? 0;
         return this;
       }
-      this.output.value = this.memory[next];
+      this.output.value = this.memory[next] ?? 0;
       return this;
     },
     readOutput() {
@@ -162,7 +165,9 @@ export function createMemory(
         input: typeof this.input === "number" ? this.input : this.input.value,
         output:
           typeof this.output === "number" ? this.output : this.output.value,
-        cursor: this.cursor
+        cursor: this.cursor,
+        relative: this.relative,
+        mode: this.mode
       };
     },
     halted: false,
@@ -171,9 +176,6 @@ export function createMemory(
     }
   };
 }
-
-const isNil = <T>(val: T | null | undefined): val is null | undefined =>
-  val !== (val ?? !val);
 
 function operations(memory: Memory, throwOnOutput: boolean = false) {
   const opcode = memory.next();
@@ -212,6 +214,8 @@ function operations(memory: Memory, throwOnOutput: boolean = false) {
     case 8:
       // equal
       return memory.write(memory.read() === memory.read() ? 1 : 0);
+    case 9:
+      return memory.setRelative(memory.read());
     case 99:
     default:
       memory.setHalted();
@@ -219,7 +223,7 @@ function operations(memory: Memory, throwOnOutput: boolean = false) {
   }
 }
 
-export const openPipe = (memories: Memory[]) => async (
+export const pipe = (memories: Memory[]) => async (
   initial: number
 ): Promise<number> => {
   let prev = initial;
@@ -234,7 +238,7 @@ export const openPipe = (memories: Memory[]) => async (
   return prev;
 };
 
-export const closedPipe = (memories: Memory[]) => async (seed: number) => {
+export const loop = (memories: Memory[]) => async (seed: number) => {
   await Promise.all(memories.map((memory) => memory.tickOnce()));
 
   memories[0].setInput(seed);
