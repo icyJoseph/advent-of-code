@@ -1,4 +1,4 @@
-import { createMemory, pipe, loop, stream } from "./intCode.ts";
+import { createMachine, pipe, loop, createWire } from "./intCode.ts";
 
 const program = await Deno.readTextFile("../input/day_seven.in").then((res) =>
   res.split(",").map(Number)
@@ -17,11 +17,11 @@ const openLoopSettings = Array.from({ length: 43210 }, (_, i) => i + 1)
 let max = 0;
 
 for await (const setting of openLoopSettings) {
-  const memories = Array.from({ length: 5 }, (_, index) =>
-    createMemory(program, stream(setting[index]))
+  const machines = Array.from({ length: 5 }, (_, index) =>
+    createMachine(program, createWire(setting[index]))
   );
 
-  let next = await pipe(memories)(0);
+  let next = await pipe(machines)(0);
 
   if (next > max) {
     max = next;
@@ -29,6 +29,7 @@ for await (const setting of openLoopSettings) {
 }
 
 console.log("Part One:", max);
+console.assert(21760 === max, "Answer is incorrect");
 
 /**
  * Part Two
@@ -45,16 +46,16 @@ const closedLoopSettings = Array.from(
 let maxClosed = 0;
 
 for await (const setting of closedLoopSettings) {
-  const streams = Array.from({ length: 5 }, (_, index) => {
-    if (index === 0) return stream(setting[index]);
-    return stream(setting[index]);
+  const wires = Array.from({ length: 5 }, (_, index) => {
+    if (index === 0) return createWire(setting[index]);
+    return createWire(setting[index]);
   });
 
-  const memories = Array.from({ length: 5 }, (_, index) =>
-    createMemory(program, streams[index], streams[index === 4 ? 0 : index + 1])
+  const machines = Array.from({ length: 5 }, (_, index) =>
+    createMachine(program, wires[index], wires[index === 4 ? 0 : index + 1])
   );
 
-  let next = await loop(memories)(0);
+  let next = await loop(machines)(0);
 
   if (next > maxClosed) {
     maxClosed = next;
@@ -62,3 +63,4 @@ for await (const setting of closedLoopSettings) {
 }
 
 console.log("Part Two:", maxClosed);
+console.assert(69816958 === maxClosed, "Answer is incorrect");

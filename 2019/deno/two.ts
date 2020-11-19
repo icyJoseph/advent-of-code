@@ -1,4 +1,4 @@
-import { createMemory } from "./intCode.ts";
+import { createMachine } from "./intCode.ts";
 
 const input = await Deno.readTextFile("../input/day_two.in").then((res) =>
   res.split(",").map(Number)
@@ -8,11 +8,12 @@ const input = await Deno.readTextFile("../input/day_two.in").then((res) =>
  * Part One
  */
 
-const memoryA = createMemory(input);
+const machineA = createMachine(input);
 
-await memoryA.writeAt(1, 12).writeAt(2, 2).tick();
+await machineA.writeAt(1, 12).writeAt(2, 2).run();
 
-console.log("Part One:", memoryA.readAt(0));
+console.log("Part One:", machineA.readAt(0));
+console.assert(4570637 === machineA.readAt(0), "Answer is incorrect");
 
 /**
  * Part Two
@@ -23,14 +24,16 @@ let result = 0;
 
 for await (const noun of Array.from({ length: 100 }, (_, i) => i)) {
   for await (const verb of Array.from({ length: 100 }, (_, i) => i)) {
-    const memoryB = createMemory(input);
+    const machineB = createMachine(input);
 
-    await memoryB.writeAt(1, noun).writeAt(2, verb).tick();
+    await machineB.writeAt(1, noun).writeAt(2, verb).run();
 
-    result = memoryB.readAt(0);
+    result = machineB.readAt(0);
 
     if (result === target) {
-      console.log("Part Two:", 100 * noun + verb);
+      const answer = 100 * noun + verb;
+      console.log("Part Two:", answer);
+      console.assert(5485 === answer, "Answer is incorrect");
       break;
     }
   }
