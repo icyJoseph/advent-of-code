@@ -1,8 +1,8 @@
-interface Stream {
+interface Wire {
   value: number;
 }
 
-export const stream = (initial: number): Stream => {
+export const createWire = (initial: number): Wire => {
   let _value = initial;
   return {
     set value(e) {
@@ -15,29 +15,29 @@ export const stream = (initial: number): Stream => {
   };
 };
 
-export type Memory = {
+export type Machine = {
   memory: number[];
-  input: number | Stream;
-  output: number | Stream;
+  input: number | Wire;
+  output: number | Wire;
   cursor: number;
   mode: number;
   relative: number;
   setMode: (mode: number) => void;
-  setRelative: (rel: number) => Memory;
+  setRelative: (rel: number) => Machine;
   next(mode?: 0 | 1 | 2): number;
   read(): number;
   readAt(position: number): number;
-  writeAt(position: number, value: number): Memory;
-  write(value: number): Memory;
-  tick(): Promise<Memory>;
-  tickOnce(): Promise<Memory>;
-  tickOutput(): Promise<Memory>;
-  setInput(payload: number): Memory;
+  writeAt(position: number, value: number): Machine;
+  write(value: number): Machine;
+  run(): Promise<Machine>;
+  tickOnce(): Promise<Machine>;
+  tickOutput(): Promise<Machine>;
+  setInput(payload: number): Machine;
   readInput(): number;
-  setOutput(): Memory;
+  setOutput(): Machine;
   readOutput(): number;
-  moveCursor(position: number | null): Memory;
-  debug: () => Partial<Memory>;
+  moveCursor(position: number | null): Machine;
+  debug: () => Partial<Machine>;
   halted: boolean;
   setHalted: () => void;
 };
@@ -45,13 +45,13 @@ export type Memory = {
 const isNil = <T>(val: T | null | undefined): val is null | undefined =>
   val !== (val ?? !val);
 
-export function createMemory(
+export function createMachine(
   memory: number[] = [],
-  input: number | Stream = 0,
-  output: number | Stream = 0,
+  input: number | Wire = 0,
+  output: number | Wire = 0,
   cursor: number = 0,
   relative: number = 0
-): Memory {
+): Machine {
   return {
     memory: [...memory],
     input,
@@ -94,7 +94,7 @@ export function createMemory(
       this.memory[position] = value;
       return this;
     },
-    tick() {
+    run() {
       return new Promise((resolve) => {
         try {
           while (1) {
@@ -177,7 +177,7 @@ export function createMemory(
   };
 }
 
-function operations(memory: Memory, throwOnOutput: boolean = false) {
+function operations(memory: Machine, throwOnOutput: boolean = false) {
   const opcode = memory.next();
   const code = opcode % 100;
 
@@ -223,7 +223,7 @@ function operations(memory: Memory, throwOnOutput: boolean = false) {
   }
 }
 
-export const pipe = (memories: Memory[]) => async (
+export const pipe = (memories: Machine[]) => async (
   initial: number
 ): Promise<number> => {
   let prev = initial;
@@ -231,14 +231,14 @@ export const pipe = (memories: Memory[]) => async (
 
   for await (const memory of memories) {
     memory.setInput(prev);
-    await memory.tick();
+    await memory.run();
     prev = memory.readOutput();
   }
 
   return prev;
 };
 
-export const loop = (memories: Memory[]) => async (seed: number) => {
+export const loop = (memories: Machine[]) => async (seed: number) => {
   await Promise.all(memories.map((memory) => memory.tickOnce()));
 
   memories[0].setInput(seed);

@@ -1,4 +1,4 @@
-import { createMemory } from "./intCode.ts";
+import { createMachine } from "./intCode.ts";
 
 const input = await Deno.readTextFile("../input/day_five.in").then((res) =>
   res.split(",").map(Number)
@@ -7,18 +7,20 @@ const input = await Deno.readTextFile("../input/day_five.in").then((res) =>
 /**
  * Part One
  */
-const memoryA = createMemory(input);
+const machineA = createMachine(input);
 
-await memoryA.setInput(1).tick();
+await machineA.setInput(1).run();
 
-console.log("Part One:", memoryA.readOutput());
+console.log("Part One:", machineA.readOutput());
+console.assert(12896948 === machineA.readOutput(), "Answer is incorrect");
 
 /**
  * Part Two
  */
 
-const memoryB = createMemory(input);
+const machineB = createMachine(input);
 
-await memoryB.setInput(5).tick();
+await machineB.setInput(5).run();
 
-console.log("Part Two:", memoryB.readOutput());
+console.log("Part Two:", machineB.readOutput());
+console.assert(7704130 === machineB.readOutput(), "Answer is incorrect");
