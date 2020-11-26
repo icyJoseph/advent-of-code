@@ -1,4 +1,4 @@
-# Advent of Code 2019!
+# Advent of Code
 
 Features my solutions to the daily problems, using Rust and sometimes JavaScript.
 
