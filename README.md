@@ -1,5 +1,10 @@
 # Advent of Code
 
-Features my solutions to the daily problems, using Rust and sometimes JavaScript.
-
-The code structure can be rather confusing, I'll try to organize it if possible, but I rather favor finishing the problems over prettiness.
+- JavaScript
+	- The classic NodeJS runtime
+- TypeScript
+	- Using Deno runtime
+- Rust
+	- Whenever possible
+- APL
+	- To run the APL solutions go to [tio run](https://tio.run/#apl-dyalog-extended), paste the code, and paste the input (a very long string without line breaks).
