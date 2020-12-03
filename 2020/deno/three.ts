@@ -6,12 +6,10 @@ const input = await Deno.readTextFile("./input/three.in").then((res) =>
  * Helpers
  */
 
-const treeCounter = ({
-  grid,
+const createTreeCounter = (grid: string[]) => ({
   rightStep,
   downStep
 }: {
-  grid: string[];
   rightStep: number;
   downStep: number;
 }) => {
@@ -39,7 +37,9 @@ const treeCounter = ({
  * Part One
  */
 
-const right3 = treeCounter({ grid: input, downStep: 1, rightStep: 3 });
+const treeCounter = createTreeCounter(input);
+
+const right3 = treeCounter({ downStep: 1, rightStep: 3 });
 
 console.log("Part One:", right3);
 
@@ -47,10 +47,10 @@ console.log("Part One:", right3);
  * Part Two
  */
 
-const right1 = treeCounter({ grid: input, downStep: 1, rightStep: 1 });
-const right5 = treeCounter({ grid: input, downStep: 1, rightStep: 5 });
-const right7 = treeCounter({ grid: input, downStep: 1, rightStep: 7 });
-const down2 = treeCounter({ grid: input, downStep: 2, rightStep: 1 });
+const right1 = treeCounter({ downStep: 1, rightStep: 1 });
+const right5 = treeCounter({ downStep: 1, rightStep: 5 });
+const right7 = treeCounter({ downStep: 1, rightStep: 7 });
+const down2 = treeCounter({ downStep: 2, rightStep: 1 });
 
 // don't forget to include right3 from part one...
-console.log("Part B:", right1 * right3 * right5 * right7 * down2);
+console.log("Part Two:", right1 * right3 * right5 * right7 * down2);
