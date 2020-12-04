@@ -16,7 +16,7 @@ pub fn parse(acc: Vec<String>, row: &str) -> Vec<String> {
     return copy;
 }
 
-pub fn collect_password(entry: String) -> Vec<(String, String)> {
+pub fn collect_passport(entry: String) -> Vec<(String, String)> {
     entry
         .split_terminator(" ")
         .map(|pair| {

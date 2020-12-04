@@ -1,5 +1,5 @@
 extern crate four;
-use four::{collect_password, parse, part_one, part_two};
+use four::{collect_passport, parse, part_one, part_two};
 use std::fs;
 
 fn main() {
@@ -9,7 +9,7 @@ fn main() {
         .split_terminator("\n")
         .fold(seed, |prev, curr| parse(prev, curr))
         .into_iter()
-        .map(|entry| collect_password(entry))
+        .map(|entry| collect_passport(entry))
         .collect();
 
     println!("Part One: {}", part_one(&input));
