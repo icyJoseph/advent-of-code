@@ -23,17 +23,17 @@ const toArrayOfPasswords = (batch: string[]) =>
  * Part One
  */
 
-const validPasswords = toArrayOfPasswords(input).filter((passport) =>
+const validWithFieldPresence = toArrayOfPasswords(input).filter((passport) =>
   mandatoryFields.every((field) => passport.includes(field))
 );
 
-console.log("Part One:", validPasswords.length);
+console.log("Part One:", validWithFieldPresence.length);
 
 /**
  * Part Two
  */
 
-const passwords2 = toArrayOfPasswords(input).filter((passport) => {
+const validWithFieldValues = toArrayOfPasswords(input).filter((passport) => {
   const hasAllMandatoryFields = mandatoryFields.every((field) =>
     passport.includes(field)
   );
@@ -114,4 +114,4 @@ const passwords2 = toArrayOfPasswords(input).filter((passport) => {
     });
 });
 
-console.log("Part Two:", passwords2.length);
+console.log("Part Two:", validWithFieldValues.length);
