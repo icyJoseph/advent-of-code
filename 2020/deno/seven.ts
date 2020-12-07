@@ -44,26 +44,35 @@ const bags: Bag[] = input.map((row) => {
   };
 });
 
-const container = new Set(
-  bags.filter((x) => x[MY_BAG]).map(({ name }) => name)
-);
+const findNested = (
+  key: string,
+  bags: Bag[]
+): { next: Bag[]; current: string[] } => {
+  const { next, current } = bags.reduce<{ next: Bag[]; current: string[] }>(
+    (prev, bag) => {
+      const { [key]: value, name, ...rest } = bag;
+      if (!value) return { ...prev, next: [...prev.next, bag] };
 
-let prevSize = 0;
+      return {
+        next: [...prev.next, { ...rest, name }],
+        current: [...prev.current, name]
+      };
+    },
+    { next: [], current: [] }
+  );
 
-while (1) {
-  prevSize = container.size;
+  return current.reduce<{ next: Bag[]; current: string[] }>(
+    (prev, bag) => {
+      const result = findNested(bag, prev.next);
+      return { ...result, current: [...prev.current, ...result.current] };
+    },
+    { next, current }
+  );
+};
 
-  for (const entry of [...container]) {
-    bags
-      .filter((bag) => bag[entry])
-      .flat(Infinity)
-      .forEach(({ name }) => container.add(name));
-  }
+const unique = new Set(findNested(MY_BAG, bags).current);
 
-  if (container.size === prevSize) break;
-}
-
-console.log("Part One:", container.size);
+console.log("Part One:", unique.size);
 
 /**
  * Part Two
