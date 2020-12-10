@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
-pub fn find_complement(target: i32, list: &Vec<i32>) -> Vec<i32> {
-    let set: HashSet<&i32> = list.iter().collect();
+pub fn find_complement(target: i64, list: &Vec<i64>) -> Vec<i64> {
+    let set: HashSet<&i64> = list.iter().collect();
 
     return list
         .into_iter()
@@ -10,7 +10,7 @@ pub fn find_complement(target: i32, list: &Vec<i32>) -> Vec<i32> {
         .collect();
 }
 
-pub fn part_one(input: &Vec<i32>) -> i32 {
+pub fn part_one(input: &Vec<i64>) -> i64 {
     let comp = find_complement(2020, input);
 
     match comp.get(0) {
@@ -19,7 +19,7 @@ pub fn part_one(input: &Vec<i32>) -> i32 {
     }
 }
 
-pub fn part_two(input: &Vec<i32>) -> i32 {
+pub fn part_two(input: &Vec<i64>) -> i64 {
     for first in input.into_iter() {
         let target = 2020 - first;
         let comp = find_complement(target, input);
