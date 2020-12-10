@@ -11,17 +11,19 @@ const adapter = max + 3;
 
 const sorted = [0, ...input, adapter].slice(0).sort((a, b) => a - b);
 
-const differences = sorted.reduce<number[]>((prev, curr, index, src) => {
+const [, ones, , threes] = sorted.reduce<number[]>((prev, curr, index, src) => {
   const next = src[index + 1];
   // luckily next can't be zero in this problem
   if (!next) return prev;
 
   const diff = next - curr;
 
-  return { ...prev, [diff]: (prev[diff] ?? 0) + 1 };
+  prev[diff] = (prev[diff] ?? 0) + 1;
+
+  return prev;
 }, []);
 
-console.log("Part One:", differences[3] * differences[1]);
+console.log("Part One:", ones * threes);
 
 /**
  * Part Two
