@@ -30,15 +30,22 @@ console.log("Part One:", ones * threes);
  */
 
 const combinations = sorted
-  .reduce<number[][]>((prev, curr, index, src) => {
-    const next = src[index + 1];
-    if (next - curr === 3) {
-      prev = [...prev, []];
-    }
-    const last = prev.pop() ?? [curr];
+  .reduce<number[][]>(
+    (prev, curr, index, src) => {
+      const last = prev.pop() ?? [];
 
-    return [...prev, [...last, curr]];
-  }, [])
+      prev = [...prev, [...last, curr]];
+
+      const next = src[index + 1];
+
+      if (next - curr === 3) {
+        prev = [...prev, []];
+      }
+
+      return prev;
+    },
+    [[]]
+  )
   .map((group) => {
     switch (group.length) {
       case 0:
