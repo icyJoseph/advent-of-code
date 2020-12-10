@@ -30,26 +30,31 @@ console.log("Part One:", ones * threes);
  */
 
 const combinations = sorted
-  .map((left, index, src) => ({
-    keep: src[index + 1] - left === 3,
-    link: [left, src[index + 1]]
-  }))
-  .filter(({ keep }) => keep)
-  .map(({ link }) => link)
-  .map(([left], index, src) => {
-    const [, prevRight] = src[index - 1] ?? [, 0];
+  .reduce<number[][]>((prev, curr, index, src) => {
+    const next = src[index + 1];
+    if (next - curr === 3) {
+      prev = [...prev, []];
+    }
+    const last = prev.pop() ?? [curr];
 
-    return sorted.filter((x) => x < left && x > prevRight);
-  })
+    return [...prev, [...last, curr]];
+  }, [])
   .map((group) => {
-    if (group.length === 0) {
-      return 1;
+    switch (group.length) {
+      case 0:
+      case 1:
+      case 2:
+        return 1;
+      case 3:
+        return 2;
+      case 4:
+        return 4;
+      case 5:
+        return 7;
+      default:
+        throw new Error("Impossible");
     }
-    if (group.length < 3) {
-      return group.length * 2;
-    }
-    return 7;
   })
-  .reduce((prev, curr) => prev * curr, 1);
+  .reduce<number>((prev, curr) => prev * curr, 1);
 
 console.log("Part Two:", combinations);
