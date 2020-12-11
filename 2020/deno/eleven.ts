@@ -10,9 +10,8 @@ const empty = "L";
 const occupied = "#";
 const floor = ".";
 
-type Direction = "u" | "d" | "l" | "r" | "ur" | "ul" | "dr" | "dl";
-
-const directions: Direction[] = ["u", "d", "l", "r", "ur", "ul", "dr", "dl"];
+const directions = ["u", "d", "l", "r", "ur", "ul", "dr", "dl"];
+type Direction = typeof directions[number];
 
 type Coord = [x: number, y: number];
 
