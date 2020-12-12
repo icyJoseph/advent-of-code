@@ -132,6 +132,17 @@ export const App = () => {
     }
   }, [solving]);
 
+  useEffect(() => {
+    const handler = () => {
+      const input = txtArea.current;
+      if (input) {
+        input.focus();
+      }
+    };
+    window.addEventListener("visibilitychange", handler);
+    return () => window.removeEventListener("visibilitychange", handler);
+  });
+
   const submit = async () => {
     const value = txtArea.current.value;
     if (!value) return "";
@@ -141,9 +152,9 @@ export const App = () => {
       setSolving(true);
       const raw = value.trim().split("\n");
       await workerInstance.runner(raw);
-      await sleep(2000);
       setDone(true);
       setSolving(false);
+      await sleep(1000);
     } catch (e) {
       return;
     }
@@ -153,6 +164,16 @@ export const App = () => {
     <Fragment>
       <header>
         <h1>AoC Day 11</h1>
+        <span className="input-link">
+          Get your input{" "}
+          <a
+            href="https://adventofcode.com/2020/day/11/input"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            here
+          </a>
+        </span>
       </header>
       <main>
         <section>
@@ -162,11 +183,11 @@ export const App = () => {
             placeholder="Paste here!"
             spellCheck="false"
           />
-          <button onClick={submit}>Show me</button>
+          <button onClick={submit}>Simulate</button>
         </section>
         <section>
           {solving && (
-            <div class="solving">
+            <div className="solving">
               <span className="emoji" role="img" aria-label="Thinking Hard">
                 🤔
               </span>{" "}

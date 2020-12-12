@@ -14,6 +14,11 @@ code {
     monospace;
 }
 
+a {
+  color: white;
+  font-weight: 400;
+}
+
 textarea {
   display: block;
   resize: none;
@@ -58,13 +63,17 @@ button:focus:not(:focus-visible) {
 }
 
 section {
-  margin-bottom: 32px;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+header {
   text-align: center;
 }
 
 h1 {
   margin: 0;
+  margin-bottom: 8px;
   font-size: 3rem;
   font-weight: lighter;
-  text-align: center;
 }

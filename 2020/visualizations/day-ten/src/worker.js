@@ -115,7 +115,9 @@ const monitor = (grid) => {
 const print = (grid) =>
   grid.map((row) => row.map((cell) => cell.value).join("")).join("\n");
 
-export function runner(raw) {
+const sleep = (time) => new Promise((resolve) => setTimeout(resolve, time));
+
+export async function runner(raw) {
   const { grid, dispatch } = createGrid(raw);
   const walker = createWalker(grid, Infinity);
   const sub = monitor(grid);
@@ -123,6 +125,7 @@ export function runner(raw) {
   while (!sub.hasSettled()) {
     dispatch("simulate", { walker, tolerance: 5 });
     dispatch("update");
+    await sleep(120);
     postMessage({ type: "grid", grid: print(grid) });
   }
   postMessage({ type: "done" });
