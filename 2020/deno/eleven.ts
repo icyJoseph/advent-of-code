@@ -178,8 +178,7 @@ while (!sub.hasSettled()) {
   dispatch("update");
 }
 
-// 2361
-console.log("Part One:", getOccupied(grid), 2361);
+console.log("Part One:", getOccupied(grid));
 
 /**
  * Part Two
@@ -194,4 +193,4 @@ while (!sub.hasSettled()) {
   dispatch("update");
 }
 
-console.log("Part Two:", getOccupied(grid), 2119);
+console.log("Part Two:", getOccupied(grid));
