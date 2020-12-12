@@ -2,6 +2,10 @@
   display: none;
 }
 
+.input-link {
+  font-weight: lighter;
+}
+
 .emoji {
   font-weight: 400;
   font-family: apple color emoji, segoe ui emoji, noto color emoji,
