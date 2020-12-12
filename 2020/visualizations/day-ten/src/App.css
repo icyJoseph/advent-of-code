@@ -1,0 +1,28 @@
+.hidden {
+  display: none;
+}
+
+.emoji {
+  font-weight: 400;
+  font-family: apple color emoji, segoe ui emoji, noto color emoji,
+    android emoji, emojisymbols, emojione mozilla, twemoji mozilla,
+    segoe ui symbol;
+}
+
+.solving {
+  min-width: 20ch;
+}
+
+.konvajs-content {
+  margin: 0 auto;
+}
+
+.konvajs-content > canvas {
+  background: #383888;
+  box-shadow: 11px 11px 14px #222252, -11px -11px 14px #4e4ebe;
+}
+
+.repeat:after {
+  content: attr(data-repeat);
+  position: absolute;
+}

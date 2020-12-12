@@ -11,3 +11,4 @@ Cargo.lock
 
 rank.js
 *.json
+!package.json
