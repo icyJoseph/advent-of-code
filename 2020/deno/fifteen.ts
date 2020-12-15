@@ -9,16 +9,18 @@ const input = await Deno.readTextFile("./input/fifteen.in").then((res) =>
 const memoryGame = (limit: number) => {
   const map = new Map<number, number[]>();
 
-  input.forEach((num, it) => map.set(num, [it + 1]));
+  input.forEach((num, it) => map.set(num, [it + 1, it + 1]));
 
   let it = input.length + 1;
   let [last] = input.slice(-1);
 
   while (1) {
-    const [x1 = 0, x0 = x1]: number[] = map.get(last) ?? [];
+    const [x1 = 0, x0 = x1]: number[] = map.get(last) ?? [it, it];
     const speak = x0 - x1;
 
-    map.set(speak, [...(map.get(speak) || []), it].slice(-2));
+    const queue = map.get(speak) ?? [it, it];
+
+    map.set(speak, [queue[1], it]);
 
     if (it === limit) return speak;
 
