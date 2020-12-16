@@ -54,7 +54,7 @@ const errorRate = checkValidity
   .filter(({ isValid }) => !isValid)
   .reduce((prev, { value }) => prev + value, 0);
 
-console.log("Part One:", errorRate, 20091);
+console.log("Part One:", errorRate);
 
 /**
  * Part Two
@@ -123,6 +123,5 @@ console.assert(departures.length === 6, "Number of departure fields is wrong");
 
 console.log(
   "Part Two:",
-  departures.reduce((prev, curr) => prev * curr, 1),
-  2325343130651
+  departures.reduce((prev, curr) => prev * curr, 1)
 );
