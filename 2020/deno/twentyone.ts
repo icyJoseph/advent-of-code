@@ -59,7 +59,7 @@ const safeIngredients = diff(allIngredients, allPossibleIngredients);
 
 const foodList = [...foodDict.keys()];
 
-const count = [...safeIngredients.values()].reduce((prev, curr) => {
+const count = [...safeIngredients].reduce((prev, curr) => {
   return (
     foodList.filter((entry) => entry.split(" ").includes(curr)).length + prev
   );
