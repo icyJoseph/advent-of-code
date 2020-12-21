@@ -6,19 +6,22 @@ const input = await Deno.readTextFile("./input/twentyone.in").then((res) =>
  * Helpers
  */
 
-const intersec = (a, b) => new Set([...a].filter((x) => b.has(x)));
+const intersec = <T extends string | string[]>(a: Set<T>, b: Set<T>) =>
+  new Set([...a].filter((x) => b.has(x)));
 
-const diff = (a, b) => new Set([...a].filter((x) => !b.has(x)));
+const diff = <T extends string | string[]>(a: Set<T>, b: Set<T>) =>
+  new Set([...a].filter((x) => !b.has(x)));
 
-const join = (a, b) => new Set([...a, ...b]);
+const join = <T extends string | string[]>(a: Set<T>, b: Set<T>) =>
+  new Set([...a, ...b]);
 
 /**
  * Part One
  */
 
-const foodDict = new Map();
-const ingredientDict = new Map();
-const allergenDict = new Map();
+const foodDict = new Map<string, Set<string>>();
+const ingredientDict = new Map<string, Set<string>>();
+const allergenDict = new Map<string, Set<string>[]>();
 
 input.forEach((row) => {
   const [ingrs, algs] = row.replace(")", "").split(" (contains ");
@@ -43,7 +46,7 @@ input.forEach((row) => {
 // POEM: there was a time when I was there, but you were not
 
 const allPossibleIngredients = [...allergenDict.values()].reduce(
-  (prev, sets) => {
+  (prev: Set<string>, sets: Set<string>[]) => {
     const possible = sets.reduce(intersec);
     return join(prev, possible);
   },
@@ -68,25 +71,31 @@ console.log("Part One:", count);
  * Part Two
  */
 
-const withAllergen = [...allergenDict.entries()].reduce(
-  (prev, [allergen, sets]) => {
+type Possibility = {
+  allergen: string;
+  possible: Set<string>;
+};
+
+const withAllergen = [...allergenDict.entries()].reduce<Possibility[]>(
+  (prev, [allergen, sets]: [allergen: string, sets: Set<string>[]]) => {
     const possible = sets.reduce(intersec);
     return [...prev, { allergen, possible }];
   },
   []
 );
 
-const exhaust = (list) => {
+const exhaust = (list: Possibility[]): Possibility[] => {
   if (list.every(({ possible }) => possible.size === 1)) {
     return list;
   }
   const resolved = list.filter(({ possible }) => possible.size === 1);
   const unresolved = list.filter(({ possible }) => possible.size > 1);
 
-  const aggregate = resolved.reduce(
+  const aggregate = resolved.reduce<Set<string>>(
     (prev, { possible }) => join(prev, possible),
     new Set()
   );
+
   return exhaust([
     ...resolved,
     ...unresolved.map(({ allergen, possible }) => {
@@ -100,8 +109,11 @@ const allergenIngredients = exhaust(withAllergen);
 const sortedAllergens = [...allergenDict.keys()].sort();
 const dangerousList = sortedAllergens
   .map((allergen) =>
-    allergenIngredients.find((entry) => entry.allergen === allergen)
+    allergenIngredients.find(
+      (entry: Possibility) => entry.allergen === allergen
+    )
   )
+  .filter((x: Possibility | undefined): x is Possibility => !!x)
   .map(({ possible }) => [...possible])
   .join(",");
 
