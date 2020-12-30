@@ -26,7 +26,7 @@ const [, ones, , threes] = sorted.reduce<number[]>((prev, curr, index, src) => {
 console.log("Part One:", ones * threes);
 
 /**
- * Part Two
+ * Part Two Original
  */
 
 const combinations = sorted
@@ -65,3 +65,31 @@ const combinations = sorted
   .reduce<number>((prev, curr) => prev * curr, 1);
 
 console.log("Part Two:", combinations);
+
+/**
+ * Helpers
+ */
+
+const head = ([head]: number[]) => head;
+const last = (arr: number[]) => head(arr.slice(-1));
+const sum = (a: number, b: number) => a + b;
+
+/**
+ * Part Two Improved
+ */
+
+const improved = last(
+  sorted.reduce<number[]>(
+    (prev, num, index, src) => [
+      ...prev,
+      src
+        .filter((n) => num > n && num - n <= 3)
+        .map((x) => src.indexOf(x))
+        .map((x) => prev[x])
+        .reduce(sum, index === 0 ? 1 : 0)
+    ],
+    []
+  )
+);
+
+console.log("Part Two Improved:", improved);
