@@ -131,16 +131,31 @@ const flipTileH = (tile) => {
 };
 
 // rotate rows into columns
-const rotateTile = (tile) => {
-  let acc = [];
-  tile.forEach((row, rowIndex) => {
-    return row.forEach((cell, colIndex) => {
-      acc[colIndex] = acc[colIndex] || [];
-      acc[colIndex][rowIndex] = cell;
-    });
-  }, []);
+/**
+ * Wrong Implementation, which somehow solves the problem!
+ * It also adds about 4 seconds over head
+ */
+// const rotateTile = (tile) => {
+//   let acc = [];
+//   tile.forEach((row, rowIndex) => {
+//     return row.forEach((cell, colIndex) => {
+//       acc[colIndex] = acc[colIndex] || [];
+//       acc[colIndex][rowIndex] = cell;
+//     });
+//   }, []);
 
-  return acc;
+//   return acc;
+// };
+
+export const rotateTile = (tile) => {
+  return tile.reduce((acc, row, x) => {
+    return row.reduce((prev, cell, colIndex, src) => {
+      const y = src.length - 1 - colIndex;
+      prev[y] = prev[y] || [];
+      prev[y][x] = cell;
+      return prev;
+    }, acc);
+  }, []);
 };
 
 const doubleRotation = compose(rotateTile, rotateTile);
