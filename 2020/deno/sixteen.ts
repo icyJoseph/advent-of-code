@@ -123,5 +123,5 @@ console.assert(departures.length === 6, "Number of departure fields is wrong");
 
 console.log(
   "Part Two:",
-  departures.reduce((prev, curr) => prev * curr, 1)
+  departures.reduce((prev, curr) => prev * curr)
 );

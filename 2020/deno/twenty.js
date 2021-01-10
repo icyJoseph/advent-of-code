@@ -107,7 +107,9 @@ console.log(
 
 const head = ([head]) => head;
 
-const compose = (f) => (g) => (a) => f(g(a));
+const rev = (str) => str.split("").reverse().join("");
+
+const compose = (...fns) => (a) => fns.reduceRight((arg, fn) => fn(arg), a);
 
 const intersec = (a, b) => new Set([...a].filter((x) => b.has(x)));
 
@@ -129,20 +131,35 @@ const flipTileH = (tile) => {
 };
 
 // rotate rows into columns
-const rotateTile = (tile) => {
-  let acc = [];
-  tile.forEach((row, rowIndex) => {
-    return row.forEach((cell, colIndex) => {
-      acc[colIndex] = acc[colIndex] || [];
-      acc[colIndex][rowIndex] = cell;
-    });
-  }, []);
+/**
+ * Wrong Implementation, which somehow solves the problem!
+ * It also adds about 4 seconds over head
+ */
+// const rotateTile = (tile) => {
+//   let acc = [];
+//   tile.forEach((row, rowIndex) => {
+//     return row.forEach((cell, colIndex) => {
+//       acc[colIndex] = acc[colIndex] || [];
+//       acc[colIndex][rowIndex] = cell;
+//     });
+//   }, []);
 
-  return acc;
+//   return acc;
+// };
+
+export const rotateTile = (tile) => {
+  return tile.reduce((acc, row, x) => {
+    return row.reduce((prev, cell, colIndex, src) => {
+      const y = src.length - 1 - colIndex;
+      prev[y] = prev[y] || [];
+      prev[y][x] = cell;
+      return prev;
+    }, acc);
+  }, []);
 };
 
-const doubleRotation = compose(rotateTile)(rotateTile);
-const tripleRotation = compose(doubleRotation)(rotateTile);
+const doubleRotation = compose(rotateTile, rotateTile);
+const tripleRotation = compose(rotateTile, rotateTile, rotateTile);
 
 // No rotation, single, double and triple -
 // A fourth rotation would just return
@@ -160,9 +177,9 @@ const rotations = (tile) =>
 const allXforms = (tile) =>
   [
     rotations,
-    compose(rotations)(flipTileH),
-    compose(rotations)(flipTileV),
-    compose(compose(rotations)(flipTileH))(flipTileV)
+    compose(rotations, flipTileH),
+    compose(rotations, flipTileV),
+    compose(rotations, flipTileH, flipTileV)
   ]
     .map((fn) => fn(tile))
     .flat(1);
@@ -173,26 +190,16 @@ const rightBorder = (tile) => tile.map((row) => row.slice(-1)[0]).join("");
 const topBorder = (tile) => head(tile).join("");
 const bottomBorder = (tile) => head(tile.slice(-1)).join("");
 
+const border2bin = (border) => border.replaceAll("#", "1").replaceAll(".", "0");
+
 // When comparing two borders, sometimes, one of them is fliped.
 // This ensures that, every time a border is picked for comparisson,
 // a representative version of the border is used. It turns the border
 // to DEC and takes which ever border yields the higher value (the lowest works too)
 const signBorder = (border) => {
-  const weight = border
-    .split("")
-    .reduce(
-      (prev, curr, index) => (curr === "#" ? prev + Math.pow(2, index) : prev),
-      1
-    );
-  const revWeight = border
-    .split("")
-    .reverse()
-    .reduce(
-      (prev, curr, index) => (curr === "#" ? prev + Math.pow(2, index) : prev),
-      1
-    );
+  const bin = border2bin(border);
 
-  return weight > revWeight ? border : border.split("").reverse().join("");
+  return Math.max(bin, rev(bin));
 };
 
 const allBorders = (tile) =>

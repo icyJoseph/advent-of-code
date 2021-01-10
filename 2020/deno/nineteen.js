@@ -8,12 +8,12 @@ const input = await Deno.readTextFile("./input/nineteen.in").then((res) =>
 
 const [rules, messages] = input.map((chunk) => chunk.split("\n"));
 
-const dict = new Map();
-
-rules.forEach((rule) => {
-  const [name, pipe] = rule.split(": ");
-  dict.set(Number(name), pipe.replaceAll('"', ""));
-});
+const dict = new Map(
+  rules.map((rule) => {
+    const [name, pipe] = rule.split(": ");
+    return [Number(name), pipe.replaceAll('"', "")];
+  })
+);
 
 const A = "a";
 const B = "b";
@@ -24,7 +24,7 @@ const combinator = (next, y) =>
   }, "");
 
 const inline = (key, then = inline) => {
-  const next = dict.get(Number(key));
+  const next = dict.get(key);
 
   if (!next) return;
 

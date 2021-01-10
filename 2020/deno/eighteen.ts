@@ -141,7 +141,7 @@ const parseMult = (expression: string): number =>
       }
       return Number(expr);
     })
-    .reduce((acc, no) => acc * no, 1);
+    .reduce((acc, no) => acc * no);
 
 const parseSums = (expression: string): number =>
   regularParser(expression, "+")
@@ -183,7 +183,7 @@ console.log(
   grouped
     .map(transform)
     // Good old eval works...
-    .map((x) => eval(x))
+    .map(eval)
     .reduce(sum, 0)
 );
 
