@@ -12,3 +12,8 @@
 ## Visualizations
 
 - [2020 Day 11](https://loud-poison.surge.sh/)
+
+
+## Presentation
+
+A presentation I gave to my colleagues about AoC 2019 [here](https://massive-magic.surge.sh/0).
