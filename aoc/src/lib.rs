@@ -10,7 +10,7 @@ use reqwest;
 /// Take the session cookie from https://adventofcode.com in your preferred
 /// browser. In Chrome this can be found in Application isnside `devTools`.
 ///
-pub fn get_input(year: u32, day: u32) -> () {
+pub fn get_input(year: u32, day: u32) -> String {
     dotenv::dotenv().ok();
 
     let session = dotenv::var("SESSION");
@@ -28,12 +28,12 @@ pub fn get_input(year: u32, day: u32) -> () {
 
             match response {
                 Ok(res) => match res.text() {
-                    Ok(txt) => println!("{}", txt),
-                    Err(_) => println!("Error reading response"),
+                    Ok(txt) => txt,
+                    Err(_) => panic!("Error reading response"),
                 },
-                Err(_) => println!("Failed to get"),
+                Err(_) => panic!("Failed to get"),
             }
         }
-        Err(_) => println!("Session cookie is missing"),
+        Err(_) => panic!("Session cookie is missing"),
     }
 }
