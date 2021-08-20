@@ -5,6 +5,6 @@ fn solve(raw: String) -> () {
 }
 
 fn main() {
-    let input = aoc::get_input({% year %}, {% day %});
+    let input = aoc::get_input({{year}}, {{day}});
     solve(input);
 }
