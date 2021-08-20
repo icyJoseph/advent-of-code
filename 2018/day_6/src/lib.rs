@@ -34,7 +34,7 @@ fn calc_adj(r: usize, c: usize) -> Vec<Vec<usize>> {
 
 fn bfs(
     adj: &Vec<Vec<usize>>,
-    distances: &mut Vec<(usize, usize, usize, bool)>,
+    distances: &mut Vec<(usize, usize, usize, bool, bool)>,
     r: usize,
     c: usize,
     sources: &Vec<(usize, usize)>,
@@ -78,6 +78,7 @@ fn bfs(
                     let current_distance = distances[elem].2 + 1;
 
                     let current = (node % c, node / c);
+
                     let distance_to_others = others
                         .iter()
                         .map(|&p| man_dist(p, current))
@@ -85,7 +86,26 @@ fn bfs(
 
                     let should_count = !distance_to_others.contains(&current_distance);
 
-                    distances[node] = (parent % c, parent / c, distances[elem].2 + 1, should_count);
+                    let total_distance =
+                        current_distance + distance_to_others.iter().sum::<usize>();
+
+                    let is_safe = total_distance < 10000;
+
+                    if is_safe {
+                        // mark parent safe too, if it is within 1 distance
+                        if man_dist(current_parent, current) == 1 {
+                            distances[parent].4 = true;
+                        }
+                    }
+
+                    distances[node] = (
+                        parent % c,
+                        parent / c,
+                        current_distance,
+                        should_count,
+                        is_safe,
+                    );
+
                     q.push_back((node, parent));
                 }
             }
@@ -98,12 +118,12 @@ fn calc_distances(
     r: usize,
     c: usize,
     sources: &Vec<(usize, usize)>,
-) -> Vec<(usize, usize, usize, bool)> {
+) -> Vec<(usize, usize, usize, bool, bool)> {
     let mut distances = vec![0; r * c]
         .iter()
         .enumerate()
-        .map(|(i, _)| (i % c, i / c, 0, true))
-        .collect::<Vec<(usize, usize, usize, bool)>>();
+        .map(|(i, _)| (i % c, i / c, 0, true, false))
+        .collect::<Vec<(usize, usize, usize, bool, bool)>>();
 
     bfs(&adj, &mut distances, r, c, &sources);
 
@@ -111,13 +131,13 @@ fn calc_distances(
 }
 
 fn count_areas(
-    flat_grid: &Vec<(usize, usize, usize, bool)>,
+    flat_grid: &Vec<(usize, usize, usize, bool, bool)>,
     width: usize,
 ) -> HashMap<usize, usize> {
     let mut tally = HashMap::new();
 
     for entry in flat_grid {
-        let (x, y, _, should_count) = entry;
+        let (x, y, _, should_count, _) = entry;
 
         if *should_count {
             *tally.entry(y * width + x).or_insert(0) += 1;
@@ -131,44 +151,7 @@ fn translate(point: (usize, usize), dx: usize, dy: usize) -> (usize, usize) {
     (point.0 + dx, point.1 + dy)
 }
 
-#[allow(dead_code)]
-fn print(
-    flat_grid: &Vec<(usize, usize, usize, bool)>,
-    width: usize,
-    height: usize,
-    places: &Vec<(usize, usize)>,
-) -> () {
-    let mut acc = vec![];
-
-    for y in 0..height {
-        let row = flat_grid[y * width..(y + 1) * width]
-            .to_vec()
-            .iter()
-            .map(|(x, y, v, should_count)| {
-                if !should_count {
-                    format!(".")
-                } else if *v > 0 {
-                    match places.iter().position(|a| a.0 == *x && a.1 == *y) {
-                        Some(p) => format!("{}", places[p].1 * width + places[p].0),
-                        None => panic!("No parent found for node"),
-                    }
-                } else {
-                    format!("{}", y * width + x)
-                }
-            })
-            .collect::<Vec<String>>();
-
-        acc.push(row);
-    }
-
-    for row in acc {
-        println!("{:?}", row);
-    }
-}
-
 pub fn solve(raw: String) -> () {
-    let example = vec![(1, 1), (1, 6), (8, 3), (3, 4), (5, 5), (8, 9)];
-
     let input = raw.trim();
 
     let places: Vec<(usize, usize)> = input
@@ -188,8 +171,6 @@ pub fn solve(raw: String) -> () {
             }
         })
         .collect();
-
-    //    let places = example;
 
     let cols = places.iter().map(|p| p.0).max().unwrap() + 1;
     let rows = places.iter().map(|p| p.1).max().unwrap() + 1;
@@ -220,14 +201,14 @@ pub fn solve(raw: String) -> () {
 
     let mut stable = vec![];
 
-    for (key, value) in tally {
+    for (key, value) in &tally {
         let (x, y) = (key % cols + 50, key / cols + 50);
         let x_key = y * x_cols + x;
 
         match x_tally.get(&x_key) {
             // Finite areas do not change their size
             // after translating and expanding the grid
-            Some(&x_value) if x_value == value => stable.push(value),
+            Some(x_value) if x_value == value => stable.push(value),
             _ => continue,
         }
     }
@@ -236,4 +217,8 @@ pub fn solve(raw: String) -> () {
         Some(m) => println!("Part 1: {}", m),
         None => panic!("No stable area found"),
     }
+
+    let safe_area_count = distances.iter().filter(|(_, _, _, _, safe)| *safe).count();
+
+    println!("Part 2: {}", safe_area_count);
 }
