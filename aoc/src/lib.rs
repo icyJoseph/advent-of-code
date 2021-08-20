@@ -8,7 +8,7 @@ use reqwest;
 /// It requires a valid session cookie.
 ///
 /// Take the session cookie from https://adventofcode.com in your preferred
-/// browser. In Chrome this can be found in Application isnside `devTools`.
+/// browser. In Chrome this can be found in Application inside `devTools`.
 ///
 pub fn get_input(year: u32, day: u32) -> String {
     dotenv::dotenv().ok();
