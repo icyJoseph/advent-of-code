@@ -1,0 +1,10 @@
+[placeholders.year]
+default = '20201'
+prompt = "What year?"
+regex = "[0-9]+"
+type = "string"
+
+[placeholders.day]
+prompt = "Want day?"
+regex = "[0-9]+"
+type = "string"
