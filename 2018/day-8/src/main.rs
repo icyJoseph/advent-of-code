@@ -48,6 +48,23 @@ impl Node {
 
         sum
     }
+
+    fn node_value(&self) -> usize {
+        if self.children.len() == 0 {
+            return self.metadata.iter().sum::<usize>();
+        }
+
+        let mut sum = 0;
+
+        for &index in self.metadata.iter() {
+            sum += match self.children.get(index - 1) {
+                Some(c) => c.node_value(),
+                None => 0,
+            };
+        }
+
+        sum
+    }
 }
 
 fn solve(raw: String) -> () {
@@ -62,6 +79,7 @@ fn solve(raw: String) -> () {
     let root = Node::new(&mut it);
 
     println!("Part 1: {}", root.total_metadata());
+    println!("Part 2: {}", root.node_value());
 }
 
 fn main() {
