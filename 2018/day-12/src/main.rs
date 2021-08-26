@@ -4,13 +4,13 @@ use std::cell::Cell;
 
 #[derive(Debug)]
 struct Pot {
-    position: i32,
+    position: i64,
     plant: Cell<char>,
     update: Option<char>,
 }
 
 impl Pot {
-    fn new(position: i32, plant: char) -> Self {
+    fn new(position: i64, plant: char) -> Self {
         Pot {
             position,
             plant: Cell::new(plant),
@@ -56,7 +56,7 @@ fn solve(raw: String) -> () {
     let mut state = seed
         .chars()
         .enumerate()
-        .map(|(i, c)| Pot::new(i as i32, c))
+        .map(|(i, c)| Pot::new(i as i64, c))
         .collect::<Vec<_>>();
 
     let mut generation = 1;
@@ -76,6 +76,10 @@ fn solve(raw: String) -> () {
     };
 
     seed_state(&mut state);
+
+    let mut prev = None;
+    let mut prediction = None;
+    let mut consistent = 0;
 
     loop {
         seed_state(&mut state);
@@ -98,21 +102,40 @@ fn solve(raw: String) -> () {
             pot.flush_update();
         }
 
+        let sum = state
+            .iter()
+            .filter(|p| p.plant.get() == '#')
+            .map(|p| p.position)
+            .sum::<i64>();
+
         if generation == 20 {
-            break;
+            println!("Part 1: {}", sum);
+        }
+
+        match prev {
+            Some(p) => {
+                match prediction {
+                    Some(pred) if pred == sum => {
+                        consistent += 1;
+                        if consistent > 3 {
+                            println!("Part 2: {}", (sum - p) * (50000000000 - generation) + sum);
+                            break;
+                        }
+                    }
+                    _ => {
+                        consistent = 0;
+                    }
+                }
+
+                let diff = sum - p;
+                prediction = Some(diff + sum);
+                prev = Some(sum);
+            }
+            None => prev = Some(sum),
         }
 
         generation += 1;
     }
-
-    println!(
-        "Part 1: {}",
-        state
-            .iter()
-            .filter(|p| p.plant.get() == '#')
-            .map(|p| p.position)
-            .sum::<i32>()
-    );
 }
 
 fn main() {
