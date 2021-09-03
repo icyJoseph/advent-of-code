@@ -7,10 +7,10 @@ type Res<T> = Result<T, Box<dyn std::error::Error>>;
 type Adj = Vec<Vec<usize>>;
 
 fn tp_mod((x, y): (usize, usize), width: usize) -> usize {
-    x + y * width
+    norm(x, y, width)
 }
 
-fn c_mod(x: usize, y: usize, width: usize) -> usize {
+fn norm(x: usize, y: usize, width: usize) -> usize {
     x + y * width
 }
 
@@ -70,11 +70,16 @@ impl Node {
 }
 
 impl Unit {
-    fn new(x: usize, y: usize, value: char) -> Self {
+    fn new(x: usize, y: usize, value: char, dmg: Option<u32>) -> Self {
         let kind = match value {
             'E' => Kind::Elf,
             'G' => Kind::Goblin,
             _ => panic!("Nor a Goblin nor Elf"),
+        };
+
+        let attack_power = match dmg {
+            Some(d) => d,
+            None => 3,
         };
 
         Unit {
@@ -82,7 +87,7 @@ impl Unit {
             x: Cell::new(x),
             y: Cell::new(y),
             hp: Cell::new(200),
-            attack_power: 3,
+            attack_power,
         }
     }
 
@@ -97,10 +102,6 @@ impl Unit {
         (self.x.get(), self.y.get())
     }
 
-    fn is_dead(&self) -> bool {
-        self.hp.get() == 0
-    }
-
     fn take_dmg(&mut self, dmg: u32) -> () {
         self.hp.set(if self.hp.get() > dmg {
             self.hp.get() - dmg
@@ -108,28 +109,29 @@ impl Unit {
             0
         });
     }
+
+    fn is_dead(&self) -> bool {
+        self.hp.get() == 0
+    }
 }
 
-// r: height, c: width
-fn calc_adj(r: usize, c: usize) -> Adj {
-    let norm = |i: usize, j: usize| i + c * j;
+fn calc_adj(height: usize, width: usize) -> Adj {
+    let mut adj = vec![vec![]; height * width];
 
-    let mut adj = vec![vec![]; r * c];
-
-    for i in 0..r {
-        for j in 0..c {
-            let index = norm(i, j);
-            if i > 0 {
-                adj[index].push(norm(i - 1, j));
+    for y in 0..height {
+        for x in 0..width {
+            let index = norm(x, y, width);
+            if x > 0 {
+                adj[index].push(norm(x - 1, y, width));
             }
-            if j + 1 < c {
-                adj[index].push(norm(i, j + 1));
+            if y + 1 < height {
+                adj[index].push(norm(x, y + 1, width));
             }
-            if i + 1 < r {
-                adj[index].push(norm(i + 1, j));
+            if x + 1 < width {
+                adj[index].push(norm(x + 1, y, width));
             }
-            if j > 0 {
-                adj[index].push(norm(i, j - 1));
+            if y > 0 {
+                adj[index].push(norm(x, y - 1, width));
             }
         }
     }
@@ -139,22 +141,24 @@ fn calc_adj(r: usize, c: usize) -> Adj {
 
 fn bfs(
     adj: &Adj,
-    distances: &mut Vec<Option<usize>>,
-    r: usize,
-    c: usize,
+    height: usize,
+    width: usize,
     root: (usize, usize),
     nodes: &Vec<Vec<Node>>,
     units: &Vec<Unit>,
-) {
-    let mut visited = vec![false; r * c];
+) -> Vec<Option<usize>> {
+    let mut distances = vec![None; height * width];
+
+    let mut visited = vec![false; height * width];
 
     let mut q = VecDeque::new();
 
     let (x, y) = root;
-    let node = x + c * y;
+    let node = x + width * y;
     visited[node] = true;
-    q.push_back(node);
 
+    q.push_back(node);
+    // distance to self is zero
     distances[node] = Some(0);
 
     loop {
@@ -165,56 +169,49 @@ fn bfs(
                 break;
             }
             Some(elem) => {
-                for &node in adj[elem].iter() {
-                    if visited[node] {
+                for &leave in adj[elem].iter() {
+                    if visited[leave] {
                         continue;
                     }
 
-                    visited[node] = true;
+                    visited[leave] = true;
 
-                    let (t_x, t_y) = u_mod(node, c);
+                    let (t_x, t_y) = u_mod(leave, width);
 
                     match nodes[t_y][t_x].terrain {
                         Terrain::Ground => {
                             if units.iter().any(|unit| {
                                 let (u_x, u_y) = unit.get_pos();
-                                c_mod(u_x, u_y, c) == node
+                                norm(u_x, u_y, width) == leave
                             }) {
                                 // occupied by some unit
-                                distances[node] = None;
+                                distances[leave] = None;
                             } else {
-                                distances[node] = match distances[elem] {
-                                    Some(e) => Some(e + 1),
+                                distances[leave] = match distances[elem] {
+                                    Some(e) => {
+                                        // only continue to expand nodes
+                                        // which have distance
+                                        q.push_back(leave);
+
+                                        Some(e + 1)
+                                    }
                                     None => None,
                                 };
-                                q.push_back(node);
                             }
                         }
                         Terrain::Wall => {
-                            distances[node] = None;
+                            distances[leave] = None;
                         }
                     }
                 }
             }
         }
     }
-}
-
-fn calc_distances(
-    adj: &Adj,
-    r: usize,
-    c: usize,
-    root: (usize, usize),
-    nodes: &Vec<Vec<Node>>,
-    units: &Vec<Unit>,
-) -> Vec<Option<usize>> {
-    let mut distances = vec![None; r * c];
-
-    bfs(&adj, &mut distances, r, c, root, &nodes, &units);
 
     distances
 }
 
+#[allow(dead_code)]
 fn plot(nodes: &Vec<Vec<Node>>, units: &Vec<Unit>) -> () {
     let width = nodes[0].len();
     let height = nodes.len();
@@ -241,441 +238,260 @@ fn plot(nodes: &Vec<Vec<Node>>, units: &Vec<Unit>) -> () {
         }
     }
 
-    println!("\n\n\n");
+    println!("\n");
 
     for row in grid {
         println!("{}", row.iter().collect::<String>());
     }
 
-    println!("\n\n\n");
+    println!("\n");
+}
+
+fn find_attack(
+    adj: &Adj,
+    unit_pos: &(usize, usize),
+    width: usize,
+    enemies: &Vec<&Unit>,
+    units: &Vec<Unit>,
+) -> Option<usize> {
+    // check around this unit, can it attack?
+    // if so, attack and continue
+    // otherwise try to move and attack
+    let quick_attack = &adj[tp_mod(*unit_pos, width)]
+        .iter()
+        .filter_map(|p| {
+            enemies
+                .iter()
+                .find(|enemy| tp_mod(enemy.get_pos(), width) == *p)
+        })
+        .collect::<Vec<_>>();
+
+    let mut result = None;
+
+    // find weakest, and first by reading order
+    if let Some(min) = quick_attack
+        .iter()
+        .min_by(|a, b| a.hp.get().cmp(&b.hp.get()))
+    {
+        // filter out those who have too much hp
+        let mut weak = quick_attack
+            .iter()
+            .filter(|en| en.hp.get() <= min.hp.get())
+            .collect::<Vec<_>>();
+
+        // sort by reading order
+        weak.sort_by(|a, b| tp_mod(a.get_pos(), width).cmp(&tp_mod(b.get_pos(), width)));
+
+        if let Some(target) = weak.get(0) {
+            result = units.iter().position(|u| u.get_pos() == target.get_pos());
+        };
+    };
+
+    result
+}
+
+fn find_move(
+    unit_pos: &(usize, usize),
+    adj: &Adj,
+    nodes: &Vec<Vec<Node>>,
+    enemies: &Vec<&Unit>,
+    units: &Vec<Unit>,
+    width: usize,
+    height: usize,
+) -> Option<(usize, usize)> {
+    let distances = bfs(&adj, height, width, *unit_pos, &nodes, &units);
+
+    let mut result = None;
+    // collect all adjacent points to enemies
+    let mut targets: Vec<(usize, usize)> = vec![];
+
+    for enemy in enemies {
+        let enemy_adj = &adj[tp_mod(enemy.get_pos(), width)];
+
+        for near in enemy_adj {
+            if let Some(dist) = distances[*near] {
+                targets.push((dist, *near));
+            }
+        }
+    }
+
+    // helper compare function to sort by reading order and distance
+    let compare = |a: &(usize, usize), b: &(usize, usize)| {
+        let cmp = a.0.cmp(&b.0);
+
+        match cmp {
+            std::cmp::Ordering::Equal => a.1.cmp(&b.1),
+            _ => cmp,
+        }
+    };
+
+    // sort by reading order and distance ascending
+    targets.sort_by(compare);
+
+    // take the closest by reading order
+    if let Some(chosen) = targets.get(0) {
+        // from the chosen place measure distances to
+        // the adjanced cells to the current unit
+        let reverse_distances = bfs(&adj, height, width, u_mod(chosen.1, width), &nodes, &units);
+
+        let mut next_move: Vec<(usize, usize)> = vec![];
+
+        let possible_next_moves = &adj[tp_mod(*unit_pos, width)];
+
+        for m in possible_next_moves {
+            if let Some(rev_dist) = reverse_distances[*m] {
+                next_move.push((rev_dist, *m));
+            }
+        }
+
+        // keep those which have shortest distance
+        next_move.sort_by(compare);
+
+        // choose an adjacent cell by reading order
+        if let Some(&(_, val)) = next_move.get(0) {
+            result = Some(u_mod(val, width));
+        }
+    };
+
+    result
 }
 
 fn solve(raw: String) -> () {
-    // war init
-    let rows = raw
-        .trim()
-        .split("\n")
-        .map(|row| row.chars().collect::<Vec<char>>())
-        .collect::<Vec<Vec<char>>>();
+    let simulation = |elf_dmg: u32| {
+        // war init
+        let rows = raw
+            .trim()
+            .split("\n")
+            .map(|row| row.trim().chars().collect::<Vec<char>>())
+            .collect::<Vec<Vec<char>>>();
 
-    let width = rows[0].len();
-    let height = rows.len();
+        let width = rows[0].len();
+        let height = rows.len();
 
-    let mut nodes = vec![];
-    let mut units = vec![];
+        let mut nodes = vec![];
+        let mut units = vec![];
 
-    for y in 0..rows.len() {
-        let mut row = vec![];
+        for y in 0..rows.len() {
+            let mut row = vec![];
 
-        for x in 0..rows[y].len() {
-            let value = rows[y][x];
-            row.push(Node::new(x, y, value));
+            for x in 0..rows[y].len() {
+                let value = rows[y][x];
 
-            if value == 'G' || value == 'E' {
-                units.push(Unit::new(x, y, value));
+                row.push(Node::new(x, y, value));
+
+                if value == 'G' {
+                    units.push(Unit::new(x, y, value, None));
+                }
+
+                if value == 'E' {
+                    units.push(Unit::new(x, y, value, Some(elf_dmg)));
+                }
             }
+
+            nodes.push(row);
         }
 
-        nodes.push(row);
-    }
+        // prepare bfs
+        let adj = calc_adj(height, width);
 
-    plot(&nodes, &units);
+        let mut round = 0;
 
-    // prepare bfs
-    let adj = calc_adj(height, width);
+        let total_elves = units.iter().filter(|u| u.kind == Kind::Elf).count();
 
-    let mut round = 0;
+        let war = move || loop {
+            // plot(&nodes, &units);
+            units = units.into_iter().filter(|u| !u.is_dead()).collect::<_>();
+            units.sort_by(|a, b| tp_mod(a.get_pos(), width).cmp(&tp_mod(b.get_pos(), width)));
 
-    let war = move || loop {
-        println!("AFTER ROUND {}", round);
-        units.sort_by(|a, b| {
-            let (a_x, a_y) = a.get_pos();
-            let (b_x, b_y) = b.get_pos();
+            // war loop
+            for i in 0..units.len() {
+                if units[i].is_dead() {
+                    continue;
+                }
 
-            c_mod(a_x, a_y, width).cmp(&c_mod(b_x, b_y, width))
-        });
+                // copy some immutable data from the unit
+                let unit_pos = units[i].get_pos();
+                let unit_kind = units[i].kind;
+                let attack_power = units[i].attack_power;
 
-        units = units.into_iter().filter(|u| !u.is_dead()).collect::<_>();
-
-        println!(
-            "{:?}",
-            units
-                .iter()
-                .map(|u| format!("{:?}({})", u.kind, u.hp.get()))
-                .collect::<Vec<String>>()
-        );
-
-        // war loop
-        for i in 0..units.len() {
-            println!("\n\n");
-
-            let prev: Vec<Unit> = units
-                .to_vec()
-                .into_iter()
-                .filter(|u| !u.is_dead())
-                .collect::<_>();
-
-            let unit = &units[i];
-
-            let unit_kind = unit.kind;
-            let attack_power = unit.attack_power;
-
-            if unit.is_dead() {
-                continue;
-            }
-
-            println!("Unit: {:?}", unit);
-
-            // now calculate enemies
-            let enemies = prev
-                .iter()
-                .filter(|u| u.kind != unit.kind)
-                .collect::<Vec<_>>();
-
-            if round == 100 || enemies.len() == 0 {
-                return (
-                    round,
-                    units
-                        .iter()
-                        .filter(|x| !x.is_dead())
-                        .map(|u| u.hp.get())
-                        .sum::<u32>(),
-                );
-            }
-
-            // println!("Enemies: {:?}", enemies);
-
-            // distances to all available nodes
-            let distances = calc_distances(&adj, height, width, unit.get_pos(), &nodes, &prev);
-
-            let (around, min) = {
-                let mut all = vec![];
-
-                let mut min = None;
-
-                // get distances to points around each enemy
-                for enemy in &enemies {
-                    let (x, y) = enemy.get_pos();
-                    // println!(" {:?} \n {:?}", unit, enemy);
-
-                    let mut around = vec![
-                        if y > 0 {
-                            Some(c_mod(x, y - 1, width))
-                        } else {
-                            None
-                        },
-                        if x > 0 {
-                            Some(c_mod(x - 1, y, width))
-                        } else {
-                            None
-                        },
-                        if x < width - 1 {
-                            Some(c_mod(x + 1, y, width))
-                        } else {
-                            None
-                        },
-                        if y < height - 1 {
-                            Some(c_mod(x, y + 1, width))
-                        } else {
-                            None
-                        },
-                    ]
+                // collect from previous iteration
+                // those which are still alive
+                let prev: Vec<Unit> = units
+                    .to_vec()
                     .into_iter()
-                    .filter_map(|m| {
-                        if let Some(q) = m {
-                            match distances[q] {
-                                Some(d) => {
-                                    match min {
-                                        Some(current) if d < current => {
-                                            min = Some(d);
-                                        }
-                                        Some(_) => {}
-                                        None => {
-                                            min = Some(d);
-                                        }
-                                    }
+                    .filter(|u| !u.is_dead())
+                    .collect::<_>();
 
-                                    Some((q, d))
-                                }
-                                None => None,
-                            }
-                        } else {
-                            None
-                        }
-                    })
-                    .collect::<Vec<(usize, usize)>>();
-
-                    all.append(&mut around);
-                }
-
-                match min {
-                    Some(m) => (all, m),
-                    None => (all, 0),
-                }
-            };
-
-            // println!("{:?} - min {}", around, min);
-            // remove taken places around this enemy
-            let mut free_around = around.iter().filter(|(_, d)| *d <= min).collect::<Vec<_>>();
-
-            free_around.sort_by(|a, b| a.0.cmp(&b.0));
-
-            // println!("Enemies spots: {:?}", free_around);
-            match free_around.get(0) {
-                Some((m, d)) => {
-                    if *d == 0 && tp_mod(unit.get_pos(), width) == *m {
-                        // moving here would cause overlap
-                        // println!("Overlap - Attack instead {:?}", unit.get_pos());
-                        // get four around
-                        // sort by hp, and attack
-                        let (x, y) = unit.get_pos();
-
-                        let attack = vec![
-                            if y > 0 {
-                                Some(c_mod(x, y - 1, width))
-                            } else {
-                                None
-                            },
-                            if x > 0 {
-                                Some(c_mod(x - 1, y, width))
-                            } else {
-                                None
-                            },
-                            if x < width - 1 {
-                                Some(c_mod(x + 1, y, width))
-                            } else {
-                                None
-                            },
-                            if y < height - 1 {
-                                Some(c_mod(x, y + 1, width))
-                            } else {
-                                None
-                            },
-                        ]
-                        .iter()
-                        .filter_map(|m| {
-                            if let Some(q) = m {
-                                prev.iter().find(|e| {
-                                    e.get_pos() == u_mod(*q, width) && e.kind != unit.kind
-                                })
-                            } else {
-                                None
-                            }
-                        })
-                        .collect::<Vec<_>>();
-
-                        println!("Attack candidates {:?}", attack);
-
-                        match attack.iter().min_by(|a, b| a.hp.get().cmp(&b.hp.get())) {
-                            Some(min) => {
-                                let mut to_attack = attack
-                                    .iter()
-                                    .filter(|u| u.hp.get() == min.hp.get())
-                                    .collect::<Vec<_>>();
-
-                                to_attack.sort_by(|a, b| {
-                                    tp_mod(a.get_pos(), width).cmp(&tp_mod(b.get_pos(), width))
-                                });
-
-                                match to_attack.get(0) {
-                                    Some(target) => {
-                                        match units.iter().position(|u| {
-                                            tp_mod(u.get_pos(), width)
-                                                == tp_mod(target.get_pos(), width)
-                                                && !u.is_dead()
-                                        }) {
-                                            Some(p) => {
-                                                println!(" -> Attacks {:?}", units[p]);
-                                                units[p].take_dmg(attack_power);
-                                            }
-                                            None => {}
-                                        }
-                                    }
-                                    None => {}
-                                }
-                            }
-                            None => {}
-                        }
-
-                        // println!("\n\n\n");
-
-                        continue;
-                    }
-
-                    let (m_x, m_y) = u_mod(*m, width);
-
-                    // move
-                    let (x, y) = unit.get_pos();
-                    let s_distances =
-                        calc_distances(&adj, height, width, (m_x, m_y), &nodes, &prev);
-
-                    //  println!("Paths: {:?}", s_distances);
-
-                    let around = vec![
-                        if y > 0 {
-                            Some(c_mod(x, y - 1, width))
-                        } else {
-                            None
-                        },
-                        if x > 0 {
-                            Some(c_mod(x - 1, y, width))
-                        } else {
-                            None
-                        },
-                        if x < width - 1 {
-                            Some(c_mod(x + 1, y, width))
-                        } else {
-                            None
-                        },
-                        if y < height - 1 {
-                            Some(c_mod(x, y + 1, width))
-                        } else {
-                            None
-                        },
-                    ]
+                // now calculate enemies
+                let enemies = prev
                     .iter()
-                    .filter_map(|m| {
-                        if let Some(q) = m {
-                            // println!("{} - {:?}", q, u_mod(*q, width));
-                            match s_distances[*q] {
-                                Some(d) => Some((*q, d)),
-                                None => None,
-                            }
-                        } else {
-                            None
-                        }
-                    })
-                    .collect::<Vec<(usize, usize)>>();
-                    // println!("All move options: {:?}", around);
+                    .filter(|u| u.kind != unit_kind)
+                    .collect::<Vec<_>>();
 
-                    let mut free_around = around
+                // exit condition
+                if enemies.len() == 0 {
+                    let survivors = units
                         .iter()
-                        .filter(|(m, p)| {
-                            // Keep only if shortest path
-                            *d == p + 1
-                        })
-                        .collect::<Vec<_>>();
+                        .filter(|x| x.kind == Kind::Elf)
+                        .filter(|x| !x.is_dead())
+                        .collect::<Vec<&Unit>>();
 
-                    // println!("Move options: {:?}", free_around);
-                    free_around.sort_by(|a, b| a.0.cmp(&b.0));
+                    return (
+                        round,
+                        survivors.len() == total_elves,
+                        units
+                            .iter()
+                            .filter(|x| !x.is_dead())
+                            .map(|u| u.hp.get())
+                            .sum::<u32>(),
+                    );
+                }
 
-                    match free_around.get(0) {
-                        Some((n, d)) => {
-                            let (d_x, d_y) = u_mod(*n, width);
-                            println!(" -> Move to {},{}", d_x, d_y);
+                // try to attack and continue
+                if let Some(index) = find_attack(&adj, &unit_pos, width, &enemies, &units) {
+                    units[index].take_dmg(attack_power);
+                } else {
+                    // otherwise try to move and attack
+                    match find_move(&unit_pos, &adj, &nodes, &enemies, &prev, width, height) {
+                        Some((d_x, d_y)) => {
                             let (n_x, n_y) = units[i].move_to(d_x, d_y);
 
-                            let attack = vec![
-                                if n_y > 0 {
-                                    Some(c_mod(n_x, n_y - 1, width))
-                                } else {
-                                    None
-                                },
-                                if n_x > 0 {
-                                    Some(c_mod(n_x - 1, n_y, width))
-                                } else {
-                                    None
-                                },
-                                if n_x < width - 1 {
-                                    Some(c_mod(n_x + 1, n_y, width))
-                                } else {
-                                    None
-                                },
-                                if n_y < height - 1 {
-                                    Some(c_mod(n_x, n_y + 1, width))
-                                } else {
-                                    None
-                                },
-                            ]
-                            .iter()
-                            .filter_map(|m| {
-                                if let Some(q) = m {
-                                    prev.iter().find(|e| {
-                                        e.get_pos() == u_mod(*q, width) && e.kind != unit_kind
-                                    })
-                                } else {
-                                    None
-                                }
-                            })
-                            .collect::<Vec<_>>();
-
-                            println!("Attack candidates {:?}", attack);
-
-                            match attack.iter().min_by(|a, b| a.hp.get().cmp(&b.hp.get())) {
-                                Some(min) => {
-                                    let mut to_attack = attack
-                                        .iter()
-                                        .filter(|u| u.hp.get() == min.hp.get())
-                                        .collect::<Vec<_>>();
-
-                                    to_attack.sort_by(|a, b| {
-                                        tp_mod(a.get_pos(), width).cmp(&tp_mod(b.get_pos(), width))
-                                    });
-
-                                    match to_attack.get(0) {
-                                        Some(target) => {
-                                            match units.iter().position(|u| {
-                                                tp_mod(u.get_pos(), width)
-                                                    == tp_mod(target.get_pos(), width)
-                                                    && !u.is_dead()
-                                            }) {
-                                                Some(p) => {
-                                                    println!(" -> Attacks {:?}", units[p]);
-                                                    units[p].take_dmg(attack_power);
-                                                }
-                                                None => {}
-                                            }
-                                        }
-                                        None => {}
-                                    }
-                                }
+                            match find_attack(&adj, &(n_x, n_y), width, &enemies, &units) {
+                                Some(index) => units[index].take_dmg(attack_power),
                                 None => {}
                             }
                         }
-
-                        None => continue,
+                        None => {}
                     }
                 }
-                None => continue,
             }
-        }
 
-        round += 1;
+            round += 1;
+        };
 
-        plot(&nodes, &units);
+        war()
     };
 
-    let last_round = war();
-    println!(
-        "Last round {:?} - {}",
-        last_round,
-        last_round.0 * last_round.1
-    );
+    let mut dmg = 3;
+
+    loop {
+        let (final_round, all_elves_survive, score) = simulation(dmg);
+
+        if dmg == 3 {
+            println!("Part 1: {}", final_round * score);
+        }
+
+        if all_elves_survive {
+            println!("Part 2: {}", final_round * score);
+            break;
+        }
+
+        dmg += 1;
+    }
 }
 
 fn main() -> Res<()> {
     let input = aoc::get_input(2018, 15);
-    let _input = "#########
-#G..G..G#
-#.......#
-#.......#
-#G..E..G#
-#.......#
-#.......#
-#G..G..G#
-#########
-"
-    .to_string();
-
-    let _input = "#######
-#.G...#
-#...EG#
-#.#.#G#
-#..G#E#
-#.....#
-#######
-"
-    .to_string();
 
     solve(input);
 
