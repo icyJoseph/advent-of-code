@@ -246,9 +246,9 @@ fn plot(nodes: &Vec<Vec<Node>>, units: &Vec<Unit>) -> () {
 fn find_attack(
     adj: &Adj,
     unit_pos: &(usize, usize),
-    width: usize,
     enemies: &Vec<&Unit>,
     units: &Vec<Unit>,
+    width: usize,
 ) -> Option<usize> {
     // check around this unit, can it attack?
     // if so, attack and continue
@@ -287,8 +287,8 @@ fn find_attack(
 }
 
 fn find_move(
-    unit_pos: &(usize, usize),
     adj: &Adj,
+    unit_pos: &(usize, usize),
     nodes: &Vec<Vec<Node>>,
     enemies: &Vec<&Unit>,
     units: &Vec<Unit>,
@@ -311,7 +311,7 @@ fn find_move(
         }
     }
 
-    // helper compare function to sort by reading order and distance
+    // helper function to sort by reading order and distance
     let compare = |a: &(usize, usize), b: &(usize, usize)| {
         let cmp = a.0.cmp(&b.0);
 
@@ -387,19 +387,19 @@ fn solve(raw: String) -> () {
             nodes.push(row);
         }
 
-        // prepare bfs
+        // prepare adj matrix for bfs
         let adj = calc_adj(height, width);
 
         let mut round = 0;
 
         let total_elves = units.iter().filter(|u| u.kind == Kind::Elf).count();
 
-        let war = move || loop {
+        let fight = || loop {
             // plot(&nodes, &units);
             units = units.into_iter().filter(|u| !u.is_dead()).collect::<_>();
             units.sort_by(|a, b| tp_mod(a.get_pos(), width).cmp(&tp_mod(b.get_pos(), width)));
 
-            // war loop
+            // fight loop
             for i in 0..units.len() {
                 if units[i].is_dead() {
                     continue;
@@ -428,33 +428,27 @@ fn solve(raw: String) -> () {
                 if enemies.len() == 0 {
                     let survivors = units
                         .iter()
-                        .filter(|x| x.kind == Kind::Elf)
                         .filter(|x| !x.is_dead())
                         .collect::<Vec<&Unit>>();
 
                     return (
                         round,
-                        survivors.len() == total_elves,
-                        units
-                            .iter()
-                            .filter(|x| !x.is_dead())
-                            .map(|u| u.hp.get())
-                            .sum::<u32>(),
+                        survivors.iter().filter(|x| x.kind == Kind::Elf).count() == total_elves,
+                        survivors.iter().map(|u| u.hp.get()).sum::<u32>(),
                     );
                 }
 
                 // try to attack and continue
-                if let Some(index) = find_attack(&adj, &unit_pos, width, &enemies, &units) {
+                if let Some(index) = find_attack(&adj, &unit_pos, &enemies, &units, width) {
                     units[index].take_dmg(attack_power);
                 } else {
                     // otherwise try to move and attack
                     if let Some((d_x, d_y)) =
-                        find_move(&unit_pos, &adj, &nodes, &enemies, &prev, width, height)
+                        find_move(&adj, &unit_pos, &nodes, &enemies, &prev, width, height)
                     {
-                        let (n_x, n_y) = units[i].move_to(d_x, d_y);
+                        let new_pos = units[i].move_to(d_x, d_y);
 
-                        if let Some(index) = find_attack(&adj, &(n_x, n_y), width, &enemies, &units)
-                        {
+                        if let Some(index) = find_attack(&adj, &new_pos, &enemies, &units, width) {
                             units[index].take_dmg(attack_power);
                         }
                     };
@@ -464,7 +458,7 @@ fn solve(raw: String) -> () {
             round += 1;
         };
 
-        war()
+        fight()
     };
 
     let mut dmg = 3;
