@@ -187,16 +187,12 @@ fn bfs(
                                 // occupied by some unit
                                 distances[leave] = None;
                             } else {
-                                distances[leave] = match distances[elem] {
-                                    Some(e) => {
-                                        // only continue to expand nodes
-                                        // which have distance
-                                        q.push_back(leave);
-
-                                        Some(e + 1)
-                                    }
-                                    None => None,
-                                };
+                                if let Some(dist) = distances[elem] {
+                                    q.push_back(leave);
+                                    distances[leave] = Some(dist + 1);
+                                } else {
+                                    distances[leave] = None;
+                                }
                             }
                         }
                         Terrain::Wall => {
@@ -452,17 +448,16 @@ fn solve(raw: String) -> () {
                     units[index].take_dmg(attack_power);
                 } else {
                     // otherwise try to move and attack
-                    match find_move(&unit_pos, &adj, &nodes, &enemies, &prev, width, height) {
-                        Some((d_x, d_y)) => {
-                            let (n_x, n_y) = units[i].move_to(d_x, d_y);
+                    if let Some((d_x, d_y)) =
+                        find_move(&unit_pos, &adj, &nodes, &enemies, &prev, width, height)
+                    {
+                        let (n_x, n_y) = units[i].move_to(d_x, d_y);
 
-                            match find_attack(&adj, &(n_x, n_y), width, &enemies, &units) {
-                                Some(index) => units[index].take_dmg(attack_power),
-                                None => {}
-                            }
+                        if let Some(index) = find_attack(&adj, &(n_x, n_y), width, &enemies, &units)
+                        {
+                            units[index].take_dmg(attack_power);
                         }
-                        None => {}
-                    }
+                    };
                 }
             }
 
