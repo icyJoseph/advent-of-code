@@ -31,21 +31,10 @@ struct Node {
     y: usize,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 enum Kind {
     Elf,
     Goblin,
-}
-
-impl std::cmp::PartialEq for Kind {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Kind::Elf, Kind::Elf) => true,
-            (Kind::Elf, Kind::Goblin) => false,
-            (Kind::Goblin, Kind::Goblin) => true,
-            (Kind::Goblin, Kind::Elf) => false,
-        }
-    }
 }
 
 #[derive(Debug, Clone)]
