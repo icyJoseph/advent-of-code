@@ -14,39 +14,27 @@ fn solve(raw: String) -> () {
         .map(|x| parse_num::<u32>(x))
         .collect::<Vec<u32>>();
 
+    let compare = |state: &mut usize, curr: &u32| {
+        let result = *curr > rows[*state];
+        *state += 1;
+
+        Some(result)
+    };
+
     let part_one_deltas = rows[1..]
         .iter()
-        .scan(rows[0], |state, curr| {
-            let diff = curr > state;
-
-            *state = *curr;
-
-            Some(diff)
-        })
+        .scan(0usize, compare)
         .filter(|x| *x)
         .count();
 
     println!("Part one: {}", part_one_deltas); // 1226
 
-    let windows: Vec<u32> = rows[..rows.len() - 2]
+    let part_two_deltas = rows[3..]
         .iter()
-        .scan(0usize, |state, curr| {
-            let window_sum = curr + rows[*state + 1..*state + 3].iter().sum::<u32>();
-            *state += 1;
-
-            Some(window_sum)
-        })
-        .collect();
-
-    let part_two_deltas = windows[1..]
-        .iter()
-        .scan(0usize, |state, curr| {
-            let index = *state;
-            *state += 1;
-            Some(*curr > windows[index])
-        })
+        .scan(0usize, compare)
         .filter(|x| *x)
         .count();
+
     println!("Part two: {}", part_two_deltas); // 1252
 }
 

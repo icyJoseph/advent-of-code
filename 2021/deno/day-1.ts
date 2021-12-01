@@ -23,16 +23,9 @@ console.log("Part One:", deltas);
 
 const windowDeltas = data
   .reduce((prev: boolean[], _, index, src) => {
-    if (index === 0) return prev;
-    if (src.length - index < 3) return prev;
+    if (index < 3) return prev;
 
-    const prevWindow = src.slice(index - 1, index + 2);
-    const nextWindow = src.slice(index, index + 3);
-
-    const prevSum = prevWindow.reduce(sum);
-    const nextSum = nextWindow.reduce(sum);
-
-    return [...prev, nextSum > prevSum];
+    return [...prev, src[index] > src[index - 3]];
   }, [])
   .filter(Boolean).length;
 
