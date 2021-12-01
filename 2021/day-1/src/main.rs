@@ -14,34 +14,44 @@ fn solve(raw: String) -> () {
         .map(|x| parse_num::<u32>(x))
         .collect::<Vec<u32>>();
 
-    let mut part_one_deltas = 0;
+    let part_one_deltas = rows[1..]
+        .iter()
+        .scan(rows[0], |state, curr| {
+            let diff = curr > state;
 
-    for (index, value) in rows[1..].iter().enumerate() {
-        let actual_index = index + 1;
-        if *value > rows[actual_index - 1] {
-            part_one_deltas += 1;
-        }
-    }
+            *state = *curr;
+
+            Some(diff)
+        })
+        .filter(|x| *x)
+        .count();
+
     println!("Part one: {}", part_one_deltas); // 1226
 
-    let mut part_two_deltas = 0;
-    for (index, _) in rows[1..rows.len() - 2].iter().enumerate() {
-        let actual_index = index + 1;
-        let prev_window = rows[actual_index - 1..actual_index + 2].iter().sum::<u32>();
-        let next_window = rows[actual_index..actual_index + 3].iter().sum::<u32>();
+    let windows: Vec<u32> = rows[..rows.len() - 2]
+        .iter()
+        .scan(0usize, |state, curr| {
+            let window_sum = curr + rows[*state + 1..*state + 3].iter().sum::<u32>();
+            *state += 1;
 
-        if next_window > prev_window {
-            part_two_deltas += 1;
-        }
-    }
+            Some(window_sum)
+        })
+        .collect();
+
+    let part_two_deltas = windows[1..]
+        .iter()
+        .scan(0usize, |state, curr| {
+            let index = *state;
+            *state += 1;
+            Some(*curr > windows[index])
+        })
+        .filter(|x| *x)
+        .count();
     println!("Part two: {}", part_two_deltas); // 1252
 }
 
 fn main() {
     let input = aoc::get_input(2021, 1);
 
-    // let example_input = std::fs::read_to_string("./input/day-1.in").expect("Error reading input");
-
     solve(input);
-    // solve(example_input);
 }
