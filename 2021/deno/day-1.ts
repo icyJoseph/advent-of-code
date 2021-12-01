@@ -9,11 +9,11 @@ const data = input.split("\n").map(Number);
  */
 
 const deltas = data
-  .reduce((prev: number[], curr, index, src) => {
+  .reduce((prev: boolean[], curr, index, src) => {
     if (index === 0) return prev;
-    return [...prev, curr > src[index - 1] ? 1 : 0];
+    return [...prev, curr > src[index - 1]];
   }, [])
-  .filter((x: number) => x).length;
+  .filter(Boolean).length;
 
 console.log("Part One:", deltas);
 
@@ -22,7 +22,7 @@ console.log("Part One:", deltas);
  */
 
 const windowDeltas = data
-  .reduce((prev: number[], _, index, src) => {
+  .reduce((prev: boolean[], _, index, src) => {
     if (index === 0) return prev;
     if (src.length - index < 3) return prev;
 
@@ -32,8 +32,8 @@ const windowDeltas = data
     const prevSum = prevWindow.reduce(sum);
     const nextSum = nextWindow.reduce(sum);
 
-    return [...prev, nextSum > prevSum ? 1 : 0];
+    return [...prev, nextSum > prevSum];
   }, [])
-  .filter((x: number) => x).length;
+  .filter(Boolean).length;
 
 console.log("Part One:", windowDeltas);
