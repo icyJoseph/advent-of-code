@@ -2,96 +2,144 @@ const input = await Deno.readTextFile("./input/day-4.in");
 
 const blocks = input.split("\n\n");
 
-/**
- * Part One
- */
-
 const [numbers, ...rest] = blocks;
 
 const sequence = numbers.split(",").map(Number);
 
-type Entry = { value: number; checked: boolean };
-type Card = Entry[][];
+type Listener = (next: number) => void;
+
+type Game = {
+  subscribeEntry: (listener: Listener) => void;
+  connectCard: (card: Card) => void;
+  [Symbol.iterator]: () => {
+    next: () => { value: number[]; done: boolean };
+  };
+};
+
+const createGame = (sequence: number[]): Game => {
+  let cursor = 0;
+
+  const listeners: Listener[] = [];
+
+  let cards: Card[] = [];
+
+  return {
+    subscribeEntry(listener: Listener) {
+      listeners.push(listener);
+    },
+    connectCard(card: Card) {
+      cards.push(card);
+    },
+    [Symbol.iterator]: () => {
+      return {
+        next() {
+          const current = sequence[cursor];
+
+          listeners.forEach((listener) => listener(current));
+
+          const scores = [];
+
+          for (const card of cards) {
+            if (card.wins) {
+              scores.push(card.cardScore() * current);
+              card.discard();
+            }
+          }
+
+          cards = cards.filter((card) => !card.discarded);
+
+          cursor = cursor + 1;
+
+          return { value: scores, done: cursor === sequence.length };
+        }
+      };
+    }
+  };
+};
+
+type Entry = ReturnType<typeof createEntry>;
+
+const createEntry = (currentGame: Game, value: number) => {
+  let checked = false;
+
+  currentGame.subscribeEntry((next: number) => {
+    if (next === value) {
+      checked = true;
+    }
+  });
+
+  return {
+    get checked() {
+      return checked;
+    },
+    value
+  };
+};
+
+const isChecked = ({ checked }: Entry) => checked;
+
+const entrySum = (prev: number, { value, checked }: Entry) =>
+  checked ? prev : prev + value;
+
+type Card = {
+  wins: boolean;
+  cardScore: () => number;
+  discard: () => void;
+  discarded: boolean;
+};
+
+const createCard = (seed: Entry[][]): Card => {
+  const rows = seed.map((row) => row);
+  const cols = seed.map((_, index) => seed.map((row) => row[index]));
+
+  let discarded = false;
+
+  return {
+    discard() {
+      discarded = true;
+    },
+    get discarded() {
+      return discarded;
+    },
+    get wins() {
+      return (
+        rows.some((row) => row.every(isChecked)) ||
+        cols.some((col) => col.every(isChecked))
+      );
+    },
+    cardScore() {
+      return rows.reduce((prev, row) => prev + row.reduce(entrySum, 0), 0);
+    }
+  };
+};
+
+const game = createGame(sequence);
 
 const cards = rest.map((block) =>
-  block.split("\n").map((row) =>
-    row
-      .split(" ")
-      .filter(Boolean)
-      .map(Number)
-      .map((value) => ({ checked: false, value }))
+  createCard(
+    block.split("\n").map((row) =>
+      row
+        .split(" ")
+        .filter(Boolean)
+        .map(Number)
+        .map((value) => createEntry(game, value))
+    )
   )
 );
 
-// wins happens in rows and columns
-const checkWin = (card: { checked: boolean; value: number }[][]) => {
-  // check rows
-  const rowWin = card.some((row) => row.every(({ checked }) => checked));
+cards.forEach((card) => game.connectCard(card));
 
-  if (rowWin) return rowWin;
+const [first, ...others] = [...game].flat(1);
+const [last] = others.slice(-1);
 
-  for (const index of [0, 1, 2, 3, 4]) {
-    const colWin = card
-      .map((row) => row[index])
-      .every(({ checked }) => checked);
+/**
+ * Part One
+ */
 
-    if (colWin) return colWin;
-  }
+console.log("Part One:", first);
 
-  return false;
-};
+/**
+ * Part Two
+ */
 
-let firstWinner: Card = [];
-let lastWinner: Card = [];
-
-let firstWinnerNumber = sequence[0];
-let lastWinnerNumber = sequence[0];
-
-const winners = new Set<Card>();
-
-outer: for (const next of sequence) {
-  lastWinnerNumber = next;
-
-  const nonWinners = cards.filter((card) => !winners.has(card));
-
-  for (const card of nonWinners) {
-    card.forEach((row, rowIndex) =>
-      row.forEach((entry, entryIndex) => {
-        card[rowIndex][entryIndex].checked =
-          entry.checked || entry.value === next;
-      })
-    );
-
-    if (checkWin(card)) {
-      if (firstWinner.length === 0) {
-        firstWinner = card;
-        firstWinnerNumber = next;
-      }
-
-      lastWinner = card;
-
-      winners.add(card);
-
-      if (winners.size === cards.length) {
-        break outer;
-      }
-    }
-  }
-}
-
-const checkedSum = (prev: number, { value, checked }: Entry) =>
-  checked ? prev : prev + value;
-
-const sum = (a: number, b: number) => a + b;
-
-console.log(
-  "Part One:",
-  firstWinner.map((row) => row.reduce(checkedSum, 0)).reduce(sum, 0) *
-    firstWinnerNumber
-);
-
-console.log(
-  "Part Two:",
-  lastWinner.map((row) => row.reduce(checkedSum, 0)).reduce(sum, 0) *
-    lastWinnerNumber
-);
+console.log("Part Two:", last);
