@@ -12,17 +12,12 @@ const simulate = (target: number) => {
   let day = 0;
 
   while (day < target) {
-    let babies = byDay[0];
+    let atZero = byDay.shift();
+    // keep ts happy
+    if (atZero == null) throw new Error("Impossible...");
 
-    for (let i = 0; i < byDay.length; i++) {
-      if (i > 0) {
-        byDay[i - 1] = byDay[i - 1] + byDay[i];
-      }
-      byDay[i] = 0;
-    }
-
-    byDay[8] = byDay[8] + babies;
-    byDay[6] = byDay[6] + babies;
+    byDay.push(atZero);
+    byDay[6] = byDay[6] + atZero;
 
     day = day + 1;
   }

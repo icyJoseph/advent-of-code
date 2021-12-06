@@ -8,7 +8,7 @@ fn solve(raw: String) -> () {
         .collect::<Vec<u64>>();
 
     let simulate = |target: u32| {
-        let mut fish_by_day: Vec<u64> = vec![0; 9];
+        let mut fish_by_day: [u64; 9] = [0; 9];
 
         for &fish in school.iter() {
             fish_by_day[fish as usize] += 1;
