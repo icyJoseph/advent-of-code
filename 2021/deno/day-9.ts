@@ -7,47 +7,38 @@ const rows = input.split("\n");
 const height = rows.length;
 const width = rows[0].length;
 
-const grid = rows.map((row) => row.split("").map(Number));
+const grid = flatten2dMatrix(rows.map((row) => row.split("").map(Number)));
 
 const adj = calcAdj(width, height);
 
-const origins = [];
+const origins: number[] = [];
 
-for (let y = 0; y < height; y++) {
-  for (let x = 0; x < width; x++) {
-    const value = grid[y][x];
+grid.forEach((value, index) => {
+  const adjacent_values = adj[index].map((adj_index) => {
+    return grid[adj_index];
+  });
 
-    const adjacent = adj[norm(x, y, width)].map((v) => {
-      const { x, y } = invNorm(v, width);
-      return grid[y][x];
-    });
-
-    const isLow = adjacent.every((v) => v > value);
-
-    if (isLow) {
-      origins.push({ x, y });
-    }
+  if (adjacent_values.every((v) => v > value)) {
+    origins.push(index);
   }
-}
+});
 
 /**
  * Part One
  */
 console.log(
   "Part One:",
-  origins.map(({ x, y }) => grid[y][x] + 1).reduce((a, b) => a + b, 0)
+  origins.map((index) => grid[index] + 1).reduce((a, b) => a + b, 0)
 );
 
 /**
  * Part Two
  */
 
-const flatGrid = flatten2dMatrix(grid);
-
 const basins = [];
 
-for (const { x, y } of origins) {
-  const distances = bfs(norm(x, y, width), adj, flatGrid, width * height);
+for (const index of origins) {
+  const distances = bfs(index, adj, grid, width * height);
   const size = distances.filter((x) => x > 0).length + 1;
 
   basins.push(size);
@@ -62,10 +53,6 @@ console.log(
 
 function norm(x: number, y: number, width: number) {
   return x + y * width;
-}
-
-function invNorm(normal: number, width: number) {
-  return { x: normal % width, y: Math.floor(normal / width) };
 }
 
 function createMatrix<T>(size: number, init: () => T): T[] {
