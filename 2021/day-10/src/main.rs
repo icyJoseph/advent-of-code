@@ -43,11 +43,11 @@ impl Node {
         }
     }
 
-    fn complete(&self) -> Vec<char> {
+    fn calc_complete(&self) -> Vec<char> {
         let mut acc = vec![];
 
         for child in self.children.iter() {
-            let mut complete = child.complete();
+            let mut complete = child.calc_complete();
             acc.append(&mut complete);
         }
 
@@ -108,7 +108,7 @@ fn parse<T: Iterator<Item = char>>(peekable: &mut Peekable<T>) -> Node {
 fn solve(raw: String) -> () {
     let rows = raw.trim().split("\n").collect::<Vec<&str>>();
 
-    let mut incomplete: Vec<Node> = vec![];
+    let mut requirements: Vec<Vec<char>> = vec![];
 
     let mut score = 0;
 
@@ -122,7 +122,15 @@ fn solve(raw: String) -> () {
                     let result = parse(&mut it);
 
                     match result.verify() {
-                        None => incomplete.push(result),
+                        None => {
+                            let requirement = result.calc_complete();
+
+                            if requirement.len() == 0 {
+                                continue;
+                            }
+
+                            requirements.push(requirement)
+                        }
                         Some(err) => match err.right {
                             Some(')') => score += 3,
                             Some(']') => score += 57,
@@ -138,23 +146,21 @@ fn solve(raw: String) -> () {
 
     println!("Part One: {}", score);
 
-    let mut complete_scores: Vec<u64> = vec![];
-
-    for entry in incomplete {
-        let complete = entry.complete();
-
-        if complete.len() == 0 {
-            continue;
-        }
-
-        complete_scores.push(complete.iter().fold(0, |prev, curr| match curr {
-            ')' => prev * 5 + 1,
-            ']' => prev * 5 + 2,
-            '}' => prev * 5 + 3,
-            '>' => prev * 5 + 4,
-            _ => prev,
-        }))
-    }
+    let mut complete_scores: Vec<u64> = requirements
+        .iter()
+        .map(|entry| {
+            entry.iter().fold(0, |prev, curr| {
+                prev * 5
+                    + match curr {
+                        ')' => 1,
+                        ']' => 2,
+                        '}' => 3,
+                        '>' => 4,
+                        _ => 0, // required by the compiler
+                    }
+            })
+        })
+        .collect();
 
     complete_scores.sort_by(|a, b| a.cmp(&b).reverse());
 
