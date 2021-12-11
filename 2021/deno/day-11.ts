@@ -19,6 +19,8 @@ const createOctopus = (value: number, x: number, y: number) => {
   let _value = value;
 
   return {
+    x,
+    y,
     get value() {
       return _value;
     },
@@ -30,9 +32,7 @@ const createOctopus = (value: number, x: number, y: number) => {
     },
     radiate() {
       _value += 1;
-    },
-    x,
-    y
+    }
   };
 };
 
@@ -47,11 +47,7 @@ const grid = input
 const width = grid[0].length;
 const height = grid.length;
 
-/**
- * Part One
- */
-
-let total_flashes_at_100 = 0;
+let total_flashes = 0;
 
 let step = 0;
 
@@ -103,16 +99,20 @@ while (1) {
     }
   }
 
+  total_flashes += flashed.size;
+
+  /**
+   * Part One
+   */
+
+  if (step === 100) {
+    console.log("Part One:", total_flashes);
+  }
+
   for (const oct of [...flashed]) {
     oct.reset();
-
-    if (step <= 100) {
-      total_flashes_at_100 += 1;
-    }
   }
 }
-
-console.log("Part One:", total_flashes_at_100);
 
 /**
  * Part Two
