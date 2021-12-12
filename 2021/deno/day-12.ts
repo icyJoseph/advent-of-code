@@ -31,61 +31,69 @@ const dict: Record<string, Grid> = grid.reduce(
   {}
 );
 
-function bfs(
+function path_finder(
   start: string,
   adj: Record<string, string[]>,
-  dict: Record<string, Grid>
+  dict: Record<string, Grid>,
+  allowed?: string
 ) {
+  const sq: Set<string> = new Set();
+  const snapshots: Record<string, number> = {};
   const q: string[] = [];
 
-  const distance: Set<string> = new Set([start]);
+  const paths: Set<string> = new Set([start]);
 
   q.push(start);
-
-  const totals = [];
+  sq.add(start);
 
   while (true) {
+    const snapshot = q.join(",");
+
+    if (snapshots[snapshot] > 4) {
+      break;
+    }
+
+    snapshots[snapshot] = (snapshots[snapshot] || 0) + 1;
+
     const current = q.shift();
 
     if (current == null) break;
 
+    sq.delete(current);
+
     for (const vec of adj[current]) {
       if (vec === "start") continue;
 
-      const paths = [...distance.values()]
-        .filter((d) => d.endsWith(current))
-        .filter((d) => !d.endsWith("end"));
+      paths.forEach((path) => {
+        if (path.endsWith("end")) return;
+        if (!path.endsWith(current)) return;
 
-      const newPaths = paths.filter((path) =>
-        dict[vec].small ? !path.split(",").includes(vec) : true
-      );
+        const newPath = `${path},${vec}`;
 
-      newPaths
-        .map((d) => `${d},${vec}`)
-        .forEach((d) => {
-          distance.add(d);
-        });
+        if (vec === allowed) {
+          const count = path.split(",").filter((c) => c === vec).length;
+          if (count < 2) paths.add(newPath);
+        } else {
+          const shouldAdd = dict[vec].small
+            ? !path.split(",").includes(vec)
+            : true;
 
-      const endPaths = [...distance].filter((n) => n.endsWith("end"));
-
-      totals.push(endPaths.length);
-
-      if (totals.length > 1000) {
-        if (totals.slice(-100).every((n) => n === endPaths.length)) {
-          break;
+          if (shouldAdd) paths.add(newPath);
         }
-      }
+      });
 
-      if (vec !== "end" && vec !== current) {
+      if (vec !== "end") {
+        if (sq.has(vec)) continue;
         q.push(vec);
+        sq.add(vec);
       }
     }
   }
 
-  return [...distance].filter((n) => n.endsWith("end"));
+  return [...paths].filter((n) => n.endsWith("end"));
 }
 
-const path = bfs("start", adj, dict);
+const path = path_finder("start", adj, dict);
 
 /**
  * Part One
@@ -96,78 +104,17 @@ console.log("Part One:", path.length);
  * Part Two
  */
 
-function bfs_mod(
-  start: string,
-  adj: Record<string, string[]>,
-  dict: Record<string, Grid>,
-  allowed: string
-) {
-  const q: string[] = [];
-
-  const distance: Set<string> = new Set([start]);
-
-  q.push(start);
-
-  const totals = [];
-
-  while (true) {
-    const current = q.shift();
-
-    if (current == null) break;
-
-    for (const vec of adj[current]) {
-      if (vec === "start") continue;
-
-      const paths = [...distance.values()]
-        .filter((d) => d.endsWith(current))
-        .filter((d) => !d.endsWith("end"));
-
-      const newPaths = paths.filter((path) => {
-        if (vec === allowed) {
-          const count = path.split(",").filter((c) => c === vec).length;
-          return count < 2;
-        } else {
-          return dict[vec].small ? !path.split(",").includes(vec) : true;
-        }
-      });
-
-      newPaths
-        .map((d) => `${d},${vec}`)
-        .forEach((d) => {
-          distance.add(d);
-        });
-
-      const endPaths = [...distance].filter((n) => n.endsWith("end"));
-
-      totals.push(endPaths.length);
-
-      if (totals.length > 1000) {
-        if (totals.slice(-1000).every((n) => n === endPaths.length)) {
-          break;
-        }
-      }
-
-      if (vec !== "end") {
-        q.push(vec);
-      }
-    }
-  }
-
-  return [...distance].filter((n) => n.endsWith("end"));
-}
-
 const small = grid.filter((node) => node.small);
 
 const total = new Set();
 
-let it = 0;
-for (const node of small) {
-  console.log(node, it, small.length);
+for (const { node } of small) {
+  if (node === "start" || node === "end") continue;
 
-  const path = bfs_mod("start", adj, dict, node.node);
+  console.log("Processing:", node);
+
+  const path = path_finder("start", adj, dict, node);
 
   path.forEach((p) => total.add(p));
-
-  it += 1;
 }
 console.log("Part Two:", total.size);
