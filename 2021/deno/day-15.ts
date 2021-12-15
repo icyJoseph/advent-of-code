@@ -66,6 +66,46 @@ function bfs(start: number, adj: number[][], map: number[], size: number) {
   return risks;
 }
 
+function bfsWithTrace(
+  start: number,
+  adj: number[][],
+  map: number[],
+  size: number
+) {
+  const q: number[] = [];
+  const visited = createMatrix(size, () => false);
+  const risks: number[][] = createMatrix(size, () => []);
+
+  visited[start] = true;
+  risks[start] = [];
+  q.push(start);
+
+  while (true) {
+    const current = q.shift();
+
+    if (current == null) break;
+
+    for (const vec of adj[current]) {
+      if (vec === start) continue;
+
+      const next =
+        risks[current].reduce((prev, curr) => prev + map[curr], 0) + map[vec];
+
+      const acc = risks[vec].reduce((prev, curr) => prev + map[curr], 0);
+
+      if (next < acc || acc === 0) {
+        risks[vec] = risks[current].concat(vec);
+        q.push(vec);
+        visited[vec] = true;
+      }
+
+      if (visited[vec]) continue;
+    }
+  }
+
+  return risks;
+}
+
 const input = await Deno.readTextFile("./input/day-15.in");
 // const input = await Deno.readTextFile("./input/example.in");
 
@@ -118,3 +158,20 @@ const megaPaths = bfs(start, megaAdj, megaGrid, megaSize);
 const megaEnd = norm(megaWidth - 1, megaHeight - 1, megaWidth);
 
 console.log("Part Two:", megaPaths[megaEnd]);
+
+console.log("Drawing the path...\n");
+
+const withTrace = bfsWithTrace(start, megaAdj, megaGrid, megaSize);
+
+const toPaint = megaGrid.slice(0);
+
+toPaint[0] = Infinity;
+
+withTrace[megaEnd].forEach((index) => {
+  toPaint[index] = Infinity;
+});
+
+for (let y = 0; y < megaHeight; y++) {
+  const row = toPaint.slice(y * megaWidth, (y + 1) * megaWidth);
+  console.log(row.map((n) => (n === Infinity ? "¤" : "█")).join(""));
+}
