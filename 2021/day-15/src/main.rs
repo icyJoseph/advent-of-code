@@ -18,15 +18,17 @@ fn solve(raw: String) -> () {
     let adj = calc_adj(height, width);
 
     let start = 0;
-    let end = norm(width - 1, height - 1, width);
+    let end = normal(width - 1, height - 1, width);
 
     println!("Part One: {}", bfs(start, &adj, &grid, width * height)[end]);
 
-    let mega_grid = create_extended_grid(raw, width, height, 5);
-    let mega_width = width * 5;
-    let mega_height = height * 5;
+    let factor = 5usize;
+
+    let mega_grid = create_extended_grid(raw, width, height, factor);
+    let mega_width = width * factor;
+    let mega_height = height * factor;
     let mega_adj = calc_adj(mega_height, mega_width);
-    let mega_end = norm(mega_width - 1, mega_height - 1, mega_width);
+    let mega_end = normal(mega_width - 1, mega_height - 1, mega_width);
 
     println!(
         "Part Two: {}",
@@ -43,42 +45,17 @@ fn main() {
 }
 
 // Utilities
-#[allow(dead_code)]
-fn normal(x: usize, y: usize, width: usize) -> usize {
-    x + y * width
-}
 
-#[allow(dead_code)]
-fn rev_normal(norm: usize, width: usize) -> (usize, usize) {
-    (norm % width, norm / width)
-}
+type Adj = Vec<Vec<usize>>;
 
-#[allow(dead_code)]
 fn parse_num<T: std::str::FromStr>(str: &str) -> T {
     match str.trim().parse::<T>() {
         Ok(n) => n,
         _ => panic!("Error parsing"),
     }
 }
-#[allow(dead_code)]
-fn to_int(bin: &str) -> u32 {
-    match u32::from_str_radix(bin, 2) {
-        Ok(n) => n,
-        _ => panic!("Error parsing binary to integer"),
-    }
-}
 
-#[allow(dead_code)]
-fn string_vec<T: std::string::ToString>(vec: &Vec<T>, separator: &str) -> String {
-    vec.iter()
-        .map(|x| x.to_string())
-        .collect::<Vec<String>>()
-        .join(separator)
-}
-
-type Adj = Vec<Vec<usize>>;
-
-fn norm(x: usize, y: usize, width: usize) -> usize {
+fn normal(x: usize, y: usize, width: usize) -> usize {
     x + y * width
 }
 
@@ -87,18 +64,18 @@ fn calc_adj(height: usize, width: usize) -> Adj {
 
     for y in 0..height {
         for x in 0..width {
-            let index = norm(x, y, width);
+            let index = normal(x, y, width);
             if x > 0 {
-                adj[index].push(norm(x - 1, y, width));
+                adj[index].push(normal(x - 1, y, width));
             }
             if y + 1 < height {
-                adj[index].push(norm(x, y + 1, width));
+                adj[index].push(normal(x, y + 1, width));
             }
             if x + 1 < width {
-                adj[index].push(norm(x + 1, y, width));
+                adj[index].push(normal(x + 1, y, width));
             }
             if y > 0 {
-                adj[index].push(norm(x, y - 1, width));
+                adj[index].push(normal(x, y - 1, width));
             }
         }
     }
