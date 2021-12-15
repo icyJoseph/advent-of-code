@@ -98,7 +98,7 @@ for (let y = 0; y < 5 * height; y++) {
     let value =
       Math.floor(y / height) +
       Math.floor(x / width) +
-      grid[norm(x % width, y & height, width)];
+      grid[norm(x % width, y % height, width)];
 
     while (value > 9) {
       value = value - 9;
