@@ -136,7 +136,7 @@ console.assert(
   "Volumen after slice is not correct"
 );
 
-const rangeOverlap = (left: number[], right: number[]) => {
+const rangeOverlap = (left: Range, right: Range) => {
   return left[0] <= right[1] && left[1] >= right[0];
 };
 
@@ -165,8 +165,6 @@ const fracture = (cuboid: Cuboid, other: Cuboid): Cuboid | Cuboid[] => {
   return slice(cuboid, overlap);
 };
 
-type Instruction = { command: string; cuboid: Cuboid };
-
 const range = (rg: string): Range => {
   const [, range] = rg.split("=");
 
@@ -184,6 +182,8 @@ const isCuboid = (value: Cuboid | Cuboid[]): value is Cuboid => {
 /**
  * Actual solution
  */
+
+type Instruction = { command: string; cuboid: Cuboid };
 
 const instructions: Instruction[] = rows.map((row) => {
   const [command, coords] = row;
