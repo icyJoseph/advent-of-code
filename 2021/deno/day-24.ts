@@ -105,15 +105,8 @@ function search(
   carry: number[],
   range = allDigits
 ): number[] {
-  if (index === blocks.length - 1) {
-    for (const digit of range) {
-      // searching
-      if (execute_block(blocks[index], digit, z) === 0) {
-        return [...carry, digit];
-      }
-    }
-
-    return [];
+  if (index === blocks.length) {
+    return z === 0 ? carry : [];
   }
 
   let rng = range;
