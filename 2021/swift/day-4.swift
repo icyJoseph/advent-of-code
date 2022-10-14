@@ -69,10 +69,8 @@ func findLastWinnerBoardScore(boards: [[[Int]]], numbers: [Int]) -> Int? {
         }
     }
 
-    if let board = lastWinningBoard {
-        if let last = lastWinningNumber {
-            return scoreBoard(board: board, sequence: progress, last: last)
-        }
+    if let lastWinningBoard, let lastWinningNumber {
+        return scoreBoard(board: lastWinningBoard, sequence: progress, last: lastWinningNumber)
     }
     return nil
 }
