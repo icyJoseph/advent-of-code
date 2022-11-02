@@ -67,16 +67,16 @@ struct Queue<Element> {
 }
 
 // perform actual BFS
-func bfs<T>(_ root: Int, _ graph: [T], _ adj: [[Int]]) -> [Int] {
+func bfs(_ root: Int, _ graph: [Int], _ adj: [[Int]]) -> [Int] {
     var queue = Queue<Int>()
     var visited = graph.map { _ in
         false
     }
 
-    var distances: [Int] = graph.map { _ in 0 }
+    var members: [Int] = []
 
     visited[root] = true
-    distances[root] = 0
+    members.append(root)
 
     queue.push(root)
 
@@ -86,13 +86,19 @@ func bfs<T>(_ root: Int, _ graph: [T], _ adj: [[Int]]) -> [Int] {
         for node in adj[next] {
             if visited[node] { continue }
 
+            if graph[node] == 9 {
+                continue
+            }
+
             visited[node] = true
-            distances[node] = distances[next] + 1
+
+            members.append(node)
+
             queue.push(node)
         }
     }
 
-    return distances
+    return members
 }
 
 // turn a 2d graph into 1d
@@ -138,6 +144,26 @@ func main() {
         }
 
         print("Part one:", partOne)
+
+        let basins: [Int] = graph.enumerated().filter {
+            curr in
+            let (index, node) = curr
+
+            return adj[index].allSatisfy { graph[$0] > node }
+        }.map { $0.0 }
+
+        var groups = basins.reduce([[Int]]()) {
+            acc, basin in
+            var next = acc
+            next.append(bfs(basin, graph, adj))
+            return next
+        }
+
+        groups.sort(by: { $0.count > $1.count })
+
+        let partTwo = groups[0 ... 2].map { $0.count }.reduce(1, *)
+
+        print("Part two:", partTwo)
 
     } catch { print(error) }
 }
