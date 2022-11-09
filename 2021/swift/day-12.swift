@@ -2,10 +2,17 @@ import Foundation
 
 let filename = "../input/day-12.in"
 
-func search(_ root: String, _ adj: [String: [String]], _ history: Set<String>, _ acc: inout Int) {
-    if root == "end" {
-        acc += 1
-    } else if let nodes = adj[root] {
+func search(_ root: String, _ adj: [String: [String]], _ history: Set<String>, _ acc: [String]) -> [String] {
+    let paths = acc.map {
+        input in
+        var next = input
+        next.append("->\(root)")
+        return next
+    }
+
+    if let nodes = adj[root] {
+        var result = [String]()
+
         for node in nodes.filter({ $0 != "start" }) {
             var visited = Set<String>(history)
 
@@ -17,12 +24,15 @@ func search(_ root: String, _ adj: [String: [String]], _ history: Set<String>, _
                 visited.insert(node)
             }
 
-            search(node, adj, visited, &acc)
+            let localResult = search(node, adj, visited, paths)
+
+            result.append(contentsOf: localResult)
         }
 
-    } else {
-        print("Error", root, "had no adjacent members")
+        return result
     }
+
+    return paths
 }
 
 func main() {
@@ -38,11 +48,11 @@ func main() {
             adj[node[1], default: [String]()].append(node[0])
         }
 
-        var partOne = 0
+        adj["end"] = nil
 
-        search("start", adj, Set(), &partOne)
+        let partOne = search("start", adj, Set(), ["start"])
 
-        print("Part one:", partOne)
+        print("Part one:", partOne.count)
     } catch {
         print(error)
     }
