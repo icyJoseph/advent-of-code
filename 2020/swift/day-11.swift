@@ -2,7 +2,7 @@ import Foundation
 
 let filename = "../input/day-11.in"
 
-func calcAdj(width: Int, height: Int) -> [[Int]] {
+func calcAdj(_ width: Int, _ height: Int) -> [[Int]] {
     var adj = [[Int]](repeating: [Int](), count: width * height)
 
     for y in 0 ..< height {
@@ -88,88 +88,86 @@ func countOccupiedSeats(_ grid: [[Character]], _ x: Int, _ y: Int, _ width: Int,
     return occupied.count
 }
 
+func runSimulation(_ grid: [[Character]], _ counter: ([[Character]], Int, Int, Int, Int) -> Int, _ rules: (Int, Character) -> Character) -> Int {
+    var simulation = grid
+
+    let width = grid[0].count
+    let height = grid.count
+
+    while true {
+        var update = simulation
+
+        var didChange = false
+
+        for row in 0 ..< height {
+            for col in 0 ..< width {
+                let occupied = counter(simulation, col, row, width, height)
+
+                let value = simulation[row][col]
+
+                let next = rules(occupied, value)
+
+                update[row][col] = next
+
+                didChange = didChange || value != next
+            }
+        }
+
+        simulation = update
+
+        if !didChange {
+            break
+        }
+    }
+
+    return simulation.reduce(0) {
+        acc, row in
+        acc + row.filter { $0 == "#" }.count
+    }
+}
+
 func main() {
     do {
         let contents = try String(contentsOfFile: filename)
 
-        let startGrid = contents.split(separator: "\n").map { $0.map { $0 as Character } }
+        let grid = contents.split(separator: "\n").map { $0.map { $0 as Character } }
 
-        let width = startGrid[0].count
-        let height = startGrid.count
+        let adj = calcAdj(grid[0].count, grid.count)
 
-        let adj = calcAdj(width: width, height: height)
+        let partOne = runSimulation(grid, {
+            current, x, y, width, _ in
 
-        var grid = startGrid
-
-        while true {
-            var update = grid
-
-            var dirty = false
-
-            for row in 0 ..< height {
-                for col in 0 ..< width {
-                    let occupiedAround = adj[row * width + col].map { grid[$0 / width][$0 % width] }.filter { $0 == "#" }.count
-                    let value = grid[row][col]
-
-                    if value == "L", occupiedAround == 0 {
-                        update[row][col] = "#"
-                        dirty = true
-                    } else if value == "#", occupiedAround >= 4 {
-                        update[row][col] = "L"
-                        dirty = true
-                    }
-                }
+            adj[y * width + x].map { current[$0 / width][$0 % width] }.filter { $0 == "#" }.count
+        }, {
+            count, value in
+            if value == "L", count == 0 {
+                return "#"
             }
 
-            grid = update
-
-            if !dirty {
-                break
-            }
-        }
-
-        var occupied = grid.reduce(0) {
-            acc, row in
-            acc + row.filter { $0 == "#" }.count
-        }
-
-        print("Part one:", occupied)
-
-        // reset grid
-        grid = startGrid
-
-        while true {
-            var update = grid
-            var dirty = false
-
-            for row in 0 ..< height {
-                for col in 0 ..< width {
-                    let occupiedAround = countOccupiedSeats(grid, col, row, width, height)
-                    let value = grid[row][col]
-
-                    if value == "L", occupiedAround == 0 {
-                        update[row][col] = "#"
-                        dirty = true
-                    } else if value == "#", occupiedAround >= 5 {
-                        update[row][col] = "L"
-                        dirty = true
-                    }
-                }
+            if value == "#", count >= 4 {
+                return "L"
             }
 
-            grid = update
+            return value
 
-            if !dirty {
-                break
+        })
+
+        print("Part one:", partOne)
+
+        let partTwo = runSimulation(grid, countOccupiedSeats) {
+            count, value in
+            if value == "L", count == 0 {
+                return "#"
             }
+
+            if value == "#", count >= 5 {
+                return "L"
+            }
+
+            return value
         }
 
-        occupied = grid.reduce(0) {
-            acc, row in
-            acc + row.filter { $0 == "#" }.count
-        }
-
-        print("Part two:", occupied)
+        print("Part two:", partTwo)
 
     } catch {
         print(error)
