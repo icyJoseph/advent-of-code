@@ -5,7 +5,7 @@ use syn::{parse_macro_input, AttributeArgs, Ident, ItemFn, Lit, NestedMeta};
 #[proc_macro_attribute]
 pub fn main(args: TokenStream, input: TokenStream) -> TokenStream {
     let input_path = match &parse_macro_input!(args as AttributeArgs)[..] {
-        [NestedMeta::Lit(Lit::Int(day))] => format!("../../inputs/{}.in", day.token().to_string()),
+        [NestedMeta::Lit(Lit::Int(day))] => format!("../../input/{}.in", day.token().to_string()),
         _ => panic!("Expected one integer argument"),
     };
 
@@ -25,6 +25,8 @@ pub fn main(args: TokenStream, input: TokenStream) -> TokenStream {
         println!("Time: {}ms", time);
       }
     };
+
+    println!("\n");
 
     TokenStream::from(tokens)
 }
