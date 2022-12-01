@@ -1,32 +1,22 @@
 const input = await Deno.readTextFile("./input/01.in");
 
-const sum = (a: number, b: number) => a + b;
-
-const data = input.split("\n").map(Number);
+const data = input.split("\n\n").map((chunk) => chunk.split("\n").map(Number));
 
 /**
  * Part One
  */
+const sum = (a: number, b: number) => a + b;
 
-const deltas = data
-  .reduce((prev: boolean[], curr, index, src) => {
-    if (index === 0) return prev;
-    return [...prev, curr > src[index - 1]];
+const cals = data
+  .reduce((prev, curr) => {
+    const total = curr.reduce(sum);
+    return [...prev, total];
   }, [])
-  .filter(Boolean).length;
+  .sort((a, b) => b - a);
 
-console.log("Part One:", deltas);
+console.log("Part one:", cals[0]);
 
 /**
  * Part Two
  */
-
-const windowDeltas = data
-  .reduce((prev: boolean[], _, index, src) => {
-    if (index < 3) return prev;
-
-    return [...prev, src[index] > src[index - 3]];
-  }, [])
-  .filter(Boolean).length;
-
-console.log("Part One:", windowDeltas);
+console.log("Part two:", cals.slice(0, 3).reduce(sum));
