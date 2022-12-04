@@ -2,15 +2,15 @@ const input = await Deno.readTextFile("./input/03.in");
 
 const data = input.split("\n").map((row) => row.split(""));
 
-const lowercaseBound = "a".charCodeAt(0);
-const uppercaseBound = "A".charCodeAt(0);
+const lowercaseBound = "a".charCodeAt(0) - 1;
+const uppercaseBound = "A".charCodeAt(0) - 27;
 
 const getPriority = (ch: string) => {
   const isLowercase = ch.toLowerCase() === ch;
 
   return isLowercase
     ? ch.charCodeAt(0) - lowercaseBound
-    : ch.charCodeAt(0) - uppercaseBound + 27;
+    : ch.charCodeAt(0) - uppercaseBound;
 };
 
 /**
