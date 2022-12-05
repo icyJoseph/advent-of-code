@@ -4,12 +4,10 @@ const [initial, instructions] = input
   .split("\n\n")
   .map((block) => block.split("\n"));
 
-const reg = /(\s{4}|[A-Z{1}])/g;
-
 const getStacks = () =>
   initial
     .slice(0, -1) // labels at bottom
-    .map((row) => row.match(reg) || [])
+    .map((row) => row.split("").filter((_, pos) => pos % 4 === 1))
     .reduce<string[][]>(
       (cols, row, _) => {
         row.forEach((cell, index) => {
