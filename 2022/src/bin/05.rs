@@ -47,9 +47,8 @@ fn main(input: &str) -> (String, String) {
 
             let start = stacks[from].len() - qty;
 
-            let carry = stacks[from].split_off(start);
-
-            carry
+            stacks[from]
+                .split_off(start)
                 .iter()
                 .rev()
                 .copied()
@@ -68,9 +67,11 @@ fn main(input: &str) -> (String, String) {
 
             let start = stacks[from].len() - qty;
 
-            let carry = stacks[from].split_off(start);
-
-            carry.iter().copied().for_each(|cell| stacks[to].push(cell));
+            stacks[from]
+                .split_off(start)
+                .iter()
+                .copied()
+                .for_each(|cell| stacks[to].push(cell));
 
             stacks
         })
