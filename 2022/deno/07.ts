@@ -34,13 +34,14 @@ const mergeChildren = (
       const seen = prev[curr.name];
 
       if (!seen) {
-        return { ...prev, [curr.name]: curr };
+        prev[curr.name] = curr;
+        return prev;
       }
 
       if (curr.type === "dir" && seen.type === "dir") {
-        seen.children = [...curr.children, ...seen.children];
-
-        return { ...prev, [curr.name]: seen };
+        seen.children.push(...curr.children);
+        prev[curr.name] = seen;
+        return prev;
       }
 
       // if it is an already seen file, continue
@@ -67,6 +68,9 @@ type Dir = {
 type Node = File | Dir;
 
 const createDir = (name: string, parent?: Dir): Dir => {
+  let memoSize = -1;
+  let memoDirs: Dir[] = [];
+
   const node: Dir = {
     name,
     type: "dir",
@@ -77,22 +81,28 @@ const createDir = (name: string, parent?: Dir): Dir => {
     },
 
     get size() {
-      return this.children.reduce((acc, node) => {
+      if (memoSize !== -1) return memoSize;
+
+      memoSize = this.children.reduce((acc, node) => {
         if (node.type === "file") return acc + node.size;
 
-        return (
-          acc + node.children.map((sub) => sub.size).reduce((a, b) => a + b)
-        );
+        return acc + node.children.reduce((acc, b) => acc + b.size, 0);
       }, 0);
+
+      return memoSize;
     },
 
     get dirs() {
-      return [
+      if (memoDirs.length !== 0) return memoDirs;
+
+      memoDirs = [
         this,
         ...this.children
-          //   .filter((node): node is Dir => node.type === "dir")
-          .flatMap((node) => (node.type === "dir" ? node.dirs : [])),
+          .filter((node): node is Dir => node.type === "dir") // near zero gain from removing this
+          .flatMap((node) => node.dirs),
       ];
+
+      return memoDirs;
     },
   };
 
@@ -130,19 +140,20 @@ for (const [index, line] of commands) {
   }
 
   if (cmd === "ls") {
-    const lsChildren: Array<Node> = collect(
+    const lsChildren = collect(
       lines.slice(index + 1),
       (value) => !value.startsWith("$")
     ).map((row) => {
       if (row.startsWith("dir")) {
         const [, name] = row.split(" ");
 
-        const next = createDir(name, cwd.dir);
-        return next;
+        return createDir(name, cwd.dir);
       }
       const [size, name] = row.split(" ");
 
-      return { type: "file", size: Number(size), name };
+      const file: File = { type: "file", size: Number(size), name };
+
+      return file;
     });
 
     cwd.dir.children = mergeChildren(lsChildren, cwd.dir.children);
