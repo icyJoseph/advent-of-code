@@ -1,144 +1,161 @@
 const input = await Deno.readTextFile("./input/07.in");
 
-const data = input.split("\n");
+const lines = input.split("\n");
+
+const enumerate = <T>(arr: T[]): Array<[number, T]> => {
+  return arr.map((n, index) => [index, n]);
+};
+
+const collect = <T>(
+  slice: T[],
+  shouldContinue: (value: T, index: number) => boolean
+): T[] => {
+  let index = 0;
+
+  const result = [];
+
+  while (index < slice.length && shouldContinue(slice[index], index)) {
+    result.push(slice[index]);
+
+    index += 1;
+  }
+
+  return result;
+};
+
+const mergeChildren = (
+  left: Dir["children"],
+  right: Dir["children"]
+): Dir["children"] => {
+  // carefully merge children
+
+  return Object.values(
+    [...left, ...right].reduce((prev, curr) => {
+      const seen = prev[curr.name];
+
+      if (!seen) {
+        return { ...prev, [curr.name]: curr };
+      }
+
+      if (curr.type === "dir" && seen.type === "dir") {
+        seen.children = [...curr.children, ...seen.children];
+
+        return { ...prev, [curr.name]: seen };
+      }
+
+      // if it is an already seen file, continue
+      return prev;
+    }, {} as Record<string, Node>)
+  );
+};
 
 /**
  * Part One
  */
 
 type File = { type: "file"; size: number; name: string };
+
 type Dir = {
   type: "dir";
   children: Node[];
   name: string;
-  parent: Dir | null;
-  size?: number;
+  parent: Dir;
+  size: number;
+  dirs: Dir[];
 };
 
 type Node = File | Dir;
-const cwd: { dir: Dir | null } = { dir: null };
 
-const fs: Dir = { type: "dir", children: [], name: "/", parent: null };
+const createDir = (name: string, parent?: Dir): Dir => {
+  const node: Dir = {
+    name,
+    type: "dir",
+    children: [],
+    get parent() {
+      if (parent) return parent;
+      return this;
+    },
 
-const enumerate = <T>(arr: T[]): Array<[number, T]> => {
-  return arr.map((n, index) => [index, n]);
+    get size() {
+      return this.children.reduce((acc, node) => {
+        if (node.type === "file") return acc + node.size;
+
+        return (
+          acc + node.children.map((sub) => sub.size).reduce((a, b) => a + b)
+        );
+      }, 0);
+    },
+
+    get dirs() {
+      return [
+        this,
+        ...this.children
+          .filter((node): node is Dir => node.type === "dir")
+          .flatMap((node) => node.dirs),
+      ];
+    },
+  };
+
+  return node;
 };
 
-for (const [index, line] of enumerate(data)) {
-  //   log(line);
-  if (line.startsWith("$")) {
-    const [, cmd, arg] = line.split(" ");
+const fs = createDir("/");
 
-    if (cmd === "cd") {
-      if (arg === "/") {
-        // move to root
-        cwd.dir = fs;
-      } else if (arg === "..") {
-        // move up to parent
-        if (cwd.dir?.parent === null) {
-          console.warn("Unknown parent!", cwd.dir);
-        }
-        cwd.dir = cwd.dir?.parent!; // what to do if we have no knowledge?
-      } else {
-        // move to arg
-        // which should be a child of cwd.node
-        let target = cwd.dir?.children.find(
-          (d) => d.type === "dir" && d.name === arg
-        );
+const cwd = { dir: fs };
 
-        if (!target) {
-          // target not found!
-          target = { type: "dir", name: arg, children: [], parent: cwd.dir };
-          cwd.dir?.children.push(target);
-          cwd.dir = target;
-        } else {
-          cwd.dir = target as Dir;
-        }
-      }
-    } else if (cmd === "ls") {
-      // collect the next lines until a
-      // new $ is found
-      let end = data.slice(index + 1).findIndex((n) => n.startsWith("$"));
+const commands = enumerate(lines).filter(([_, line]) => line.startsWith("$"));
 
-      if (end === -1) {
-        end = data.length;
-      }
-      const list = data.slice(index + 1, index + end + 1);
+for (const [index, line] of commands) {
+  const [, cmd, arg] = line.split(" ");
 
-      if (cwd.dir?.children) {
-        const currentChildren = cwd.dir.children;
+  if (cmd === "cd") {
+    if (arg === "/") {
+      // move to root
+      cwd.dir = fs;
+    } else if (arg === "..") {
+      // move up to parent
+      cwd.dir = cwd.dir.parent;
+    } else {
+      // move to arg
+      // which should be a child of cwd.node
+      const target = cwd.dir.children.find(
+        (d) => d.type === "dir" && d.name === arg
+      );
 
-        const lsChildren: Array<Node> = list.map((row) => {
-          if (row.startsWith("dir")) {
-            const [, name] = row.split(" ");
-            return { type: "dir", name, children: [], parent: cwd.dir };
-          }
-          const [size, name] = row.split(" ");
-          return { type: "file", size: Number(size), name };
-        });
+      if (!target) throw Error("No target");
+      if (target.type === "file") throw Error("Cannot cd into a file");
 
-        // carefully merge children
-
-        const asObj = [...lsChildren, ...currentChildren].reduce(
-          (prev, curr) => {
-            const seen = prev[curr.name];
-
-            if (!seen) {
-              return { ...prev, [curr.name]: curr };
-            }
-
-            if (curr.type === "dir" && seen.type === "dir") {
-              seen.children = [...curr.children, ...seen.children];
-
-              return { ...prev, [curr.name]: seen };
-            }
-
-            // if it is an already seen file, continue
-
-            return prev;
-          },
-          {} as Record<string, Node>
-        );
-
-        cwd.dir.children = Object.values(asObj);
-      }
+      cwd.dir = target;
     }
-  } else {
-    // ls output
-    continue;
+  }
+
+  if (cmd === "ls") {
+    const lsChildren: Array<Node> = collect(
+      lines.slice(index + 1),
+      (value) => !value.startsWith("$")
+    ).map((row) => {
+      if (row.startsWith("dir")) {
+        const [, name] = row.split(" ");
+
+        const next = createDir(name, cwd.dir);
+        return next;
+      }
+      const [size, name] = row.split(" ");
+
+      return { type: "file", size: Number(size), name };
+    });
+
+    cwd.dir.children = mergeChildren(lsChildren, cwd.dir.children);
   }
 }
 
-const tracked: Dir[] = [];
-const all: Dir[] = [];
 const LIMIT = 100_000;
-
-const calcDirSize = (dir: Dir): number => {
-  if (dir.children.length === 0) return 0;
-
-  const dirSize = dir.children.reduce((acc, curr) => {
-    if (curr.type === "file") {
-      return acc + curr.size;
-    }
-
-    return acc + calcDirSize(curr);
-  }, 0);
-
-  dir.size = dirSize;
-
-  if (dirSize <= LIMIT) {
-    tracked.push(dir);
-  }
-
-  all.push(dir);
-  return dirSize;
-};
-
-calcDirSize(fs);
 
 console.log(
   "Part one:",
-  tracked.reduce((acc, curr) => acc + curr.size!, 0)
+  fs.dirs
+    .filter((curr) => curr.size <= LIMIT)
+    .reduce((acc, curr) => acc + curr.size, 0)
 );
 
 /**
@@ -148,14 +165,9 @@ console.log(
 const TOTAL_SPACE = 70_000_000;
 const UNUSED_SPACE_NEEDED = 30_000_000;
 
-const current_unused = TOTAL_SPACE - fs.size!;
-
-const required = UNUSED_SPACE_NEEDED - current_unused;
-
-const smallestDeletion = all
+const smallestDeletion = fs.dirs
   .slice(0)
-  .sort((a, b) => a.size! - b.size!)
-  .map(({ name, size }) => ({ name, size }))
-  .find((n) => n.size! >= required)?.size;
+  .sort((a, b) => a.size - b.size)
+  .find((n) => n.size >= UNUSED_SPACE_NEEDED - TOTAL_SPACE + fs.size)?.size;
 
 console.log("Part two:", smallestDeletion);
