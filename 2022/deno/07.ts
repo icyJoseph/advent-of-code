@@ -90,8 +90,8 @@ const createDir = (name: string, parent?: Dir): Dir => {
       return [
         this,
         ...this.children
-          .filter((node): node is Dir => node.type === "dir")
-          .flatMap((node) => node.dirs),
+          //   .filter((node): node is Dir => node.type === "dir")
+          .flatMap((node) => (node.type === "dir" ? node.dirs : [])),
       ];
     },
   };
