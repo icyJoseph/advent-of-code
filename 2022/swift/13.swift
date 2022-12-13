@@ -5,6 +5,7 @@ let filename = "./input/13.in"
 enum Packet {
     case num(Int), arr([Packet])
 
+    // TOneverDO: use static func < instead
     func compare(_ rhs: Packet) -> Int {
         let lhs = self
         switch (lhs, rhs) {
@@ -66,7 +67,6 @@ enum Packet {
  https://adamrackis.dev/blog/swift-codable-any
 
  */
-
 func decode(fromArray container: inout UnkeyedDecodingContainer) -> [Packet] {
     var result: [Packet] = []
 
@@ -113,14 +113,11 @@ func main() {
 
         let packets = contents.components(separatedBy: "\n\n").map {
             pair in
-            pair.split(separator: "\n").map(String.init).map(parse).compactMap { $0 }
+            pair.split(separator: "\n").map(String.init).compactMap { parse($0) }
         }
 
         let partOne = packets.enumerated().filter {
-            entry in
-            let (_, pair) = entry
-            let result = pair[0].compare(pair[1])
-            return result == 1
+            $0.1[0].compare($0.1[1]) == 1
         }.map { $0.0 + 1 }.reduce(0,+)
 
         print("Part one:", partOne)
