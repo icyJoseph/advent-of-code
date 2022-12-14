@@ -12,10 +12,10 @@ const windows = <T>(arr: T[], size: number) =>
     // no irregular windows at the end
     .filter((w) => w.length === size);
 
-const inPath = (point: number[], path: number[][]) => {
-  const [x, y] = point;
+const asKey = ([x, y]: number[]) => `${x}.${y}`;
 
-  return windows(path, 2).some((line) => {
+const asLines = (path: number[][]) => {
+  const pointSet = windows(path, 2).reduce((prev, line) => {
     const [x0, y0] = line[0];
     const [x1, y1] = line[1];
 
@@ -25,11 +25,17 @@ const inPath = (point: number[], path: number[][]) => {
     const lowerY = Math.min(y0, y1);
     const upperY = Math.max(y0, y1);
 
-    return x <= upperX && x >= lowerX && y <= upperY && y >= lowerY;
-  });
-};
+    for (let x = lowerX; x <= upperX; x++) {
+      for (let y = lowerY; y <= upperY; y++) {
+        prev.add(asKey([x, y]));
+      }
+    }
 
-const asKey = ([x, y]: number[]) => `${x}.${y}`;
+    return prev;
+  }, new Set());
+
+  return pointSet;
+};
 
 const getAdj = ([x, y]: number[]) => {
   return [
@@ -43,14 +49,41 @@ const getAdj = ([x, y]: number[]) => {
  * Part One
  */
 
+let minX = Infinity;
+let maxX = -Infinity;
+let maxY = -Infinity;
+
 const paths = data.map((row) => {
   const segments = row
     .split(" -> ")
     // [x,y]
-    .map((segment) => segment.split(",").map(Number));
+    .map((segment) => {
+      const [x, y] = segment.split(",").map(Number);
+
+      if (x < minX) {
+        minX = x;
+      }
+
+      if (x > maxX) {
+        maxX = x;
+      }
+
+      if (y > maxY) {
+        maxY = y;
+      }
+
+      return [x, y];
+    });
 
   return segments;
 });
+
+const allPathPoints = paths.reduce((acc, path) => {
+  asLines(path).forEach((line) => {
+    acc.add(line);
+  });
+  return acc;
+}, new Set());
 
 // TODO: paths to a grid to do O(1) look ups
 
@@ -61,22 +94,13 @@ type SimulateParameters =
 const simulate = ({ floorOffset, hasFloor }: SimulateParameters) => {
   const offset = hasFloor ? floorOffset : 0;
 
-  const floor =
-    offset + Math.max(...paths.map((path) => path.map(([_, y]) => y)).flat(1));
-
-  const minX = Math.min(
-    ...paths.map((path) => path.map(([x, _]) => x)).flat(1)
-  );
-  const maxX = Math.max(
-    ...paths.map((path) => path.map(([x, _]) => x)).flat(1)
-  );
+  const floor = offset + maxY;
 
   const start = [500, 0];
-  const pathCache = new Map<string, boolean>();
+
   const sandMap = new Set<string>();
 
   let current = start;
-
   const startKey = asKey(start);
 
   // stops once the start has sand
@@ -95,14 +119,10 @@ const simulate = ({ floorOffset, hasFloor }: SimulateParameters) => {
 
       const inBounds = x >= minX && x <= maxX;
 
-      const isPath =
-        inBounds &&
-        (pathCache.get(key) ?? paths.some((path) => inPath([x, y], path)));
-
-      pathCache.set(key, isPath);
-
+      const isPath = inBounds && allPathPoints.has(key);
       const isEmpty = !sandMap.has(key);
       const isFloor = hasFloor && y === floor;
+
       const possible = !isPath && isEmpty && !isFloor;
 
       if (possible) {
