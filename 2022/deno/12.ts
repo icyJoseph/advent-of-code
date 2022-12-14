@@ -41,7 +41,7 @@ function calcAdj(width: number, height: number) {
   return adj;
 }
 
-export function bfs({
+function bfs({
   start,
   end,
   adj,
@@ -86,7 +86,56 @@ export function bfs({
     }
   }
 
-  return distance;
+  return distance[end];
+}
+
+function bfsBackwards({
+  start,
+  adj,
+  grid,
+  size,
+}: {
+  start: number;
+  adj: number[][];
+  grid: number[];
+  size: number;
+}) {
+  const q: number[] = [];
+  const visited = matrix(size, () => false);
+  const distance = matrix(size, () => 0);
+
+  visited[start] = true;
+  distance[start] = 0;
+  q.push(start);
+
+  let shortest = size;
+
+  while (true) {
+    const current = q.shift();
+
+    if (current == null) break;
+
+    for (const vec of adj[current]) {
+      if (visited[vec]) continue;
+
+      // only add node if the peak is lower
+      const peak = grid[vec];
+      const curr = grid[current];
+
+      if (peak + 1 >= curr) {
+        visited[vec] = true;
+        distance[vec] = distance[current] + 1;
+
+        if (grid[vec] !== elevation("a")) {
+          q.push(vec);
+        } else {
+          shortest = Math.min(shortest, distance[vec]);
+        }
+      }
+    }
+  }
+
+  return shortest;
 }
 
 const data = input.split("\n").map((row) => row.split(""));
@@ -118,7 +167,7 @@ const grid = data
   )
   .flat(1);
 
-const distances = bfs({
+const shortestFromStart = bfs({
   start,
   end,
   adj,
@@ -126,30 +175,17 @@ const distances = bfs({
   size,
 });
 
-console.log("Part one:", distances[end]);
+console.log("Part one:", shortestFromStart);
 
 /**
  * Part Two
  */
 
-const roots = grid.reduce<number[]>((acc, curr, index) => {
-  if (curr === elevation("a")) acc.push(index);
-
-  return acc;
-}, []);
-
-const shortestPath = roots.reduce((current, start) => {
-  const distances = bfs({
-    start,
-    end,
-    adj,
-    grid,
-    size,
-  });
-
-  if (distances[end] < current) return distances[end];
-
-  return current;
-}, Infinity);
+const shortestPath = bfsBackwards({
+  start: end,
+  adj,
+  grid,
+  size,
+});
 
 console.log("Part two:", shortestPath);

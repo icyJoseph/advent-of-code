@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 #[aoc2022::main(12)]
 fn main(input: &str) -> (usize, usize) {
     let rows = input
@@ -10,30 +12,19 @@ fn main(input: &str) -> (usize, usize) {
 
     let adj = calc_adj(height, width);
 
-    let mut roots: Vec<usize> = vec![];
-
     let mut graph = rows.iter().flatten().copied().collect::<Vec<_>>();
 
     let start = graph.iter().position(|&cell| cell == 'S').unwrap();
-
     let end = graph.iter().position(|&cell| cell == 'E').unwrap();
 
     graph[start] = 'a';
     graph[end] = 'z';
 
-    graph.iter().enumerate().for_each(|(pos, &cell)| {
-        if cell == 'a' {
-            roots.push(pos);
-        }
-    });
+    let size = width * height;
 
-    let part_one = bfs(start, end, &adj, &graph, width * height)[end];
+    let part_one = bfs(start, end, &adj, &graph, size);
 
-    let part_two = roots
-        .iter()
-        .map(|&root| bfs(root, end, &adj, &graph, width * height)[end])
-        .min()
-        .unwrap();
+    let part_two = bfs_backwards(end, &adj, &graph, size).unwrap();
 
     (part_one, part_two)
 }
@@ -68,12 +59,11 @@ fn calc_adj(height: usize, width: usize) -> Adj {
     adj
 }
 
-fn bfs(root: usize, end: usize, adj: &Adj, graph: &[char], size: usize) -> Vec<usize> {
+fn bfs(root: usize, end: usize, adj: &Adj, graph: &[char], size: usize) -> usize {
     let mut distances = vec![0; size];
 
     let mut visited = vec![false; size];
 
-    use std::collections::VecDeque;
     let mut q = VecDeque::new();
 
     visited[root] = true;
@@ -109,5 +99,56 @@ fn bfs(root: usize, end: usize, adj: &Adj, graph: &[char], size: usize) -> Vec<u
         }
     }
 
-    distances
+    distances[end]
+}
+
+fn bfs_backwards(end: usize, adj: &Adj, graph: &[char], size: usize) -> Option<usize> {
+    let mut distances = vec![0; size];
+
+    let mut visited = vec![false; size];
+
+    let mut q = VecDeque::new();
+
+    visited[end] = true;
+
+    q.push_back(end);
+
+    let mut shortest: Option<usize> = None;
+
+    loop {
+        let current = q.pop_front();
+
+        match current {
+            None => {
+                break;
+            }
+            Some(elem) => {
+                for &vec in adj[elem].iter() {
+                    if visited[vec] {
+                        continue;
+                    }
+
+                    if (graph[vec] as usize) + 1 >= (graph[elem] as usize) {
+                        distances[vec] = distances[elem] + 1;
+
+                        visited[vec] = true;
+
+                        if graph[vec] != 'a' {
+                            q.push_back(vec);
+                        } else {
+                            match shortest {
+                                None => shortest = Some(distances[vec]),
+                                Some(n) if distances[vec] < n => {
+                                    shortest = Some(distances[vec]);
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    shortest
 }

@@ -66,7 +66,7 @@ struct Queue<Element> {
     }
 }
 
-func bfs(_ root: Int, _ end: Int, _ graph: [Character], _ adj: [[Int]]) -> [Int] {
+func bfs(_ root: Int, _ end: Int, _ graph: [Character], _ adj: [[Int]]) -> Int {
     var queue = Queue<Int>()
     var visited = graph.map { _ in
         false
@@ -101,7 +101,48 @@ func bfs(_ root: Int, _ end: Int, _ graph: [Character], _ adj: [[Int]]) -> [Int]
         }
     }
 
-    return distances
+    return distances[end]
+}
+
+func bfs_backwards(_ end: Int, _ graph: [Character], _ adj: [[Int]]) -> Int? {
+    var queue = Queue<Int>()
+    var visited = graph.map { _ in false }
+
+    var distances = graph.map { _ in 0 }
+
+    var shortest: Int?
+
+    visited[end] = true
+    distances[end] = 0
+
+    queue.push(end)
+
+    while !queue.empty() {
+        let next = queue.front()
+
+        for node in adj[next] {
+            if visited[node] { continue }
+
+            let peak = graph[node].asciiValue!
+            let current = graph[next].asciiValue!
+
+            if peak + 1 >= current {
+                visited[node] = true
+
+                distances[node] = distances[next] + 1
+
+                if graph[node] != "a" {
+                    queue.push(node)
+                } else {
+                    if shortest == nil || distances[node] < shortest! {
+                        shortest = distances[node]
+                    }
+                }
+            }
+        }
+    }
+
+    return shortest
 }
 
 func flatGraph<T>(_ graph: [[T]]) -> [T] {
@@ -122,7 +163,6 @@ func main() {
 
         var root = 0
         var end = 0
-        var roots = [Int]()
 
         rows.enumerated().forEach { entry in
             let (y, row) = entry
@@ -132,15 +172,10 @@ func main() {
                 if value == "S" {
                     let index = coordToIndex((x, y), width)
                     root = index
-                    roots.append(index)
                 }
 
                 if value == "E" {
                     end = coordToIndex((x, y), width)
-                }
-
-                if value == "a" {
-                    roots.append(coordToIndex((x, y), width))
                 }
             }
         }
@@ -152,27 +187,13 @@ func main() {
 
         let adj = calcAdj(graph, width)
 
-        let shortestFromRoot = bfs(root, end, graph, adj)[end]
+        let shortestFromRoot = bfs(root, end, graph, adj)
 
         print("Part one:", shortestFromRoot)
 
-        let shortest = roots.reduce(shortestFromRoot) {
-            shortest, current in
+        let shortestFromEnd = bfs_backwards(end, graph, adj)!
 
-            if current == root {
-                return shortest
-            }
-
-            let candidate = bfs(current, end, graph, adj)[end]
-
-            if candidate < shortest {
-                return candidate
-            }
-
-            return shortest
-        }
-
-        print("Part two:", shortest)
+        print("Part two:", shortestFromEnd)
     } catch {
         print(error)
     }
