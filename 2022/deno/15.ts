@@ -145,7 +145,31 @@ const solve = async (example = false) => {
     y: Range;
   };
 
-  // rotates 45 degrees to turn the sensor areas into circles
+  /**
+   *
+   * Rotating a Manhattan circle resolves
+   * to a square. With a square it is easier to measure
+   * gaps relative to other squares.
+   *
+   * The solution beacon has to live in between
+   * squares separated by at least 2 units
+   *
+   *  x    x+2
+   *  | - |
+   *    x+1 -> beacon.x
+   *
+   * Same applies for Y axis.
+   *
+   * Once X and Y in the rotated system are found,
+   * rotate back and eliminate those which
+   * are part of a sensor's coverage.
+   *
+   * There'll be only one left.
+   *
+   */
+
+  // rotates 45 degrees to turn the sensor areas from
+  // manhattan circles into squares
   // returns the coordinates of the corners
   const squaredSensors = sensors.map(({ center, radius }) => {
     const [cx, cy] = center;
