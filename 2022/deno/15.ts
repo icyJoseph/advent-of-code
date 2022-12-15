@@ -1,7 +1,3 @@
-const input = await Deno.readTextFile("./input/15.in");
-
-const data = input.split("\n");
-
 type Coord = [x: number, y: number];
 
 type Sensor = {
@@ -9,6 +5,10 @@ type Sensor = {
   beacon: Coord;
   radius: number;
 };
+
+/**
+ * Helpers
+ */
 
 const merge = (intervals: Coord[]) => {
   if (intervals.length < 2) return intervals;
@@ -67,48 +67,140 @@ const beaconsAtOffset = (offset: number, grid: Sensor[]) =>
       .map(({ beacon }) => `${beacon}`)
   ).size;
 
-/**
- * Part One
- */
+const outOfSensorRange = ([x, y]: Coord, grid: Sensor[]) =>
+  grid.every(({ center, radius }) => {
+    const [cx, cy] = center;
 
-const sensors = data.map<Sensor>((row) => {
-  const [xS, yS, xB, yB] = row
-    .replace(":", "")
-    .replaceAll(",", "")
-    .replaceAll("=", " ")
-    .split(" ")
-    .map(Number)
-    .filter(isFinite);
+    const distance = Math.abs(cx - x) + Math.abs(cy - y);
 
-  const radius = Math.abs(xB - xS) + Math.abs(yB - yS);
-  return { center: [xS, yS], beacon: [xB, yB], radius };
-});
+    return distance >= radius;
+  });
 
-const offset = 2_000_000;
-const occupied = beaconsAtOffset(offset, sensors);
-const forbidden = coverage(offset, sensors)
-  .map(([x0, x1]) => x1 - x0 + 1)
-  .reduce((a, b) => a + b);
+const solve = async (example = false) => {
+  /**
+   * Part One
+   */
+  const input = await Deno.readTextFile(
+    `./input/${example ? "example" : "15"}.in`
+  );
 
-console.log("Part one:", forbidden - occupied);
+  const data = input.split("\n");
 
-/**
- * Part Two
- */
+  const sensors = data.map<Sensor>((row) => {
+    const [xS, yS, xB, yB] = row
+      .replace(":", "")
+      .replaceAll(",", "")
+      .replaceAll("=", " ")
+      .split(" ")
+      .map(Number)
+      .filter(isFinite);
 
-const maxRange = 4_000_000;
+    const radius = Math.abs(xB - xS) + Math.abs(yB - yS);
+    return { center: [xS, yS], beacon: [xB, yB], radius };
+  });
 
-const tuningFreq = ([x, y]: Coord) => x * maxRange + y;
+  const offset = example ? 10 : 2_000_000;
+  const occupied = beaconsAtOffset(offset, sensors);
+  const forbidden = coverage(offset, sensors)
+    .map(([x0, x1]) => x1 - x0 + 1)
+    .reduce((a, b) => a + b);
 
-for (let y = 0; y < maxRange; y++) {
-  const zones = coverage(y, sensors);
+  console.log("Part one:", forbidden - occupied);
 
-  if (zones.length === 2) {
-    const [[, x0], [x1]] = zones;
-    const x = Math.floor((x0 + x1) / 2); // or just x0 + 1
+  /**
+   * Part Two
+   */
 
-    console.log("Part two:", tuningFreq([x, y]));
+  //   const maxRange = example ? 20 : 4_000_000;
 
-    break;
-  }
-}
+  const tuningFreq = ([x, y]: Coord) => x * 4_000_000 + y;
+
+  // naive approach, takes about 2 seconds
+  //   for (let y = 0; y < maxRange; y++) {
+  //     const zones = coverage(y, sensors);
+
+  //     if (zones.length === 2) {
+  //       const [[, x0], [x1]] = zones;
+  //       const x = Math.floor((x0 + x1) / 2); // or just x0 + 1
+
+  //       console.log("Part two:", tuningFreq([x, y]));
+
+  //       break;
+  //     }
+  //   }
+
+  /**
+   * Part two super fast!! Blazing fast!!!
+   */
+
+  // 45 degrees clockwise
+  const forwards = ([x, y]: Coord): Coord => [x + y, y - x];
+  // 45 degrees anti-clockwise - undoing the above
+  const backwards = ([x, y]: Coord): Coord =>
+    [(x - y) / 2, (x + y) / 2].map((x) => Math.floor(x)) as Coord;
+
+  type Range = { from: number; to: number };
+  type Projection = {
+    x: Range;
+    y: Range;
+  };
+
+  // rotates 45 degrees to turn the sensor areas into circles
+  // returns the coordinates of the corners
+  const squaredSensors = sensors.map(({ center, radius }) => {
+    const [cx, cy] = center;
+    const corners: [Coord, Coord, Coord, Coord] = [
+      [cx - radius, cy],
+      [cx, cy + radius],
+      [cx + radius, cy],
+      [cx, cy - radius],
+    ];
+
+    return corners.map(forwards);
+  });
+
+  // represent squares as their projections
+  // into the x-axis: x0->x1 and y-axis: y0->y1
+  const projections = squaredSensors.map<Projection>((corners) => {
+    const [c0, c1, , c3] = corners;
+
+    return {
+      x: { from: c0[0], to: c1[0] },
+      y: { from: c3[1], to: c0[1] },
+    };
+  });
+
+  const xProjections = projections.map(({ x }) => x);
+  const yProjections = projections.map(({ y }) => y);
+
+  const hasValidGap = (
+    pair: Readonly<[Range, Range | undefined]>
+  ): pair is [Range, Range] => Boolean(pair[1]);
+
+  const findGap = (self: Range, others: Range[]) =>
+    others.find((other) => other !== self && other.from === self.to + 2);
+
+  const xGaps: number[] = xProjections
+    .sort((a, b) => a.from - b.from)
+    .map((self) => [self, findGap(self, xProjections)] as const)
+    .filter(hasValidGap)
+    .map(([self]) => self.to + 1);
+
+  const yGaps = yProjections
+    .sort((a, b) => a.from - b.from)
+    .map((self) => [self, findGap(self, yProjections)] as const)
+    .filter(hasValidGap)
+    .map(([self]) => self.to + 1);
+
+  const [beacon, ...rest] = xGaps
+    .flatMap((rx) => yGaps.map<Coord>((ry) => [rx, ry]))
+    // undo the clockwise rotation
+    .map(backwards)
+    .filter((coord) => outOfSensorRange(coord, sensors));
+
+  console.assert(rest.length === 0, "Found many beacons!");
+
+  console.log("Part two:", tuningFreq(beacon));
+};
+
+solve();
