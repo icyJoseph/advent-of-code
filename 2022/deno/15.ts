@@ -48,19 +48,17 @@ const intersection = ({
   // x = cx + delta; cx - delta
   const delta = r - Math.abs(y - cy);
 
-  // overlaps [from, to
+  // overlaps [from, to]
   return [cx - delta, cx + delta];
 };
 
 const coverage = (y: number, grid: Sensor[]) =>
-  grid
-    .map(({ center, radius }) => intersection({ center, radius, y }))
-    .filter((overlap): overlap is Coord => Boolean(overlap.length))
-    .sort((a, b) => a[0] - b[0])
-    .reduce<[number, number][]>((prev, overlap) => {
-      prev.push(overlap);
-      return merge(prev);
-    }, []);
+  merge(
+    grid
+      .map(({ center, radius }) => intersection({ center, radius, y }))
+      .filter((overlap): overlap is Coord => Boolean(overlap.length))
+      .sort((a, b) => a[0] - b[0])
+  );
 
 const beaconsAtOffset = (offset: number, grid: Sensor[]) =>
   new Set(
