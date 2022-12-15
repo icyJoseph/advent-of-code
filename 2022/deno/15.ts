@@ -2,7 +2,15 @@ const input = await Deno.readTextFile("./input/15.in");
 
 const data = input.split("\n");
 
-const merge = (intervals: number[][]) => {
+type Coord = [x: number, y: number];
+
+type Sensor = {
+  center: Coord;
+  beacon: Coord;
+  radius: number;
+};
+
+const merge = (intervals: Coord[]) => {
   if (intervals.length < 2) return intervals;
 
   const result = [];
@@ -22,23 +30,6 @@ const merge = (intervals: number[][]) => {
   return result;
 };
 
-/**
- * Part One
- */
-
-const sensors = data.map((row) => {
-  const [xS, yS, xB, yB] = row
-    .replace(":", "")
-    .replaceAll(",", "")
-    .replaceAll("=", " ")
-    .split(" ")
-    .map(Number)
-    .filter(isFinite);
-
-  const radius = Math.abs(xB - xS) + Math.abs(yB - yS);
-  return { center: [xS, yS], beacon: [xB, yB], radius };
-});
-
 const intersection = ({
   center,
   radius: r,
@@ -47,7 +38,7 @@ const intersection = ({
   center: number[];
   radius: number;
   y: number;
-}) => {
+}): [] | Coord => {
   const [cx, cy] = center;
 
   if (y > cy + r || y < cy - r) return [];
@@ -61,26 +52,43 @@ const intersection = ({
   return [cx - delta, cx + delta];
 };
 
-const coverage = (y: number) =>
-  sensors
+const coverage = (y: number, grid: Sensor[]) =>
+  grid
     .map(({ center, radius }) => intersection({ center, radius, y }))
-    .filter((overlap) => Boolean(overlap.length))
+    .filter((overlap): overlap is Coord => Boolean(overlap.length))
     .sort((a, b) => a[0] - b[0])
-    .reduce<number[][]>((prev, overlap) => {
+    .reduce<[number, number][]>((prev, overlap) => {
       prev.push(overlap);
       return merge(prev);
     }, []);
 
-const beaconsAtOffset = (offset: number) =>
+const beaconsAtOffset = (offset: number, grid: Sensor[]) =>
   new Set(
-    sensors
+    grid
       .filter(({ beacon }) => beacon[1] === offset)
       .map(({ beacon }) => `${beacon}`)
   ).size;
 
+/**
+ * Part One
+ */
+
+const sensors = data.map<Sensor>((row) => {
+  const [xS, yS, xB, yB] = row
+    .replace(":", "")
+    .replaceAll(",", "")
+    .replaceAll("=", " ")
+    .split(" ")
+    .map(Number)
+    .filter(isFinite);
+
+  const radius = Math.abs(xB - xS) + Math.abs(yB - yS);
+  return { center: [xS, yS], beacon: [xB, yB], radius };
+});
+
 const offset = 2_000_000;
-const occupied = beaconsAtOffset(offset);
-const forbidden = coverage(offset)
+const occupied = beaconsAtOffset(offset, sensors);
+const forbidden = coverage(offset, sensors)
   .map(([x0, x1]) => x1 - x0 + 1)
   .reduce((a, b) => a + b);
 
@@ -92,10 +100,10 @@ console.log("Part one:", forbidden - occupied);
 
 const maxRange = 4_000_000;
 
-const tuningFreq = ([x, y]: number[]) => x * maxRange + y;
+const tuningFreq = ([x, y]: Coord) => x * maxRange + y;
 
 for (let y = 0; y < maxRange; y++) {
-  const zones = coverage(y);
+  const zones = coverage(y, sensors);
 
   if (zones.length === 2) {
     const [[, x0], [x1]] = zones;
