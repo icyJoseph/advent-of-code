@@ -203,10 +203,25 @@ const solve = async (example = false) => {
 
   const cache = new Set();
   const delta: Record<string, number> = {};
+  type Cycle = { key: string; delta: number };
+  const cycle: Cycle[] = [];
 
-  const cycle: { key: string; delta: number }[] = [];
+  const runToCompletion = (todo: number, steps: Cycle[]) => {
+    const cycleDelta = steps
+      .map(({ delta }) => delta)
+      .reduce((a, b) => a + b, 0);
 
-  const cacheLimit = 1745 || 35;
+    const reps = Math.floor(todo / steps.length);
+    const leftover = todo % steps.length;
+
+    return (
+      reps * cycleDelta +
+      cycle
+        .slice(0, leftover)
+        .map(({ delta }) => delta)
+        .reduce((a, b) => a + b, 0)
+    );
+  };
 
   while (true) {
     const [index, jet] = jetsIt.next();
@@ -217,30 +232,21 @@ const solve = async (example = false) => {
       .map((n) => n - min)
       .join(" ")}`;
 
-    if (
-      cache.size === cacheLimit &&
-      cycle.length === cacheLimit &&
-      key === cycle[0].key
-    ) {
-      const cycleDelta = cycle
-        .map(({ delta }) => delta)
-        .reduce((a, b) => a + b, 0);
-      const todo = limit - settled.length;
+    if (cache.size > 0 && cycle.length === cache.size && key === cycle[0].key) {
+      const [top] = wave.slice(0).sort((a, b) => b - a);
 
-      const reps = Math.floor(todo / cacheLimit);
-      const leftover = todo % cacheLimit;
+      if (example) {
+        // Make sure we also print the example part one
+        console.log(
+          "Part one:",
+          top + runToCompletion(2022 - settled.length, cycle)
+        );
+      }
 
-      const [top] = settled.map((rock) => rock.top).sort((a, b) => b - a);
-
-      const finalTop =
-        top +
-        reps * cycleDelta +
-        cycle
-          .slice(0, leftover)
-          .map(({ delta }) => delta)
-          .reduce((a, b) => a + b, 0);
-
-      console.log("Part two:", finalTop);
+      console.log(
+        "Part two:",
+        top + runToCompletion(limit - settled.length, cycle)
+      );
 
       break;
     }
@@ -290,8 +296,10 @@ const solve = async (example = false) => {
     if (current.isSettled()) {
       /**
        * Part One
+       *
+       * Note that for the example, the cache stabilizes
+       * way before 2022... rocks
        */
-
       if (settled.length === 2022) {
         console.log("Part one:", wave.slice(0).sort((a, b) => b - a)[0]);
       }
@@ -312,10 +320,11 @@ const solve = async (example = false) => {
         const extendedKey = `${key}.${top - initialTop}`;
 
         if (cache.has(extendedKey)) {
-          if (cache.size === cacheLimit && cycle.length < cacheLimit) {
+          if (cache.size > 0 && cycle.length < cache.size) {
             cycle.push({ key, delta: top - initialTop });
           }
         } else {
+          cycle.length = 0;
           cache.add(extendedKey);
         }
       }
@@ -331,6 +340,6 @@ const solve = async (example = false) => {
    */
 };
 
-// await solve(true);
-// console.log("---");
+await solve(true);
+console.log("---");
 await solve();
