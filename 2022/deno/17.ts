@@ -197,12 +197,10 @@ const solve = async (example = false) => {
 
   const limit = 2022;
 
-  while (settled.length < limit) {
-    // console.log(settled.length);
-    // first move with the jets
-    const jet = jetsIt.next();
+  const wave = [0, 0, 0, 0, 0, 0, 0];
 
-    // console.log("\nBefore jets", jet, current.self, current.type);
+  while (settled.length < limit) {
+    const jet = jetsIt.next();
 
     if (jet === "<") {
       current.move({ left: -1, down: 0 });
@@ -227,8 +225,6 @@ const solve = async (example = false) => {
       }
     }
 
-    // console.log("After jets", jet, current.self, current.type);
-
     // then fall
     current.move({ left: 0, down: -1 });
 
@@ -238,25 +234,27 @@ const solve = async (example = false) => {
       filled.has(y * width + x)
     );
 
-    // console.log({ hitsFloor, hitsFilled });
     if (hitsFloor || hitsFilled) {
       // undo
       current.move({ left: 0, down: 1 });
       // settle
       current.setSettled();
     }
-    // console.log("After gravity", current.self, current.type);
 
     if (current.isSettled()) {
       current.coords.forEach(([x, y]) => {
         filled.add(y * width + x);
+
+        if (y > wave[x]) {
+          wave[x] = y;
+        }
       });
 
       settled.push(current);
 
-      const top = settled.map((rock) => rock.top).sort((a, b) => b - a);
+      const [top] = wave.slice(0).sort((a, b) => b - a);
 
-      current = createRock(rockTypeIt.next(), top[0] + gap);
+      current = createRock(rockTypeIt.next(), top + gap);
     }
   }
 
@@ -271,6 +269,8 @@ const solve = async (example = false) => {
 
   /**
    * Part Two
+   *
+   * Available at 17-2.ts
    */
 };
 
