@@ -12,18 +12,19 @@ const solve = async (example = false) => {
     console.log("Example", filename);
   }
 
-  type Monkey =
-    | { name: string; number: number }
-    | {
-        name: string;
-        operation: {
-          left: string | Monkey;
-          right: string | Monkey;
-          op: string;
-        };
-      };
+  type Input = { name: string; number: number };
+  type Computation = {
+    name: string;
+    operation: {
+      left: string | Monkey;
+      right: string | Monkey;
+      op: string;
+    };
+  };
 
-  const data: () => Record<string, Monkey> = () =>
+  type Monkey = Input | Computation;
+
+  const monkeyGen = (input: string): Record<string, Monkey> =>
     input
       .split("\n")
       .map((row) => {
@@ -36,6 +37,7 @@ const solve = async (example = false) => {
         }
         return { name, number: maybeNum };
       })
+
       .reduce<Record<string, Monkey>>((prev, monkey) => {
         prev[monkey.name] = monkey;
         return prev;
@@ -60,19 +62,21 @@ const solve = async (example = false) => {
     return monkey;
   };
 
+  const replaceFromRoot = (dict: Record<string, Monkey>) => {
+    const root = dict["root"];
+
+    return replace(root, dict) as Computation;
+  };
+
   const evaluate = (monkey: Monkey): number => {
     if ("number" in monkey) return monkey.number;
 
     const left = monkey.operation.left;
     const right = monkey.operation.right;
 
-    if (typeof left === "string") {
-      throw new Error("left monkey was a string");
-    }
+    if (typeof left === "string") throw new Error("left monkey was a string");
 
-    if (typeof right === "string") {
-      throw new Error("right monkey was a string");
-    }
+    if (typeof right === "string") throw new Error("right monkey was a string");
 
     switch (monkey.operation.op) {
       case "+":
@@ -95,55 +99,52 @@ const solve = async (example = false) => {
    * Part One
    */
 
-  const monkeys = data();
-
-  const root = replace(monkeys["root"], monkeys);
-
-  console.log("Part one:", evaluate(root));
+  console.log("Part one:", evaluate(replaceFromRoot(monkeyGen(input))));
 
   /**
    * Part Two
    */
 
-  const extMonkeys = data();
+  const monkeys = monkeyGen(input);
 
-  const extRoot = extMonkeys["root"];
-  const human = extMonkeys["humn"] as { name: string; number: number };
-  if ("operation" in extRoot) {
-    extRoot.operation.op = "=";
-  }
+  const root = replaceFromRoot(monkeys);
+  root.operation.op = "=";
 
-  replace(extRoot, extMonkeys);
+  const search = (monkey: Monkey, monkeys: Record<string, Monkey>) => {
+    const human = monkeys["humn"] as Input;
 
-  let delta = example ? 100 : 1_000_000_000_000;
-  let resultSign = null;
-  let pointer = delta;
+    let delta = 1_000_000_000_000;
 
-  while (true) {
-    human.number = pointer;
+    human.number = delta;
+    let result = evaluate(monkey);
+    let prevResult = result;
 
-    const result = evaluate(extRoot);
+    while (result) {
+      const zeroCross = Math.sign(prevResult) !== Math.sign(result);
 
-    if (resultSign == null) {
-      resultSign = Math.sign(result);
+      if (zeroCross) {
+        // change directions
+        const sign = Math.sign(delta) * -1;
+        // change magnitude to get closer to the zero-cross
+        delta = (sign * Math.abs(delta)) / 10;
+      }
+
+      if (Math.abs(result) > Math.abs(prevResult)) {
+        // result is shooting up
+        // change directions
+        const sign = Math.sign(delta) * -1;
+        delta = sign * Math.abs(delta);
+      }
+
+      human.number += delta;
+
+      [prevResult, result] = [result, evaluate(monkey)];
     }
-    const shouldFlip = resultSign !== Math.sign(result);
 
-    if (shouldFlip) {
-      resultSign = Math.sign(result);
-      // change directions
-      const sign = Math.sign(delta) * -1;
-      const mag = Math.abs(delta);
-      // change magnitude
-      delta = (sign * mag) / 10;
-    }
-    if (result === 0) {
-      console.log("Part two:", pointer);
-      break;
-    }
+    return human.number;
+  };
 
-    pointer += delta;
-  }
+  console.log("Part two:", search(root, monkeys));
 };
 
 await solve(true);
