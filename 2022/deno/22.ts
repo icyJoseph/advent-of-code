@@ -15,6 +15,7 @@ const rotateCCW = <T>(grid: T[][]) => {
   }, []);
 };
 
+// good ol' [1,2,3,4] into [[1,2],[3,4]]
 const chunks = <T>(arr: T[], size: number) =>
   arr.reduce<T[][]>((acc, row) => {
     const last = acc.pop();
@@ -32,20 +33,65 @@ const chunks = <T>(arr: T[], size: number) =>
     return acc;
   }, []);
 
-const wrap = (a: number, b: number): number => (a > 0 ? a % b : (b + a) % b);
+const rem = (a: number, b: number): number => (a > 0 ? a % b : (b + a) % b);
 
 type Coord = { x: number; y: number };
 
-type Dirs = {
-  top?: Coord;
-  right?: Coord;
-  bottom?: Coord;
-  left?: Coord;
+type Directions = "top" | "bottom" | "right" | "left";
+
+type Dirs = Partial<Record<Directions, Coord>>;
+
+type Heading = ">" | "v" | "<" | "^";
+
+type Rotation = "R" | "L";
+
+// const getDirection = (dx: number, dy: number): Directions => {
+//   switch (`${dx}.${dy}`) {
+//     case "-1.0":
+//       return "left";
+//     case "1.0":
+//       return "right";
+//     case "0.-1":
+//       return "top";
+//     case "0.1":
+//       return "bottom";
+//     default:
+//       throw new Error("Invalid direction");
+//   }
+// };
+const getDirection = (dx: number, dy: number): Directions => {
+  const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+
+  switch (angle) {
+    case 0:
+      return "right";
+    case 90:
+      // inverted Y axis
+      return "bottom";
+    case 180:
+      return "left";
+    case -90:
+      // inverted Y axis
+      return "top";
+    default:
+      throw new Error("Invalid direction:" + angle);
+  }
+};
+
+const directions: Readonly<Directions[]> = Object.freeze([
+  "right",
+  "bottom",
+  "left",
+  "top",
+]);
+
+const getDirectionFromHeading = (heading: Heading): Directions => {
+  return directions[headings.indexOf(heading)];
 };
 
 function calcAdj(width: number, height: number, grid: string[][]) {
-  const adj: Dirs[][] = Array.from({ length: height }, () => {
-    return Array.from({ length: width }, () => ({}));
+  const adj = Array.from({ length: height }, () => {
+    return Array.from({ length: width }, () => ({} as Dirs));
   });
   const dirs = [0, 1, -1];
 
@@ -62,55 +108,33 @@ function calcAdj(width: number, height: number, grid: string[][]) {
       deltas.forEach(([dx, dy]) => {
         let step = 1;
 
-        while (true) {
+        while (step) {
           // move in a given direction until something is hit
           // even wrapping around the map
           // grid[y][x] = cell
-          const x1 = wrap(x + step * dx, width);
-          const y1 = wrap(y + step * dy, height);
+          const x1 = rem(x + step * dx, width);
+          const y1 = rem(y + step * dy, height);
 
           // no checks for bounds are needed because we are
           // wrapping around the map
-
-          const cell = grid[y1][x1];
-
-          if (cell === "#") {
-            // do not expand this direction
-            break;
-          }
-
-          if (cell === ".") {
-            // usable cell
-
-            const coord = { x: x1, y: y1 };
-
-            if (dx === 0) {
-              if (dy === -1) {
-                // up
-                adj[y][x].top = coord;
-              }
-              if (dy === 1) {
-                // down
-                adj[y][x].bottom = coord;
-              }
+          switch (grid[y1][x1]) {
+            case "#":
+              step = 0;
+              // do not expand this direction
+              break;
+            case ".": {
+              const direction = getDirection(dx, dy);
+              adj[y][x][direction] = { x: x1, y: y1 };
+              step = 0;
+              break;
             }
-
-            if (dy === 0) {
-              if (dx === -1) {
-                // left
-                adj[y][x].left = coord;
-              }
-              if (dx === 1) {
-                // right
-                adj[y][x].right = coord;
-              }
+            case " ": {
+              // grow the delta vector
+              step += 1;
+              break;
             }
-
-            break;
-          }
-
-          if (cell === " ") {
-            step += 1;
+            default:
+              throw new Error("Invalid cell");
           }
         }
       });
@@ -120,20 +144,22 @@ function calcAdj(width: number, height: number, grid: string[][]) {
   return adj;
 }
 
-const nextDir = (dir: string, inst: string) => {
-  // R clockwise
-  switch (dir) {
-    case ">":
-      return inst === "R" ? "v" : "^";
-    case "v":
-      return inst === "R" ? "<" : ">";
-    case "<":
-      return inst === "R" ? "^" : "v";
-    case "^":
-      return inst === "R" ? ">" : "<";
-    default:
-      throw new Error(dir);
-  }
+const headings: Readonly<Heading[]> = Object.freeze([">", "v", "<", "^"]);
+
+const facingScore = (heading: Heading) => {
+  return headings.indexOf(heading);
+};
+
+const score = ({ x, y }: Coord, dir: Heading) => {
+  return 1000 * (y + 1) + 4 * (x + 1) + facingScore(dir);
+};
+
+const nextDir = (dir: Heading, rot: Rotation) => {
+  const current = headings.indexOf(dir);
+  const delta = rot === "R" ? 1 : -1;
+  const next = rem(current + delta, headings.length);
+
+  return headings[next];
 };
 
 const solve = async (example = false) => {
@@ -154,7 +180,8 @@ const solve = async (example = false) => {
   const token = "::";
   const moves = movesStr
     .replaceAll(/(R|L)/g, (m) => `${token}${m}${token}`)
-    .split(`${token}`);
+    .split(`${token}`)
+    .map((mv) => (mv === "R" || mv === "L" ? mv : Number(mv)));
 
   const width = Math.max(...grid.map((row) => row.length));
   const height = grid.length;
@@ -162,93 +189,67 @@ const solve = async (example = false) => {
   grid.forEach((row, y) => {
     grid[y] = row.join("").padEnd(width, " ").split("");
   });
-  const adj = calcAdj(width, height, grid);
 
-  const y0 = 0;
-  const x0 = grid[y0].findIndex((cell) => cell === ".");
+  const walkPlane = (graph: string[][]) => {
+    const adj = calcAdj(width, height, graph);
 
-  const path = Array.from({ length: height }, (_, y) => {
-    return Array.from({ length: width }, (_, x) => grid[y][x] || " ");
-  });
+    const y0 = 0;
+    const x0 = graph[y0].findIndex((cell) => cell === ".");
 
-  let currentDir = ">";
+    const path = Array.from({ length: height }, (_, y) => {
+      return Array.from({ length: width }, (_, x) => graph[y][x] || " ");
+    });
 
-  let currentCoord = { y: y0, x: x0 };
-  path[y0][x0] = currentDir;
+    let currentDir: Heading = ">";
 
-  for (const inst of moves) {
-    if (inst === "R" || inst === "L") {
-      const { x, y } = currentCoord;
-      // direction change
-      currentDir = nextDir(currentDir, inst);
-      path[y][x] = currentDir;
-      // no coord change
-    } else {
-      let steps = Number(inst);
+    let currentCoord = { y: y0, x: x0 };
+    path[y0][x0] = currentDir;
 
-      while (steps--) {
+    for (const inst of moves) {
+      if (inst === "R" || inst === "L") {
         const { x, y } = currentCoord;
+        // direction change
+        currentDir = nextDir(currentDir, inst);
+        path[y][x] = currentDir;
+        // no coord change
+      } else {
+        let steps = inst;
 
-        if (currentDir === ">") {
-          currentCoord = adj[y][x].right ?? currentCoord;
+        while (steps--) {
+          const { x, y } = currentCoord;
+
+          const direction = getDirectionFromHeading(currentDir);
+
+          const next = adj[y][x][direction];
+
+          // there's no where to go
+          if (typeof next === "undefined") break;
+
+          currentCoord = next;
+
+          path[currentCoord.y][currentCoord.x] = currentDir;
         }
-
-        if (currentDir === "v") {
-          currentCoord = adj[y][x].bottom ?? currentCoord;
-        }
-
-        if (currentDir === "<") {
-          currentCoord = adj[y][x].left ?? currentCoord;
-        }
-
-        if (currentDir === "^") {
-          currentCoord = adj[y][x].top ?? currentCoord;
-        }
-
-        path[currentCoord.y][currentCoord.x] = currentDir;
       }
     }
-  }
 
-  const faceScore = (dir: string) => {
-    switch (dir) {
-      case ">":
-        return 0;
-      case "v":
-        return 1;
-      case "<":
-        return 2;
-      case "^":
-        return 3;
-      default:
-        throw new Error("Invalid direction");
-    }
-  };
-
-  const score = ({ x, y }: Coord, dir: string) => {
-    const facing = faceScore(dir);
-
-    const row = y + 1;
-    const col = x + 1;
-
-    return 1000 * row + 4 * col + facing;
+    return score(currentCoord, currentDir);
   };
 
   /**
    * Part One
    */
-  console.log("Part one:", score(currentCoord, currentDir));
+  console.log("Part one:", walkPlane(grid));
 
   /**
    * Part Two
    */
 
-  const walkCube = () => {
-    const size = 50;
-
+  const walkCube = (graph: string[][], size: number) => {
+    // Divide the grid into regions of size x size
+    // each of these regions is a face
     const sections: Record<string, string[][]> = {};
 
-    chunks(grid, size).forEach((subGrid, x) => {
+    chunks(graph, size).forEach((subGrid, x) => {
       const chunkedRows = subGrid.map((row) => chunks(row, size));
 
       chunkedRows.forEach((chunk) =>
@@ -261,6 +262,7 @@ const solve = async (example = false) => {
     });
 
     type Cell = { cell: string; origin: Coord; relative: Coord };
+
     const faces = Object.entries(sections)
       .filter(([, value]) =>
         value
@@ -330,16 +332,16 @@ const solve = async (example = false) => {
         bottom: { face: faces["0.2"], dir: "v" },
         left: { face: rotateCCW(rotateCCW(rotateCCW(faces["0.1"]))), dir: "v" },
       },
-    };
+    } as const;
 
     const y0 = 0;
-    const x0 = grid[y0].findIndex((cell) => cell === ".");
+    const x0 = graph[y0].findIndex((cell) => cell === ".");
 
     const path = Array.from({ length: height }, (_, y) => {
-      return Array.from({ length: width }, (_, x) => grid[y][x] || " ");
+      return Array.from({ length: width }, (_, x) => graph[y][x] || " ");
     });
 
-    let currentDir = ">";
+    let currentDir: Heading = ">";
 
     // flat coordinate
     let flatCubeCoord = { y: y0, x: x0 };
@@ -353,7 +355,7 @@ const solve = async (example = false) => {
         currentDir = nextDir(currentDir, inst);
         path[y][x] = currentDir;
       } else {
-        let steps = Number(inst);
+        let steps = inst;
 
         while (steps--) {
           const { x, y } = flatCubeCoord;
@@ -387,16 +389,14 @@ const solve = async (example = false) => {
             dy = -1;
           }
 
-          // transform to 50-offset-based
-          const asOffset = (n: number) => n % size;
-
-          const next = { x: asOffset(x) + dx, y: asOffset(y) + dy };
+          // transform to <size>-offset-based
+          const next = { x: (x % size) + dx, y: (y % size) + dy };
 
           // assume it stays within the face
-          flatCubeCoord = { x: x + dx, y: y + dy }; // otherwise it'll be modified
+          flatCubeCoord = { x: x + dx, y: y + dy };
 
           // Direction changes when switching cubes
-          let newDir = currentDir;
+          let newDir: Heading = currentDir;
 
           if (next.x < 0) {
             const left = faceAdj.left.face;
@@ -471,10 +471,10 @@ const solve = async (example = false) => {
     // 135087 wrong
     // 140020 too high
     // 115311 right!
-    console.log("Part two:", score(flatCubeCoord, currentDir));
+    return score(flatCubeCoord, currentDir);
   };
 
-  walkCube();
+  console.log("Part two:", walkCube(grid, 50));
 };
 
 // await solve(true);
