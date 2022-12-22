@@ -15,6 +15,17 @@ const rotateCCW = <T>(grid: T[][]) => {
   }, []);
 };
 
+const rotateCW = <T>(grid: T[][]) => {
+  return grid.reduce<T[][]>((acc, row, rowIndex) => {
+    return row.reduce((prev, cell, y, src) => {
+      const x = src.length - 1 - rowIndex;
+      prev[y] = prev[y] || [];
+      prev[y][x] = cell;
+      return prev;
+    }, acc);
+  }, []);
+};
+
 // good ol' [1,2,3,4] into [[1,2],[3,4]]
 const chunks = <T>(arr: T[], size: number) =>
   arr.reduce<T[][]>((acc, row) => {
@@ -305,11 +316,11 @@ const solve = async (example = false) => {
       "1.1": {
         top: { face: faces["0.1"], dir: "^" },
         right: {
-          face: rotateCCW(rotateCCW(rotateCCW(faces["0.2"]))),
+          face: rotateCW(faces["0.2"]),
           dir: "^",
         },
         bottom: { face: faces["2.1"], dir: "v" },
-        left: { face: rotateCCW(rotateCCW(rotateCCW(faces["2.0"]))), dir: "v" },
+        left: { face: rotateCW(faces["2.0"]), dir: "v" },
       },
       "2.0": {
         top: { face: rotateCCW(faces["1.1"]), dir: ">" },
@@ -326,11 +337,11 @@ const solve = async (example = false) => {
       "3.0": {
         top: { face: faces["2.0"], dir: "^" },
         right: {
-          face: rotateCCW(rotateCCW(rotateCCW(faces["2.1"]))),
+          face: rotateCW(faces["2.1"]),
           dir: "^",
         },
         bottom: { face: faces["0.2"], dir: "v" },
-        left: { face: rotateCCW(rotateCCW(rotateCCW(faces["0.1"]))), dir: "v" },
+        left: { face: rotateCW(faces["0.1"]), dir: "v" },
       },
     } as const;
 
