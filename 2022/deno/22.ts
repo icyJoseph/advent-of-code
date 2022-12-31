@@ -3,6 +3,159 @@ const [__filename_ext] = new URL("", import.meta.url).pathname
   .slice(-1);
 const filename = __filename_ext.replace(".ts", "");
 
+const createCubeModel = <Face>(
+  // clockwise
+  cw: (m: Face) => Face,
+  // counter-clockwise
+  ccw: (m: Face) => Face
+) => {
+  type Side = "top" | "front" | "bottom" | "back" | "left" | "right";
+
+  const faces: Partial<Record<Side, Face>> = {};
+
+  const rotateFwd = () => {
+    const current = { ...faces };
+
+    faces.top = current.back;
+    faces.front = current.top;
+    faces.bottom = current.front;
+    faces.back = current.bottom;
+
+    faces.right = current.right && cw(current.right);
+    faces.left = current.left && ccw(current.left);
+  };
+
+  const rotateBwd = () => {
+    const current = { ...faces };
+
+    faces.top = current.front;
+    faces.back = current.top;
+    faces.bottom = current.back;
+    faces.front = current.bottom;
+
+    faces.right = current.right && ccw(current.right);
+    faces.left = current.left && cw(current.left);
+  };
+
+  const rotateRight = () => {
+    const current = { ...faces };
+
+    faces.top = current.left;
+    faces.right = current.top;
+    faces.bottom = current.right;
+    faces.left = current.bottom;
+
+    faces.front = current.front && ccw(current.front);
+    // faces.front = current.front && cw(current.front);
+    faces.back = current.back && cw(current.back);
+  };
+
+  const rotateLeft = () => {
+    const current = { ...faces };
+
+    faces.top = current.right;
+    faces.left = current.top;
+    faces.bottom = current.left;
+    faces.right = current.bottom;
+
+    faces.front = current.front && cw(current.front);
+    faces.back = current.back && ccw(current.back);
+  };
+
+  const yawRight = () => {
+    const current = { ...faces };
+
+    faces.back = current.left && cw(current.left);
+    faces.right = current.back && cw(current.back);
+    faces.front = current.right && cw(current.right);
+    faces.left = current.front && cw(current.front);
+
+    faces.top = current.top && ccw(current.top);
+    faces.bottom = current.bottom && cw(current.bottom);
+  };
+
+  const yawLeft = () => {
+    const current = { ...faces };
+
+    faces.back = current.right && ccw(current.right);
+    faces.left = current.back && ccw(current.back);
+    faces.front = current.left && ccw(current.left);
+    faces.right = current.front && ccw(current.front);
+
+    faces.top = current.top && cw(current.top);
+    faces.bottom = current.bottom && ccw(current.bottom);
+  };
+
+  return {
+    get faces() {
+      return { ...faces };
+    },
+    setFace(side: Side, value: Face) {
+      faces[side] = value;
+    },
+    rotateFwd,
+    rotateBwd,
+    rotateLeft,
+    rotateRight,
+    yawLeft,
+    yawRight,
+  };
+};
+
+type CubeModel<Model> = ReturnType<typeof createCubeModel<Model>>;
+
+type FaceAdj<T> = {
+  key: string;
+  value: T;
+  top?: FaceAdj<T>;
+  bottom?: FaceAdj<T>;
+  left?: FaceAdj<T>;
+  right?: FaceAdj<T>;
+};
+
+// takes a cube model
+// takes a tree of the flat faces
+// builds the cube in exactly 6 rounds
+const buildCube = <Model>(
+  cube: CubeModel<Model>,
+  face: FaceAdj<Model>,
+  debug?: (m: Model) => void,
+  seen = new Set()
+) => {
+  debug?.(face.value);
+
+  cube.setFace("bottom", face.value);
+  seen.add(face);
+
+  if (face.top && !seen.has(face.top)) {
+    // roll up
+    cube.rotateBwd();
+    buildCube(cube, face.top, debug, seen);
+    cube.rotateFwd();
+  }
+
+  if (face.bottom && !seen.has(face.bottom)) {
+    // roll down
+    cube.rotateFwd();
+    buildCube(cube, face.bottom, debug, seen);
+    cube.rotateBwd();
+  }
+
+  if (face.left && !seen.has(face.left)) {
+    cube.rotateLeft();
+    buildCube(cube, face.left, debug, seen);
+    cube.rotateRight();
+  }
+
+  if (face.right && !seen.has(face.right)) {
+    cube.rotateRight();
+    buildCube(cube, face.right, debug, seen);
+    cube.rotateLeft();
+  }
+
+  return cube;
+};
+
 // rotates counter clockwise
 const rotateCCW = <T>(grid: T[][]) => {
   return grid.reduce<T[][]>((acc, row, x) => {
@@ -44,6 +197,13 @@ const chunks = <T>(arr: T[], size: number) =>
     return acc;
   }, []);
 
+const dirs = [
+  [-1, 0],
+  [1, 0],
+  [0, -1],
+  [0, 1],
+];
+
 const rem = (a: number, b: number): number => (a > 0 ? a % b : (b + a) % b);
 
 type Coord = { x: number; y: number };
@@ -56,20 +216,6 @@ type Heading = ">" | "v" | "<" | "^";
 
 type Rotation = "R" | "L";
 
-// const getDirection = (dx: number, dy: number): Directions => {
-//   switch (`${dx}.${dy}`) {
-//     case "-1.0":
-//       return "left";
-//     case "1.0":
-//       return "right";
-//     case "0.-1":
-//       return "top";
-//     case "0.1":
-//       return "bottom";
-//     default:
-//       throw new Error("Invalid direction");
-//   }
-// };
 const getDirection = (dx: number, dy: number): Directions => {
   const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
 
@@ -96,27 +242,46 @@ const directions: Readonly<Directions[]> = Object.freeze([
   "top",
 ]);
 
+// -> clockwise
+const headings: Readonly<Heading[]> = Object.freeze([">", "v", "<", "^"]);
+
 const getDirectionFromHeading = (heading: Heading): Directions => {
   return directions[headings.indexOf(heading)];
+};
+
+const rotateHeading = (heading: Heading, steps: number): Heading => {
+  const index = headings.indexOf(heading);
+  const newIndex = rem(index - steps, headings.length);
+
+  return headings[newIndex];
+};
+
+const facingScore = (heading: Heading) => {
+  return headings.indexOf(heading);
+};
+
+const score = ({ x, y }: Coord, dir: Heading) => {
+  return 1000 * (y + 1) + 4 * (x + 1) + facingScore(dir);
+};
+
+const nextDir = (dir: Heading, rot: Rotation) => {
+  const current = headings.indexOf(dir);
+  const delta = rot === "R" ? 1 : -1;
+  const next = rem(current + delta, headings.length);
+
+  return headings[next];
 };
 
 function calcAdj(width: number, height: number, grid: string[][]) {
   const adj = Array.from({ length: height }, () => {
     return Array.from({ length: width }, () => ({} as Dirs));
   });
-  const dirs = [0, 1, -1];
-
-  // generate unit vector permutations for 2d
-  const deltas = dirs
-    .flatMap((x) => dirs.map((y) => [x, y]))
-    // remove diagonals
-    .filter(([x, y]) => Math.abs(x) + Math.abs(y) === 1);
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       if (grid[y][x] !== ".") continue;
 
-      deltas.forEach(([dx, dy]) => {
+      dirs.forEach(([dx, dy]) => {
         let step = 1;
 
         while (step) {
@@ -155,27 +320,9 @@ function calcAdj(width: number, height: number, grid: string[][]) {
   return adj;
 }
 
-const headings: Readonly<Heading[]> = Object.freeze([">", "v", "<", "^"]);
-
-const facingScore = (heading: Heading) => {
-  return headings.indexOf(heading);
-};
-
-const score = ({ x, y }: Coord, dir: Heading) => {
-  return 1000 * (y + 1) + 4 * (x + 1) + facingScore(dir);
-};
-
-const nextDir = (dir: Heading, rot: Rotation) => {
-  const current = headings.indexOf(dir);
-  const delta = rot === "R" ? 1 : -1;
-  const next = rem(current + delta, headings.length);
-
-  return headings[next];
-};
-
 const solve = async (example = false) => {
   const input = await Deno.readTextFile(
-    `./input/${example ? "example" : filename}.in`
+    `./input/${example ? `${filename}.example` : filename}.in`
   );
 
   if (example) {
@@ -254,7 +401,6 @@ const solve = async (example = false) => {
   /**
    * Part Two
    */
-
   const walkCube = (graph: string[][], size: number) => {
     // Divide the grid into regions of size x size
     // each of these regions is a face
@@ -272,7 +418,17 @@ const solve = async (example = false) => {
       );
     });
 
-    type Cell = { cell: string; origin: Coord; relative: Coord };
+    type Cell = {
+      cell: string;
+      origin: Coord;
+      relative: Coord;
+    };
+
+    type FaceCells = {
+      key: string;
+      cells: Cell[][];
+      offset: number;
+    };
 
     const faces = Object.entries(sections)
       .filter(([, value]) =>
@@ -281,69 +437,362 @@ const solve = async (example = false) => {
           .join("")
           .trim()
       )
-      .reduce<Record<string, Cell[][]>>((prev, [key, value]) => {
-        prev[key] = value.map<Cell[]>((row, dy) =>
-          row.map<Cell>((cell, dx) => {
-            const [y, x] = key.split(".").map(Number);
+      .reduce<Record<string, FaceCells>>((prev, [key, value]) => {
+        const cubeFace: FaceCells = {
+          key,
+          offset: 0,
+          cells: value.map<Cell[]>((row, dy) =>
+            row.map<Cell>((cell, dx) => {
+              const [y, x] = key.split(".").map(Number);
 
-            const origin = { x: size * x, y: y * size };
+              const origin = { x: size * x, y: y * size };
 
-            return {
-              cell,
-              origin,
-              relative: { x: dx, y: dy },
-            };
-          })
-        );
+              return {
+                cell,
+                origin,
+                relative: { x: dx, y: dy },
+              };
+            })
+          ),
+        };
+
+        prev[key] = cubeFace;
         return prev;
       }, {});
 
-    // TODO: Make this generic so that it
+    const faceAdjs: FaceAdj<FaceCells>[] = Object.keys(faces).map((key) => ({
+      key,
+      value: faces[key],
+    }));
+
+    console.log("Faces:", Object.keys(faces));
+
+    faceAdjs.forEach((fadj) => {
+      const [y, x] = fadj.key.split(".").map(Number);
+
+      dirs.forEach(([dy, dx]) => {
+        const otherKey = `${y + dy}.${x + dx}`;
+        const other = faces[otherKey];
+
+        if (!other) return;
+
+        const otherAdj = faceAdjs.find((ot) => ot.value === other);
+
+        if (!otherAdj) return;
+
+        if (dx === -1) {
+          // left
+          fadj.left = otherAdj;
+          return;
+        }
+
+        if (dx === 1) {
+          // left
+          fadj.right = otherAdj;
+          return;
+        }
+
+        if (dy === -1) {
+          // left
+          fadj.top = otherAdj;
+          return;
+        }
+
+        if (dy === 1) {
+          // left
+          fadj.bottom = otherAdj;
+          return;
+        }
+      });
+    });
+
+    const cube = createCubeModel<FaceCells>(
+      (cf) => ({ ...cf, offset: cf.offset + 1, cells: rotateCW(cf.cells) }),
+      (cf) => ({ ...cf, offset: cf.offset - 1, cells: rotateCCW(cf.cells) })
+    );
+
+    // const debug = (m: FaceCells) =>
+    //   console.log(
+    //     "face:",
+    //     m &&
+    //       `${Math.floor(m.cells[0][0].origin.y / size)}.${Math.floor(
+    //         m.cells[0][0].origin.x / size
+    //       )}`
+    //   );
+
+    buildCube(cube, faceAdjs[0] /*, debug */);
+
+    // console.log(
+    //   Object.entries(cube.faces).map(
+    //     ([face, m]) =>
+    //       m && {
+    //         [face]: `${Math.floor(m.cells[0][0].origin.y / size)}.${Math.floor(
+    //           m.cells[0][0].origin.x / size
+    //         )}`,
+    //         offset: m.offset,
+    //       }
+    //   )
+    // );
+
+    const cubeIsComplete = (
+      cube: CubeModel<FaceCells>
+    ): cube is CubeModel<FaceCells> & {
+      faces: Required<CubeModel<FaceCells>["faces"]>;
+    } => {
+      return Object.values(cube.faces).every(Boolean);
+    };
+
+    function straightUp(cube: CubeModel<FaceCells>, to: number) {
+      if (typeof cube.faces.bottom === "undefined")
+        throw new Error("Bottom face is empty");
+
+      const start = cube.faces.bottom.offset % 4;
+
+      while (cube.faces.bottom.offset % 4 !== to) {
+        if (to < 0) {
+          cube.yawLeft();
+        } else {
+          cube.yawRight();
+        }
+      }
+
+      return start;
+    }
+
+    function getCubeAdj(cube: CubeModel<FaceCells>) {
+      const result: Record<
+        string,
+        Record<
+          "top" | "bottom" | "left" | "right",
+          { face: Cell[][]; dir: Heading; key: string }
+        >
+      > = {};
+
+      if (!cubeIsComplete(cube)) throw new Error("Cube is incomplete");
+
+      let ret = straightUp(cube, 0);
+      let current = cube.faces.bottom.key;
+
+      result[current] = {
+        top: {
+          key: cube.faces.back.key,
+          face: cube.faces.back.cells,
+          dir: rotateHeading("^", cube.faces.back.offset),
+        },
+        right: {
+          key: cube.faces.right.key,
+          face: cube.faces.right.cells,
+          dir: rotateHeading(">", cube.faces.right.offset),
+        },
+        bottom: {
+          key: cube.faces.front.key,
+          face: cube.faces.front.cells,
+          dir: rotateHeading("v", cube.faces.front.offset),
+        },
+        left: {
+          key: cube.faces.left.key,
+          face: cube.faces.left.cells,
+          dir: rotateHeading("<", cube.faces.left.offset),
+        },
+      };
+
+      straightUp(cube, ret);
+
+      cube.rotateFwd();
+      ret = straightUp(cube, 0);
+      current = cube.faces.bottom.key;
+
+      result[current] = {
+        top: {
+          key: cube.faces.back.key,
+          face: cube.faces.back.cells,
+          dir: rotateHeading("^", cube.faces.back.offset),
+        },
+        right: {
+          key: cube.faces.right.key,
+          face: cube.faces.right.cells,
+          dir: rotateHeading(">", cube.faces.right.offset),
+        },
+        bottom: {
+          key: cube.faces.front.key,
+          face: cube.faces.front.cells,
+          dir: rotateHeading("v", cube.faces.front.offset),
+        },
+        left: {
+          key: cube.faces.left.key,
+          face: cube.faces.left.cells,
+          dir: rotateHeading("<", cube.faces.left.offset),
+        },
+      };
+
+      straightUp(cube, ret);
+
+      cube.rotateFwd();
+      ret = straightUp(cube, 0);
+      current = cube.faces.bottom.key;
+
+      result[current] = {
+        top: {
+          key: cube.faces.back.key,
+          face: cube.faces.back.cells,
+          dir: rotateHeading("^", cube.faces.back.offset),
+        },
+        right: {
+          key: cube.faces.right.key,
+          face: cube.faces.right.cells,
+          dir: rotateHeading(">", cube.faces.right.offset),
+        },
+        bottom: {
+          key: cube.faces.front.key,
+          face: cube.faces.front.cells,
+          dir: rotateHeading("v", cube.faces.front.offset),
+        },
+        left: {
+          key: cube.faces.left.key,
+          face: cube.faces.left.cells,
+          dir: rotateHeading("<", cube.faces.left.offset),
+        },
+      };
+
+      straightUp(cube, ret);
+
+      cube.rotateFwd();
+      current = cube.faces.bottom.key;
+      ret = straightUp(cube, 0);
+
+      result[current] = {
+        top: {
+          key: cube.faces.back.key,
+          face: cube.faces.back.cells,
+          dir: rotateHeading("^", cube.faces.back.offset),
+        },
+        right: {
+          key: cube.faces.right.key,
+          face: cube.faces.right.cells,
+          dir: rotateHeading(">", cube.faces.right.offset),
+        },
+        bottom: {
+          key: cube.faces.front.key,
+          face: cube.faces.front.cells,
+          dir: rotateHeading("v", cube.faces.front.offset),
+        },
+        left: {
+          key: cube.faces.left.key,
+          face: cube.faces.left.cells,
+          dir: rotateHeading("<", cube.faces.left.offset),
+        },
+      };
+
+      straightUp(cube, ret);
+
+      cube.rotateLeft();
+      ret = straightUp(cube, 0);
+      current = cube.faces.bottom.key;
+
+      result[current] = {
+        top: {
+          key: cube.faces.back.key,
+          face: cube.faces.back.cells,
+          dir: rotateHeading("^", cube.faces.back.offset),
+        },
+        right: {
+          key: cube.faces.right.key,
+          face: cube.faces.right.cells,
+          dir: rotateHeading(">", cube.faces.right.offset),
+        },
+        bottom: {
+          key: cube.faces.front.key,
+          face: cube.faces.front.cells,
+          dir: rotateHeading("v", cube.faces.front.offset),
+        },
+        left: {
+          key: cube.faces.left.key,
+          face: cube.faces.left.cells,
+          dir: rotateHeading("<", cube.faces.left.offset),
+        },
+      };
+
+      straightUp(cube, ret);
+
+      cube.rotateRight();
+      cube.rotateRight();
+      ret = straightUp(cube, 0);
+      current = cube.faces.bottom.key;
+
+      result[current] = {
+        top: {
+          key: cube.faces.back.key,
+          face: cube.faces.back.cells,
+          dir: rotateHeading("^", cube.faces.back.offset),
+        },
+        right: {
+          key: cube.faces.right.key,
+          face: cube.faces.right.cells,
+          dir: rotateHeading(">", cube.faces.right.offset),
+        },
+        bottom: {
+          key: cube.faces.front.key,
+          face: cube.faces.front.cells,
+          dir: rotateHeading("v", cube.faces.front.offset),
+        },
+        left: {
+          key: cube.faces.left.key,
+          face: cube.faces.left.cells,
+          dir: rotateHeading("<", cube.faces.left.offset),
+        },
+      };
+
+      return result;
+    }
+
+    const cubeAdj = getCubeAdj(cube);
+
+    // DONE: Make this generic so that it
     // can work with example and any input
-    const cubeAdj = {
-      "0.1": {
-        top: { face: rotateCCW(faces["3.0"]), dir: ">" },
-        right: { face: faces["0.2"], dir: ">" },
-        bottom: { face: faces["1.1"], dir: "v" },
-        left: { face: rotateCCW(rotateCCW(faces["2.0"])), dir: ">" },
-      },
-      "0.2": {
-        top: { face: faces["3.0"], dir: "^" },
-        right: { face: rotateCCW(rotateCCW(faces["2.1"])), dir: "<" },
-        bottom: { face: rotateCCW(faces["1.1"]), dir: "<" },
-        left: { face: faces["0.1"], dir: "<" },
-      },
-      "1.1": {
-        top: { face: faces["0.1"], dir: "^" },
-        right: {
-          face: rotateCW(faces["0.2"]),
-          dir: "^",
-        },
-        bottom: { face: faces["2.1"], dir: "v" },
-        left: { face: rotateCW(faces["2.0"]), dir: "v" },
-      },
-      "2.0": {
-        top: { face: rotateCCW(faces["1.1"]), dir: ">" },
-        right: { face: faces["2.1"], dir: ">" },
-        bottom: { face: faces["3.0"], dir: "v" },
-        left: { face: rotateCCW(rotateCCW(faces["0.1"])), dir: ">" },
-      },
-      "2.1": {
-        top: { face: faces["1.1"], dir: "^" },
-        right: { face: rotateCCW(rotateCCW(faces["0.2"])), dir: "<" },
-        bottom: { face: rotateCCW(faces["3.0"]), dir: "<" },
-        left: { face: faces["2.0"], dir: "<" },
-      },
-      "3.0": {
-        top: { face: faces["2.0"], dir: "^" },
-        right: {
-          face: rotateCW(faces["2.1"]),
-          dir: "^",
-        },
-        bottom: { face: faces["0.2"], dir: "v" },
-        left: { face: rotateCW(faces["0.1"]), dir: "v" },
-      },
-    } as const;
+    // const cubeAdj = {
+    //   "0.1": {
+    //     top: { face: rotateCCW(faces["3.0"].cells), dir: ">" },
+    //     right: { face: faces["0.2"].cells, dir: ">" },
+    //     bottom: { face: faces["1.1"].cells, dir: "v" },
+    //     left: { face: rotateCW(rotateCW(faces["2.0"].cells)), dir: ">" },
+    //   },
+    //   "1.1": {
+    //     top: { face: faces["0.1"].cells, dir: "^" },
+    //     right: {
+    //       face: rotateCW(faces["0.2"].cells),
+    //       dir: "^",
+    //     },
+    //     bottom: { face: faces["2.1"].cells, dir: "v" },
+    //     left: { face: rotateCW(faces["2.0"].cells), dir: "v" },
+    //   },
+    //   "2.1": {
+    //     top: { face: faces["1.1"].cells, dir: "^" },
+    //     right: { face: rotateCCW(rotateCCW(faces["0.2"].cells)), dir: "<" },
+    //     bottom: { face: rotateCCW(faces["3.0"].cells), dir: "<" },
+    //     left: { face: faces["2.0"].cells, dir: "<" },
+    //   },
+    //   "3.0": {
+    //     top: { face: faces["2.0"].cells, dir: "^" },
+    //     right: {
+    //       face: rotateCW(faces["2.1"].cells),
+    //       dir: "^",
+    //     },
+    //     bottom: { face: faces["0.2"].cells, dir: "v" },
+    //     left: { face: rotateCW(faces["0.1"].cells), dir: "v" },
+    //   },
+    //   "2.0": {
+    //     top: { face: rotateCCW(faces["1.1"].cells), dir: ">" },
+    //     right: { face: faces["2.1"].cells, dir: ">" },
+    //     bottom: { face: faces["3.0"].cells, dir: "v" },
+    //     left: { face: rotateCCW(rotateCCW(faces["0.1"].cells)), dir: ">" },
+    //   },
+    //   "0.2": {
+    //     top: { face: faces["3.0"].cells, dir: "^" },
+    //     right: { face: rotateCCW(rotateCCW(faces["2.1"].cells)), dir: "<" },
+    //     bottom: { face: rotateCCW(faces["1.1"].cells), dir: "<" },
+    //     left: { face: faces["0.1"].cells, dir: "<" },
+    //   },
+    // } as const;
 
     const y0 = 0;
     const x0 = graph[y0].findIndex((cell) => cell === ".");
@@ -485,9 +934,9 @@ const solve = async (example = false) => {
     return score(flatCubeCoord, currentDir);
   };
 
-  console.log("Part two:", walkCube(grid, 50));
+  console.log("Part two:", walkCube(grid, example ? 4 : 50));
 };
 
-// await solve(true);
+await solve(true);
 console.log("---");
 await solve();
