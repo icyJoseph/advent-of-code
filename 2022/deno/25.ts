@@ -48,33 +48,34 @@ const solve = async (example = false) => {
   console.assert(12345 === snafu2dec("1-0---0"));
   console.assert(314159265 === snafu2dec("1121-1110-1=0"));
 
-  const rem = (n: number, c = 0) => {
-    const d = (n % 5) + c;
+  const rem = (n: number, base: number, c = 0): [number, number] => {
+    const d = (n % base) + c;
     // if its not 0, nor 1, nor 2:
     const carry = Math.sign((d - 2) * (d - 1) * d);
 
     return [d - 5 * carry, carry];
   };
 
+  const getPow = (num: number, base: number) =>
+    Math.ceil(Math.log(num) / Math.log(base));
+
+  const quotients = (src: number, base: number) =>
+    Array.from({ length: getPow(src, base) }, (_, exp) =>
+      Math.floor(src / Math.pow(base, exp))
+    );
+
   const dec2snafu = (dec: number) => {
-    let sn = "";
-    let num = dec;
+    const [snafu, carry] = quotients(dec, 5).reduce<[string, number]>(
+      (prev, quot) => {
+        const [sn, carry] = prev;
+        const [digit, next] = rem(quot, 5, carry);
 
-    let [digit, carry] = rem(num);
+        return [`${rev[digit]}${sn}`, next];
+      },
+      ["", 0]
+    );
 
-    while (true) {
-      sn = `${rev[digit]}${sn}`;
-
-      num = Math.floor(num / 5);
-
-      if (num === 0) break;
-
-      [digit, carry] = rem(num, carry);
-    }
-
-    if (carry === 1) sn = `${rev[carry]}${sn}`;
-
-    return sn;
+    return snafu.padStart(snafu.length + carry, rev[carry]);
   };
 
   console.assert("1=-0-2" === dec2snafu(1747));
