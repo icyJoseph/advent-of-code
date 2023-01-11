@@ -82,9 +82,10 @@ func main() {
                     .compactMap { $0.wholeNumberValue }
             }
 
-        var cols = Array(repeating: [(Point, Int)](), count: grid.count)
+        // typealias Graph = [[(point: Point, value: Int)]]
+        var cols: Graph = Array(repeating: [(Point, Int)](), count: grid.count)
 
-        var graph = [[(Point, Int)]]()
+        var graph: Graph = [[(Point, Int)]]()
 
         for y in 0 ..< grid.count {
             var row = [(Point, Int)]()
