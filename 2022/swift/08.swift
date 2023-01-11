@@ -2,79 +2,64 @@ import Foundation
 
 let filename = "./input/08.in"
 
-struct Point {
-    let x: Int
-    let y: Int
+typealias Point = (x: Int, y: Int)
+typealias Tree = (point: Point, value: Int)
+typealias Grid = [[Tree]]
 
-    init(_ x: Int, _ y: Int) {
-        self.x = x
-        self.y = y
-    }
-}
+func firstTaller(_ from: Int, _ height: Int, _ list: [Tree], _ seed: [Int?] = [nil, nil]) -> [Int?] {
+    var result: [Int?] = seed
 
-typealias Graph = [[(point: Point, value: Int)]]
+    var leftIt = from - 1
+    var rightIt = from + 1
 
-func findVisible(_ tree: (point: Point, value: Int), _ graph: Graph, _ cols: Graph) -> [Point]? {
-    let x = tree.point.x
-    let y = tree.point.y
-
-    let left = graph[y][0 ..< x].map { $0.point }
-    let right = graph[y][(x + 1)...].map { $0.point }
-
-    let up = cols[x][0 ..< y].map { $0.point }
-    let down = cols[x][(y + 1)...].map { $0.point }
-
-    let isTaller: (Point) -> Bool = {
-        op in
-        let other = graph[op.y][op.x].value
-
-        return tree.value <= other
-    }
-
-    // finds a direction on which the tree is visible
-    return [left, right, up, down].first {
-        trees in
-        trees.count == 0 || trees.first { isTaller($0) } == nil
-    }
-}
-
-func calcScenicScore(_ tree: (point: Point, value: Int), _ graph: Graph, _ cols: Graph) -> Int {
-    let x = tree.point.x
-    let y = tree.point.y
-
-    let left = graph[y][0 ..< x].reversed().map { $0.point }
-    let right = graph[y][(x + 1)...].map { $0.point }
-
-    let up = cols[x][0 ..< y].reversed().map { $0.point }
-    let down = cols[x][(y + 1)...].map { $0.point }
-
-    let isTaller: (Point) -> Bool = {
-        op in
-        let other = graph[op.y][op.x].value
-
-        return tree.value <= other
-    }
-
-    return [left, right, up, down].map {
-        trees in
-        if trees.count == 0 {
-            return 0
+    while leftIt >= 0 {
+        if height <= list[leftIt].value {
+            result[0] = leftIt
+            break
         }
 
-        if let index = trees.firstIndex(where: isTaller) {
-            return index + 1
-        } else {
-            return trees.count
-        }
+        leftIt -= 1
     }
-    .reduce(1, *)
+
+    while rightIt < list.count {
+        if height <= list[rightIt].value {
+            result[1] = rightIt
+            break
+        }
+
+        rightIt += 1
+    }
+
+    return result
+}
+
+func isVisible(_ tree: Tree, _ rows: Grid, _ cols: Grid) -> Bool {
+    let (x, y) = tree.point
+
+    let h = firstTaller(x, tree.value, rows[y]).compactMap { $0 }
+    let v = firstTaller(y, tree.value, cols[x]).compactMap { $0 }
+
+    // if a tree is blocked in 4 directions, it is invisible from the edges
+    return (h.count + v.count) != 4
+}
+
+func calcScenicScore(_ tree: (point: Point, value: Int), _ rows: Grid, _ cols: Grid) -> Int {
+    let (x, y) = tree.point
+
+    let h = firstTaller(x, tree.value, rows[y], [0, rows.count - 1])
+    let v = firstTaller(y, tree.value, cols[x], [0, cols.count - 1])
+
+    let hCount = h.compactMap { $0 }.map { abs($0 - x) }.reduce(1,*)
+    let vCount = v.compactMap { $0 }.map { abs($0 - y) }.reduce(1,*)
+
+    return hCount * vCount
 }
 
 func main() {
     do {
         let contents = try String(contentsOfFile: filename)
 
-        let grid = contents.split(separator: "\n")
+        let value = contents.split(separator: "\n")
             .map {
                 entry in
 
@@ -82,26 +67,28 @@ func main() {
                     .compactMap { $0.wholeNumberValue }
             }
 
-        var cols = Array(repeating: [(Point, Int)](), count: grid.count)
+        // Left hand side type assignment cut down the timing from 10 secs to around 1 sec
+        var cols: Grid = Array(repeating: [Tree](), count: value.count)
+        var rows: Grid = []
 
-        var graph = [[(Point, Int)]]()
+        for y in 0 ..< value.count {
+            var row = [Tree]()
 
-        for y in 0 ..< grid.count {
-            var row = [(Point, Int)]()
-            for x in 0 ..< grid[0].count {
-                let entry = (Point(x, y), grid[y][x])
+            for x in 0 ..< value[0].count {
+                let entry = (Point(x, y), value[y][x])
+
                 cols[x].append(entry)
                 row.append(entry)
             }
 
-            graph.append(row)
+            rows.append(row)
         }
 
-        let flat = graph.flatMap { $0 }
+        let flat = rows.flatMap { $0 }
 
-        print("Part one:", flat.compactMap { findVisible($0, graph, cols) }.count)
+        print("Part one:", flat.filter { isVisible($0, rows, cols) }.count)
 
-        print("Part two:", flat.map { calcScenicScore($0, graph, cols) }.max()!)
+        print("Part two:", flat.map { calcScenicScore($0, rows, cols) }.max()!)
 
     } catch {
         print(error)
