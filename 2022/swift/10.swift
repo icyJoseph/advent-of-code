@@ -111,6 +111,7 @@ func main(animated: Bool) {
             frames.append(cpu.screen.toString())
         }
 
+        print("\u{001B}[?25l", terminator: "")
         print("Part one:", partOne)
         print("Part two:")
 
