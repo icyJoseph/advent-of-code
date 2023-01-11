@@ -10,29 +10,19 @@ struct Point {
         self.x = x
         self.y = y
     }
-
-    func getRow(_ width: Int) -> (left: [Point], right: [Point]) {
-        let left = Array(0 ..< x).reversed().map { Point($0, y) }
-
-        let right = Array((x + 1) ..< width).map { Point($0, y) }
-
-        return (left, right)
-    }
-
-    func getCol(_ height: Int) -> (up: [Point], down: [Point]) {
-        let up = Array(0 ..< y).reversed().map { Point(x, $0) }
-        let down = Array((y + 1) ..< height).map { Point(x, $0) }
-
-        return (up, down)
-    }
 }
 
-func findVisible(_ tree: (point: Point, value: Int), _ graph: [[(point: Point, value: Int)]]) -> [Point]? {
-    let width = graph[0].count
-    let height = graph.count
+typealias Graph = [[(point: Point, value: Int)]]
 
-    let (left, right) = tree.point.getRow(width)
-    let (up, down) = tree.point.getCol(height)
+func findVisible(_ tree: (point: Point, value: Int), _ graph: Graph, _ cols: Graph) -> [Point]? {
+    let x = tree.point.x
+    let y = tree.point.y
+
+    let left = graph[y][0 ..< x].map { $0.point }
+    let right = graph[y][(x + 1)...].map { $0.point }
+
+    let up = cols[x][0 ..< y].map { $0.point }
+    let down = cols[x][(y + 1)...].map { $0.point }
 
     let isTaller: (Point) -> Bool = {
         op in
@@ -48,12 +38,15 @@ func findVisible(_ tree: (point: Point, value: Int), _ graph: [[(point: Point, v
     }
 }
 
-func calcScenicScore(_ tree: (point: Point, value: Int), _ graph: [[(point: Point, value: Int)]]) -> Int {
-    let width = graph[0].count
-    let height = graph.count
+func calcScenicScore(_ tree: (point: Point, value: Int), _ graph: Graph, _ cols: Graph) -> Int {
+    let x = tree.point.x
+    let y = tree.point.y
 
-    let (left, right) = tree.point.getRow(width)
-    let (up, down) = tree.point.getCol(height)
+    let left = graph[y][0 ..< x].reversed().map { $0.point }
+    let right = graph[y][(x + 1)...].map { $0.point }
+
+    let up = cols[x][0 ..< y].reversed().map { $0.point }
+    let down = cols[x][(y + 1)...].map { $0.point }
 
     let isTaller: (Point) -> Bool = {
         op in
@@ -81,26 +74,7 @@ func main() {
     do {
         let contents = try String(contentsOfFile: filename)
 
-        let rows = contents.split(separator: "\n")
-
-        // let graph = rows
-        //     .enumerated()
-        //     .map {
-        //         entry in
-        //         let (y, row) = entry
-        //
-        //         return (Array(row) as [Character])
-        //             .compactMap { $0.wholeNumberValue }
-        //             .enumerated()
-        //
-        //             .map { cell in
-        //                 let (x, value) = cell
-        //
-        //                 return (Point(x, y), value)
-        //             }
-        //     }
-
-        let grid = rows
+        let grid = contents.split(separator: "\n")
             .map {
                 entry in
 
@@ -108,12 +82,16 @@ func main() {
                     .compactMap { $0.wholeNumberValue }
             }
 
+        var cols = Array(repeating: [(Point, Int)](), count: grid.count)
+
         var graph = [[(Point, Int)]]()
 
         for y in 0 ..< grid.count {
             var row = [(Point, Int)]()
             for x in 0 ..< grid[0].count {
-                row.append((Point(x, y), grid[y][x]))
+                let entry = (Point(x, y), grid[y][x])
+                cols[x].append(entry)
+                row.append(entry)
             }
 
             graph.append(row)
@@ -121,9 +99,9 @@ func main() {
 
         let flat = graph.flatMap { $0 }
 
-        print("Part one:", flat.compactMap { findVisible($0, graph) }.count)
+        print("Part one:", flat.compactMap { findVisible($0, graph, cols) }.count)
 
-        print("Part two:", flat.map { calcScenicScore($0, graph) }.max()!)
+        print("Part two:", flat.map { calcScenicScore($0, graph, cols) }.max()!)
 
     } catch {
         print(error)
