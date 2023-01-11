@@ -1,5 +1,7 @@
 import Foundation
 
+import func Darwin.fputs
+
 let filename = "./input/10.in"
 
 struct Screen {
@@ -54,6 +56,10 @@ class CPU {
     }
 
     var cycle = 0 {
+        willSet {
+            screen.draw(pointer: cycle)
+        }
+
         didSet {
             listener(register, cycle)
         }
@@ -65,13 +71,12 @@ class CPU {
     }
 
     func process(_ instruction: Instruction) {
-        screen.draw(pointer: cycle)
         cycle += 1
         register += instruction ?? 0
     }
 }
 
-func main() {
+func main(animated: Bool) {
     do {
         let contents = try String(contentsOfFile: filename)
 
@@ -91,6 +96,8 @@ func main() {
         }
 
         var partOne = 0
+        var frames = [String]()
+
         let screen = Screen()
 
         let listener: CPU.Listener = {
@@ -104,17 +111,30 @@ func main() {
 
         for inst in instructions {
             cpu.process(inst)
+            frames.append(cpu.screen.toString())
         }
 
         print("Part one:", partOne)
-
         print("Part two:")
 
-        print(cpu.screen.toString())
+        if animated {
+            for (index, frame) in frames.enumerated() {
+                print(frame)
+
+                if index < frames.count - 1 {
+                    print("\u{001B}[7A\u{001B}[40D")
+                }
+
+                usleep(18000)
+            }
+            sleep(1)
+        } else {
+            print(cpu.screen.toString())
+        }
 
     } catch {
         print(error)
     }
 }
 
-main()
+main(animated: CommandLine.arguments.contains("--animated"))
