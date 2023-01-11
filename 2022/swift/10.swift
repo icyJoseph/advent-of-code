@@ -1,13 +1,10 @@
 import Foundation
 
-import func Darwin.fputs
-
 let filename = "./input/10.in"
 
 struct Screen {
     var buffer: [String]
 
-    // goes from 0 to 39
     var sprite: Int = 0
 
     init() {
