@@ -320,14 +320,8 @@ function calcAdj(width: number, height: number, grid: string[][]) {
   return adj;
 }
 
-const solve = async (example = false) => {
-  const input = await Deno.readTextFile(
-    `./input/${example ? `${filename}.example` : filename}.in`
-  );
-
-  if (example) {
-    console.log("Example", filename);
-  }
+const solve = async (pathname: string) => {
+  const input = await Deno.readTextFile(pathname);
 
   const data = input.split("\n\n");
 
@@ -934,9 +928,14 @@ const solve = async (example = false) => {
     return score(flatCubeCoord, currentDir);
   };
 
-  console.log("Part two:", walkCube(grid, example ? 4 : 50));
+  const isExample = pathname.includes("example");
+  console.log("Part two:", walkCube(grid, isExample ? 4 : 50));
 };
 
-await solve(true);
-console.log("---");
-await solve();
+if (Deno.args.includes("--example")) {
+  console.log("Example");
+  await solve(`./input/${filename}.example.in`);
+  console.log("---");
+}
+
+await solve(`./input/${filename}.in`);

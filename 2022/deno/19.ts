@@ -1,14 +1,8 @@
 const [__filename] = new URL("", import.meta.url).pathname.split("/").slice(-1);
 const filename = __filename.replace(".ts", "");
 
-const solve = async (example = false) => {
-  const input = await Deno.readTextFile(
-    `./input/${example ? "example" : filename}.in`
-  );
-
-  if (example) {
-    console.log("Example");
-  }
+const solve = async (pathname: string) => {
+  const input = await Deno.readTextFile(pathname);
 
   const blueprints = input.split("\n").map((row, id) => {
     const [ore, clay, obsOreCost, obsClayCost, geodeOreCost, geodeObsCost] = row
@@ -238,6 +232,10 @@ const solve = async (example = false) => {
   // 88160 -> right
 };
 
-await solve(true); // 33 and 3472
-console.log("---");
-await solve(); // 1962 and 88160
+if (Deno.args.includes("--example")) {
+  console.log("Example");
+  await solve(`./input/${filename}.example.in`); // 33 and 3472
+  console.log("---");
+}
+
+await solve(`./input/${filename}.in`); // 1962 and 88160

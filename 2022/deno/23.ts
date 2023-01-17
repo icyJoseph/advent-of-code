@@ -41,14 +41,8 @@ type Cell = {
 const isEmpty = (c: Cell | undefined): c is Cell => typeof c === "undefined";
 const isTaken = (c: Cell | undefined): c is Cell => typeof c !== "undefined";
 
-const solve = async (example = false) => {
-  const input = await Deno.readTextFile(
-    `./input/${example ? "example" : filename}.in`
-  );
-
-  if (example) {
-    console.log("Example", filename);
-  }
+const solve = async (pathname: string) => {
+  const input = await Deno.readTextFile(pathname);
 
   const grid = input.split("\n").map((row) => row.split(""));
 
@@ -218,6 +212,10 @@ const solve = async (example = false) => {
   }
 };
 
-await solve(true);
-console.log("---");
-await solve();
+if (Deno.args.includes("--example")) {
+  console.log("Example");
+  await solve(`./input/${filename}.example.in`);
+  console.log("---");
+}
+
+await solve(`./input/${filename}.in`);

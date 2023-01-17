@@ -29,14 +29,8 @@ const createNode = ({
   };
 };
 
-const solve = async (example = false) => {
-  const input = await Deno.readTextFile(
-    `./input/${example ? "example" : filename}.in`
-  );
-
-  if (example) {
-    console.log("Example:", filename);
-  }
+const solve = async (pathname: string) => {
+  const input = await Deno.readTextFile(pathname);
 
   const createList = (text: string, factor = 1) =>
     text
@@ -138,9 +132,13 @@ const solve = async (example = false) => {
   console.log("Part two:", walker.at(1000) + walker.at(2000) + walker.at(3000));
 };
 
-await solve(true);
-console.log("---");
-await solve();
+if (Deno.args.includes("--example")) {
+  console.log("Example");
+  await solve(`./input/${filename}.example.in`);
+  console.log("---");
+}
+
+await solve(`./input/${filename}.in`);
 // 9459 too low
 // 20962 too high
 // 18668 wrong

@@ -79,14 +79,8 @@ function bfs({
   return { water, reachable };
 }
 
-const solve = async (example = false) => {
-  const input = await Deno.readTextFile(
-    `./input/${example ? "example" : filename}.in`
-  );
-
-  if (example) {
-    console.log("Example");
-  }
+const solve = async (pathname: string) => {
+  const input = await Deno.readTextFile(pathname);
 
   const cubes = input.split("\n").map((row) => row.split(",").map(Number));
 
@@ -146,6 +140,12 @@ const solve = async (example = false) => {
   console.log("Part two:", reachableFaces);
 };
 
-await solve(true);
-console.log("---");
-await solve();
+const example = Deno.args[0];
+
+if (example === "example") {
+  console.log("Example");
+  await solve("./input/example.in");
+  console.log("---");
+}
+
+await solve(`./input/${filename}.in`);

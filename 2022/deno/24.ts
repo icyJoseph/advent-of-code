@@ -169,14 +169,8 @@ const bfs = (
   return Infinity;
 };
 
-const solve = async (example = false) => {
-  const input = await Deno.readTextFile(
-    `./input/${example ? "example" : filename}.in`
-  );
-
-  if (example) {
-    console.log("Example", filename);
-  }
+const solve = async (pathname: string) => {
+  const input = await Deno.readTextFile(pathname);
 
   const data = input.split("\n");
 
@@ -242,6 +236,10 @@ const solve = async (example = false) => {
   );
 };
 
-await solve(true);
-console.log("---");
-await solve();
+if (Deno.args.includes("--example")) {
+  console.log("Example");
+  await solve(`./input/${filename}.example.in`);
+  console.log("---");
+}
+
+await solve(`./input/${filename}.in`);

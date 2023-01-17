@@ -1,13 +1,7 @@
 const filename = "17";
 
-const solve = async (example = false) => {
-  const input = await Deno.readTextFile(
-    `./input/${example ? "example" : filename}.in`
-  );
-
-  if (example) {
-    console.log("Example");
-  }
+const solve = async (pathname: string) => {
+  const input = await Deno.readTextFile(pathname);
 
   /*
 
@@ -175,8 +169,9 @@ const solve = async (example = false) => {
     return {
       next() {
         const value = list[index];
+        const pos = index;
         index = (index + 1) % list.length;
-        return value;
+        return [pos, value] as const;
       },
     };
   };
@@ -188,19 +183,68 @@ const solve = async (example = false) => {
   const rockTypeIt = makeIterator(rockCycle);
   const jetsIt = makeIterator(jetsCycle);
 
-  let current = createRock(rockTypeIt.next(), floor + gap);
+  let current = createRock(rockTypeIt.next()[1], floor + gap);
 
   const filled = new Set<number>();
 
   type Rock = ReturnType<typeof createRock>;
   const settled: Rock[] = [];
 
-  const limit = 2022;
+  // 1_000_000_000_000
+  const limit = 1_000_000_000_000;
 
   const wave = [0, 0, 0, 0, 0, 0, 0];
 
-  while (settled.length < limit) {
-    const jet = jetsIt.next();
+  const cache = new Set();
+  const delta: Record<string, number> = {};
+  type Cycle = { key: string; delta: number };
+  const cycle: Cycle[] = [];
+
+  const runToCompletion = (todo: number, steps: Cycle[]) => {
+    const cycleDelta = steps
+      .map(({ delta }) => delta)
+      .reduce((a, b) => a + b, 0);
+
+    const reps = Math.floor(todo / steps.length);
+    const leftover = todo % steps.length;
+
+    return (
+      reps * cycleDelta +
+      cycle
+        .slice(0, leftover)
+        .map(({ delta }) => delta)
+        .reduce((a, b) => a + b, 0)
+    );
+  };
+
+  while (true) {
+    const [index, jet] = jetsIt.next();
+
+    const min = Math.min(...wave);
+
+    const key = `${index}.${jet}.${current.type}.${wave
+      .map((n) => n - min)
+      .join(" ")}`;
+
+    if (cache.size > 0 && cycle.length === cache.size && key === cycle[0].key) {
+      const [top] = wave.slice(0).sort((a, b) => b - a);
+
+      const isExample = pathname.includes("example");
+      if (isExample) {
+        // Make sure we also print the example part one
+        console.log(
+          "Part one:",
+          top + runToCompletion(2022 - settled.length, cycle)
+        );
+      }
+
+      console.log(
+        "Part two:",
+        top + runToCompletion(limit - settled.length, cycle)
+      );
+
+      break;
+    }
 
     if (jet === "<") {
       current.move({ left: -1, down: 0 });
@@ -234,14 +278,27 @@ const solve = async (example = false) => {
       filled.has(y * width + x)
     );
 
+    const [initialTop] = wave.slice(0).sort((a, b) => b - a);
+
     if (hitsFloor || hitsFilled) {
       // undo
       current.move({ left: 0, down: 1 });
       // settle
       current.setSettled();
     }
+    // console.log("After gravity", current.self, current.type);
 
     if (current.isSettled()) {
+      /**
+       * Part One
+       *
+       * Note that for the example, the cache stabilizes
+       * way before 2022... rocks
+       */
+      if (settled.length === 2022) {
+        console.log("Part one:", wave.slice(0).sort((a, b) => b - a)[0]);
+      }
+
       current.coords.forEach(([x, y]) => {
         filled.add(y * width + x);
 
@@ -254,26 +311,34 @@ const solve = async (example = false) => {
 
       const [top] = wave.slice(0).sort((a, b) => b - a);
 
-      current = createRock(rockTypeIt.next(), top + gap);
+      if (delta[key] === top - initialTop) {
+        const extendedKey = `${key}.${top - initialTop}`;
+
+        if (cache.has(extendedKey)) {
+          if (cache.size > 0 && cycle.length < cache.size) {
+            cycle.push({ key, delta: top - initialTop });
+          }
+        } else {
+          cycle.length = 0;
+          cache.add(extendedKey);
+        }
+      }
+
+      delta[key] = top - initialTop;
+
+      current = createRock(rockTypeIt.next()[1], top + gap);
     }
   }
 
   /**
-   * Part One
-   */
-
-  console.log(
-    "Part one:",
-    settled.map((rock) => rock.top).sort((a, b) => b - a)[0]
-  );
-
-  /**
    * Part Two
-   *
-   * Available at 17-2.ts
    */
 };
 
-await solve(true);
-console.log("---");
-await solve();
+if (Deno.args.includes("--example")) {
+  console.log("Example");
+  await solve(`./input/${filename}.example.in`);
+  console.log("---");
+}
+
+await solve(`./input/${filename}.in`);
