@@ -46,6 +46,27 @@ func coverage(offset: Int, sensors: [[Int]]) -> [[Int]] {
     return merge(asSegments)
 }
 
+func rotateFwd(coord: [Int]) -> [Int] {
+    return [coord[0] + coord[1], coord[1] - coord[0]]
+}
+
+func rotateBwd(coord: [Int]) -> [Int] {
+    return [(coord[0] - coord[1]) / 2, (coord[0] + coord[1]) / 2]
+}
+
+func outOfSensorRange(_ coord: [Int], _ sensors: [[Int]]) -> Bool {
+    sensors.allSatisfy {
+        sensor in
+        let cx = sensor[0]
+        let cy = sensor[1]
+        let radius = sensor[4]
+
+        let distance = abs(cx - coord[0]) + abs(cy - coord[1])
+
+        return distance >= radius
+    }
+}
+
 func main() {
     do {
         let contents = try String(contentsOfFile: filename)
@@ -82,15 +103,66 @@ func main() {
             sensor[0] * maxRange + sensor[1]
         }
 
-        for y in 0 ... maxRange {
-            let zones = coverage(offset: y, sensors: sensors)
+        let squared = sensors.map {
+            sensor in
+            let cx = sensor[0]
+            let cy = sensor[1]
+            let radius = sensor[4]
 
-            if zones.count == 2 {
-                let x = zones[0][1] + 1
-                print("Part two:", tunningFreq([x, y]))
-                break
-            }
+            return [
+                [cx - radius, cy],
+                [cx, cy + radius],
+                [cx + radius, cy],
+                [cx, cy - radius],
+            ].map(rotateFwd)
         }
+
+        let projections = squared.map {
+            corners in
+            let c0 = corners[0]
+            let c1 = corners[1]
+            let c3 = corners[3]
+
+            return (x: (from: c0[0], to: c1[0]), y: (from: c3[1], to: c0[1]))
+        }
+
+        let xProjections = projections.map { $0.x }
+        let yProjections = projections.map { $0.y }
+
+        let xGaps = xProjections
+            .map {
+                segment in
+                (segment, xProjections.first {
+                    other in
+                    segment != other && segment.to + 2 == other.from
+                })
+            }
+            .filter { $0.1 != nil }
+            .map { $0.0.to + 1 }
+
+        let yGaps = yProjections
+            .map {
+                segment in
+                (segment, yProjections.first {
+                    other in
+                    segment != other && segment.to + 2 == other.from
+                })
+            }
+            .filter { $0.1 != nil }
+            .map { $0.0.to + 1 }
+
+        let beacons = xGaps.flatMap {
+            x in
+            yGaps.map {
+                y in
+                [x, y]
+            }
+        }.map(rotateBwd)
+            .filter { outOfSensorRange($0, sensors) }
+
+        assert(beacons.count == 1, "Found more than one possible beacon")
+
+        print("Part two:", tunningFreq(beacons[0]))
 
     } catch {
         print(error)

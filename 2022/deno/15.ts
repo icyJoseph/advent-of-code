@@ -205,13 +205,11 @@ const solve = async (example = false) => {
     others.find((other) => other !== self && other.from === self.to + 2);
 
   const xGaps: number[] = xProjections
-    .sort((a, b) => a.from - b.from)
     .map((self) => [self, findGap(self, xProjections)] as const)
     .filter(hasValidGap)
     .map(([self]) => self.to + 1);
 
   const yGaps = yProjections
-    .sort((a, b) => a.from - b.from)
     .map((self) => [self, findGap(self, yProjections)] as const)
     .filter(hasValidGap)
     .map(([self]) => self.to + 1);
