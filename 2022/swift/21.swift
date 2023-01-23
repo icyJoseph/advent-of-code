@@ -58,6 +58,24 @@ enum Monkey {
         }
     }
 
+    mutating func update(_ op: Op) {
+        switch self {
+        case let .Compute(label: label, lhs: lhs, rhs: rhs, _):
+            self = .Compute(label: label, lhs: lhs, rhs: rhs, op: op)
+        default:
+            break
+        }
+    }
+
+    mutating func tune(_ by: Int) {
+        switch self {
+        case let .Input(label: label, value: current):
+            self = .Input(label: label, value: current + by)
+        default:
+            break
+        }
+    }
+
     func query(_ monkeys: Jungle) -> Int {
         switch self {
         case let .Input(label: _, value: value):
@@ -81,6 +99,24 @@ enum Monkey {
     }
 }
 
+func sign(_ n: Int) -> Int {
+    if n == 0 { return 0 }
+
+    return n > 0 ? 1 : -1
+}
+
+func queryMonkey(_ label: String, _ dict: Jungle) -> Int {
+    guard let monkey = dict[label] else {
+        assertionFailure("No \(label) found")
+        return 0
+    }
+
+    return monkey.query(dict)
+}
+
+let root = "root"
+let human = "humn"
+
 func main() {
     do {
         let contents = try String(contentsOfFile: filename)
@@ -94,12 +130,44 @@ func main() {
             monkeys[monkey.label] = monkey
         }
 
-        guard let root = monkeys["root"] else {
-            assertionFailure("No root monkey")
-            return
+        print("Part one:", queryMonkey(root, monkeys))
+
+        if var node = monkeys[root] {
+            node.update(Op.sub)
+            monkeys[root] = node
         }
 
-        print("Part one:", root.query(monkeys))
+        var result = queryMonkey(root, monkeys)
+        var prev = result
+        var step = 1_000_000_000_000
+
+        while result != 0 {
+            // zero cross
+            // if we cross zero, change direction
+            // but with a shorter stride
+            if sign(prev) != sign(result) {
+                let dir = sign(step) * -1
+                step = (dir * abs(step)) / 10
+            }
+
+            // if result shoots away from zero
+            // go in other directionn
+            if abs(prev) < abs(result) {
+                let dir = sign(step) * -1
+                step = dir * abs(step)
+            }
+
+            prev = result
+
+            if var node = monkeys[human] {
+                node.tune(step)
+                monkeys[human] = node
+            }
+
+            result = queryMonkey(root, monkeys)
+        }
+
+        print("Part two:", queryMonkey(human, monkeys))
 
     } catch {
         print(error)
