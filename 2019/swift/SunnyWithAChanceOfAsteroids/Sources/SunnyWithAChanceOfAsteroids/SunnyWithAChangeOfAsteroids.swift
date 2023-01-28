@@ -6,11 +6,11 @@ public struct SunnyWithAChanceOfAsteroids {
     public func run(_ input: String) {
         let program = input.split(separator: ",").compactMap { Int($0) }
 
-        let machine = IntCode(program)
+        let airConditioner = IntCode(program)
 
-        machine.input = 1
+        airConditioner.input = 1
 
-        machine.connect {
+        airConditioner.connect {
             output in
 
             if output != 0 {
@@ -18,6 +18,16 @@ public struct SunnyWithAChanceOfAsteroids {
             }
         }
 
-        machine.execute()
+        airConditioner.execute()
+
+        let thermal = IntCode(program)
+
+        thermal.input = 5
+
+        thermal.connect { output in
+            print("Part two:", output)
+        }
+
+        thermal.execute()
     }
 }

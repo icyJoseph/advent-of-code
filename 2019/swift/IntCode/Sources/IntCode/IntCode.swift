@@ -2,9 +2,15 @@ public class IntCode {
     enum OpCode: Int {
         case add = 1
         case mult = 2
-        // every other case' associated value increases linearly
+
         case input
         case output
+
+        case jumpTrue = 5
+        case jumpFalse
+
+        case lessThan
+        case equal = 8
 
         case halt = 99
     }
@@ -83,6 +89,10 @@ public class IntCode {
 
             let modes = calcModes(memory[pointer] / 100)
 
+            if verbose {
+                print(pointer, memory[pointer])
+            }
+
             switch cmd {
             case .add:
                 let left = modes[0] == .position ? memory[memory[pointer + 1]] : memory[pointer + 1]
@@ -130,6 +140,56 @@ public class IntCode {
                 }
 
                 pointer += 2
+
+            case .jumpTrue:
+
+                let first = modes[0] == .position ? memory[memory[pointer + 1]] : memory[pointer + 1]
+                let second = modes[1] == .position ? memory[memory[pointer + 2]] : memory[pointer + 2]
+
+                if first != 0 {
+                    pointer = second
+                } else {
+                    pointer += 3
+                }
+
+            case .jumpFalse:
+                let first = modes[0] == .position ? memory[memory[pointer + 1]] : memory[pointer + 1]
+                let second = modes[1] == .position ? memory[memory[pointer + 2]] : memory[pointer + 2]
+
+                if first == 0 {
+                    pointer = second
+                } else {
+                    pointer += 3
+                }
+
+            case .lessThan:
+                let first = modes[0] == .position ? memory[memory[pointer + 1]] : memory[pointer + 1]
+                let second = modes[1] == .position ? memory[memory[pointer + 2]] : memory[pointer + 2]
+
+                let result = first < second ? 1 : 0
+
+                if modes[2] == .position {
+                    memory[memory[pointer + 3]] = result
+                } else {
+                    memory[pointer + 3] = result
+                }
+
+                pointer += 4
+
+            case .equal:
+
+                let first = modes[0] == .position ? memory[memory[pointer + 1]] : memory[pointer + 1]
+                let second = modes[1] == .position ? memory[memory[pointer + 2]] : memory[pointer + 2]
+
+                let result = first == second ? 1 : 0
+
+                if modes[2] == .position {
+                    memory[memory[pointer + 3]] = result
+                } else {
+                    memory[pointer + 3] = result
+                }
+
+                pointer += 4
 
             case .halt:
                 halt = true
