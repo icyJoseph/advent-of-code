@@ -1,6 +1,6 @@
 var input = ""
 
-while let line = readLine(strippingNewline: false) {
+while let line = readLine() {
     input += line
 }
 
