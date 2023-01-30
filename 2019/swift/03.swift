@@ -1,7 +1,5 @@
 import Foundation
 
-let filename = "./input/03.in"
-
 struct Point {
     var x: Int
     var y: Int
@@ -136,52 +134,51 @@ class Wire {
     }
 }
 
-func main() {
-    do {
-        let contents = try String(contentsOfFile: filename)
+func main(_ filename: String) {
+    guard let contents = try? String(contentsOfFile: filename) else {
+        print("Failed to read \(filename)")
+        return
+    }
 
-        let wires = contents.components(separatedBy: "\n")
+    let wires = contents.components(separatedBy: "\n")
 
-        let left = Wire(input: wires[0])
-        let right = Wire(input: wires[1])
+    let left = Wire(input: wires[0])
+    let right = Wire(input: wires[1])
 
-        var crossPoints = [Point]()
+    var crossPoints = [Point]()
 
-        for ls in left.segments {
-            for rs in right.segments {
-                if let point = rs.crossPoint(with: ls) {
-                    crossPoints.append(point)
-                }
+    for ls in left.segments {
+        for rs in right.segments {
+            if let point = rs.crossPoint(with: ls) {
+                crossPoints.append(point)
             }
         }
-
-        let origin = Point(x: 0, y: 0)
-
-        let intersections = crossPoints.filter { $0 != origin }
-
-        guard let closest = intersections.map({ $0.distance(to: origin) }).min() else {
-            assertionFailure("Could not find closest")
-            return
-        }
-
-        print("Part one:", closest)
-
-        var distances = [Int]()
-
-        for point in intersections {
-            distances.append(left.distance(point: point) + right.distance(point: point))
-        }
-
-        guard let shortest = distances.min() else {
-            assertionFailure("Could not find shortest")
-            return
-        }
-
-        print("Part two:", shortest)
-
-    } catch {
-        print(error)
     }
+
+    let origin = Point(x: 0, y: 0)
+
+    let intersections = crossPoints.filter { $0 != origin }
+
+    guard let closest = intersections.map({ $0.distance(to: origin) }).min() else {
+        assertionFailure("Could not find closest")
+        return
+    }
+
+    print("Part one:", closest)
+
+    var distances = [Int]()
+
+    for point in intersections {
+        distances.append(left.distance(point: point) + right.distance(point: point))
+    }
+
+    guard let shortest = distances.min() else {
+        assertionFailure("Could not find shortest")
+        return
+    }
+
+    print("Part two:", shortest)
 }
 
-main()
+let filename = "./input/03.in"
+main(filename)
