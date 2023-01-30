@@ -19,6 +19,29 @@ func main(_ filename: String) {
         }
 
         print("Part one:", waiting * busId)
+
+        var sequence = [(Int, Int)]()
+
+        for (pos, id) in rows[1].split(separator: ",").enumerated() {
+            if let bus = Int(id) {
+                sequence.append((bus, pos))
+            }
+        }
+
+        var timestamp = 0
+
+        var (delta, _) = sequence[0]
+
+        for (id, rem) in sequence.suffix(from: 1) {
+            while (timestamp + rem) % id != 0 {
+                timestamp += delta
+            }
+
+            delta *= id
+        }
+
+        print("Part two:", timestamp)
+
     } catch {
         print(error)
     }
