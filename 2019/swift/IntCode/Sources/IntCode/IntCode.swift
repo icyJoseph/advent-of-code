@@ -71,10 +71,14 @@ public class IntCode {
         return result
     }
 
-    public func execute(verbose: Bool) {
-        var pointer = 0
-        var halt = false
+    var pointer = 0
+    var halt = false
 
+    public var halted: Bool {
+        halt
+    }
+
+    public func execute(verbose: Bool = false) {
         while true {
             if halt {
                 if verbose {
@@ -123,11 +127,20 @@ public class IntCode {
                 pointer += 4
 
             case .input:
-                if modes[0] == .position {
-                    memory[memory[pointer + 1]] = input ?? 0
-                } else {
-                    memory[pointer + 1] = input ?? 0
+                guard let current = input else {
+                    if verbose {
+                        print("Machine stopped until input is provided", pointer)
+                    }
+                    return
                 }
+
+                if modes[0] == .position {
+                    memory[memory[pointer + 1]] = current
+                } else {
+                    memory[pointer + 1] = current
+                }
+
+                input = nil
 
                 pointer += 2
 
@@ -197,9 +210,5 @@ public class IntCode {
                 assertionFailure("Error hit: no op code, \(pointer), was \(memory[pointer])")
             }
         }
-    }
-
-    public func execute() {
-        execute(verbose: false)
     }
 }
