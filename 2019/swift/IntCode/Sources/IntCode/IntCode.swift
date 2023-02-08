@@ -1,3 +1,44 @@
+public class Memory {
+    var memory: [Int]
+
+    init(_ program: [Int]) {
+        memory = program
+    }
+
+    func resize(to: Int) {
+        while !memory.indices.contains(to) {
+            memory.append(0)
+        }
+    }
+
+    public func debug() {
+        print(memory)
+    }
+
+    public subscript(_ index: Int) -> Int {
+        get {
+            if !memory.indices.contains(index) {
+                resize(to: index)
+            }
+            return memory[index]
+        }
+        set {
+            if !memory.indices.contains(index) {
+                resize(to: index)
+            }
+            memory[index] = newValue
+        }
+    }
+
+    var count: Int {
+        memory.count
+    }
+
+    var indices: Range<Array<Int>.Index> {
+        memory.indices
+    }
+}
+
 public class IntCode {
     enum OpCode: Int {
         case add = 1
@@ -12,22 +53,25 @@ public class IntCode {
         case lessThan
         case equal = 8
 
+        case relative
+
         case halt = 99
     }
 
     enum Mode: Int {
         case position = 0
         case immediate
+        case relative
     }
 
     public typealias Listener = (Int) -> Void
 
     var listener: Listener?
 
-    public var memory: [Int]
+    public var memory: Memory
 
     public init(_ initial: [Int]) {
-        memory = initial
+        memory = Memory(initial)
         listener = nil
         input = nil
         output = nil
@@ -63,6 +107,8 @@ public class IntCode {
                 result.append(.position)
             case .immediate:
                 result.append(.immediate)
+            case .relative:
+                result.append(.relative)
             case .none:
                 assertionFailure("Unexpected mode from: \(raw) - \(param)")
             }
@@ -72,10 +118,33 @@ public class IntCode {
     }
 
     var pointer = 0
+    var relative = 0
     var halt = false
 
     public var halted: Bool {
         halt
+    }
+
+    func readMem(at: Int, mode: Mode) -> Int {
+        switch mode {
+        case .position:
+            return memory[memory[at]]
+        case .immediate:
+            return memory[at]
+        case .relative:
+            return memory[memory[at] + relative]
+        }
+    }
+
+    func writeMem(at: Int, to: Int, mode: Mode) {
+        switch mode {
+        case .position:
+            memory[memory[at]] = to
+        case .immediate:
+            memory[at] = to
+        case .relative:
+            memory[memory[at] + relative] = to
+        }
     }
 
     public func execute(verbose: Bool = false) {
@@ -87,42 +156,36 @@ public class IntCode {
                 break
             }
 
-            assert(memory.indices.contains(pointer), "Out of bounds! - \(pointer) in \(memory.count)")
+            // assert(memory.indices.contains(pointer), "Out of bounds! - \(pointer) in \(memory.count)")
 
             let cmd = OpCode(rawValue: memory[pointer] % 100)
 
             let modes = calcModes(memory[pointer] / 100)
 
             if verbose {
-                print(pointer, memory[pointer])
+                print("pointer", pointer)
+                print("memory", memory[pointer])
+                print("relative", relative)
             }
 
             switch cmd {
             case .add:
-                let left = modes[0] == .position ? memory[memory[pointer + 1]] : memory[pointer + 1]
-                let right = modes[1] == .position ? memory[memory[pointer + 2]] : memory[pointer + 2]
+                let left = readMem(at: pointer + 1, mode: modes[0])
+                let right = readMem(at: pointer + 2, mode: modes[1])
 
                 let result = left + right
 
-                if modes[2] == .position {
-                    memory[memory[pointer + 3]] = result
-                } else {
-                    memory[pointer + 3] = result
-                }
+                writeMem(at: pointer + 3, to: result, mode: modes[2])
 
                 pointer += 4
 
             case .mult:
-                let left = modes[0] == .position ? memory[memory[pointer + 1]] : memory[pointer + 1]
-                let right = modes[1] == .position ? memory[memory[pointer + 2]] : memory[pointer + 2]
+                let left = readMem(at: pointer + 1, mode: modes[0])
+                let right = readMem(at: pointer + 2, mode: modes[1])
 
                 let result = left * right
 
-                if modes[2] == .position {
-                    memory[memory[pointer + 3]] = result
-                } else {
-                    memory[pointer + 3] = result
-                }
+                writeMem(at: pointer + 3, to: result, mode: modes[2])
 
                 pointer += 4
 
@@ -134,30 +197,26 @@ public class IntCode {
                     return
                 }
 
-                if modes[0] == .position {
-                    memory[memory[pointer + 1]] = current
-                } else {
-                    memory[pointer + 1] = current
-                }
+                writeMem(at: pointer + 1, to: current, mode: modes[0])
 
                 input = nil
 
                 pointer += 2
 
             case .output:
-
                 if modes[0] == .position {
                     output = memory[memory[pointer + 1]]
-                } else {
+                } else if modes[0] == .immediate {
                     output = memory[pointer + 1]
+                } else {
+                    output = memory[memory[pointer + 1] + relative]
                 }
 
                 pointer += 2
 
             case .jumpTrue:
-
-                let first = modes[0] == .position ? memory[memory[pointer + 1]] : memory[pointer + 1]
-                let second = modes[1] == .position ? memory[memory[pointer + 2]] : memory[pointer + 2]
+                let first = readMem(at: pointer + 1, mode: modes[0])
+                let second = readMem(at: pointer + 2, mode: modes[1])
 
                 if first != 0 {
                     pointer = second
@@ -166,8 +225,8 @@ public class IntCode {
                 }
 
             case .jumpFalse:
-                let first = modes[0] == .position ? memory[memory[pointer + 1]] : memory[pointer + 1]
-                let second = modes[1] == .position ? memory[memory[pointer + 2]] : memory[pointer + 2]
+                let first = readMem(at: pointer + 1, mode: modes[0])
+                let second = readMem(at: pointer + 2, mode: modes[1])
 
                 if first == 0 {
                     pointer = second
@@ -176,33 +235,31 @@ public class IntCode {
                 }
 
             case .lessThan:
-                let first = modes[0] == .position ? memory[memory[pointer + 1]] : memory[pointer + 1]
-                let second = modes[1] == .position ? memory[memory[pointer + 2]] : memory[pointer + 2]
+                let first = readMem(at: pointer + 1, mode: modes[0])
+                let second = readMem(at: pointer + 2, mode: modes[1])
 
                 let result = first < second ? 1 : 0
 
-                if modes[2] == .position {
-                    memory[memory[pointer + 3]] = result
-                } else {
-                    memory[pointer + 3] = result
-                }
+                writeMem(at: pointer + 3, to: result, mode: modes[2])
 
                 pointer += 4
 
             case .equal:
-
-                let first = modes[0] == .position ? memory[memory[pointer + 1]] : memory[pointer + 1]
-                let second = modes[1] == .position ? memory[memory[pointer + 2]] : memory[pointer + 2]
+                let first = readMem(at: pointer + 1, mode: modes[0])
+                let second = readMem(at: pointer + 2, mode: modes[1])
 
                 let result = first == second ? 1 : 0
 
-                if modes[2] == .position {
-                    memory[memory[pointer + 3]] = result
-                } else {
-                    memory[pointer + 3] = result
-                }
+                writeMem(at: pointer + 3, to: result, mode: modes[2])
 
                 pointer += 4
+
+            case .relative:
+                let param = readMem(at: pointer + 1, mode: modes[0])
+
+                relative += param
+
+                pointer += 2
 
             case .halt:
                 halt = true
