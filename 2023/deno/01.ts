@@ -14,9 +14,10 @@ const indexOfAll = (list: string, search: string) => {
   while (pos < list.length) {
     const index = list.indexOf(search, pos);
 
-    if (index !== -1) {
-      chunks.push([search, index]);
+    if (index === -1) {
+      break;
     }
+    chunks.push([search, index]);
 
     pos = pos + 1;
   }
