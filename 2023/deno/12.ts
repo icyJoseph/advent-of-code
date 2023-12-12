@@ -13,9 +13,112 @@ const isExample = Deno.args.includes("--example");
 const solve = async (path: string) => {
   const input = await Deno.readTextFile(path);
 
-  /**
-   * Part One
-   */
+  function search(
+    springs: string[],
+    groups: number[],
+    global: { count: number },
+    seen: Map<string, number> = new Map()
+  ) {
+    if (
+      seen.has(springs.join("") + "::" + groups.join(","))
+    ) {
+      const result = seen.get(
+        springs.join("") + "::" + groups.join(",")
+      );
+
+      if (typeof result !== "number")
+        throw new Error("Missed cache hit");
+
+      global.count += result;
+      return;
+    }
+
+    // group length + ".", except for the last one
+    const spaceNeeded = groups.reduce(
+      (acc, length, index, src) =>
+        acc + length + (src.length - 1 === index ? 0 : 1),
+      0
+    );
+
+    const spaceAvailable = springs.length;
+
+    if (spaceAvailable < spaceNeeded) {
+      return;
+    }
+
+    if (spaceNeeded === 0 && spaceAvailable === 0) {
+      global.count++;
+      return;
+    }
+
+    if (spaceNeeded === 0) {
+      if (springs.every((sp) => sp !== "#")) {
+        global.count++;
+      }
+
+      return;
+    }
+
+    const local = { count: 0 };
+
+    switch (springs[0]) {
+      case ".": {
+        search(springs.slice(1), groups, local, seen);
+
+        seen.set(
+          springs.join("") + "::" + groups.join(","),
+          local.count
+        );
+
+        break;
+      }
+
+      case "#": {
+        const maybeLongBlock = springs
+          .slice(0, groups[0])
+          .join("")
+          .replaceAll("?", "#");
+
+        if (maybeLongBlock !== "#".repeat(groups[0])) {
+          // it was not a long block
+          break;
+        }
+
+        // jump over the long block
+        // but only if the next element is not a "#"
+        // a '.' or '?' would be fine...
+        if (springs[groups[0]] === "#") break;
+
+        search(
+          // leave a space between longBlock and next springs
+          springs.slice(groups[0] + 1),
+          groups.slice(1),
+          local,
+          seen
+        );
+
+        break;
+      }
+
+      case "?": {
+        // branch out
+        const next = [...springs];
+        next[0] = "#";
+        search(next, groups, local, seen);
+
+        next[0] = ".";
+        search(next, groups, local, seen);
+
+        break;
+      }
+      default:
+        throw new Error(springs.join(""));
+    }
+
+    global.count += local.count;
+
+    return;
+  }
 
   const records = input.split("\n").map((row) => {
     const [left, right] = row.split(" ");
@@ -29,102 +132,46 @@ const solve = async (path: string) => {
     };
   });
 
-  function search(
-    springs: string[],
-    groups: number[],
-    acc: { count: number } = { count: 0 },
-    seen: Set<string> = new Set()
-  ) {
-    if (seen.has(springs.join(""))) return;
+  /**
+   * Part One
+   */
 
-    seen.add(springs.join(""));
+  console.log(
+    "Part 1:",
+    records.reduce(
+      (acc, { springs, damagedGroups }) => {
+        search(springs, damagedGroups, acc);
 
-    const asGroups = springs
-      .join("")
-      .split(".")
-      .filter(Boolean);
+        return acc;
+      },
+      { count: 0 }
+    ).count
+  );
 
-    for (let i = 0; i < asGroups.length; i++) {
-      if (asGroups[i].indexOf("?") === -1) {
-        // it is just #
-        if (asGroups[i].length !== groups[i]) {
-          return;
-        }
-      } else {
-        break;
-      }
-    }
-
-    const index = springs.findIndex((sp) => sp === "?");
-
-    if (index !== -1) {
-      let next = [...springs];
-      next[index] = ".";
-      search(next, groups, acc, seen);
-
-      next = [...springs];
-      next[index] = "#";
-      search(next, groups, acc, seen);
-    } else {
-      const asGroups = springs
-        .join("")
-        .split(/\?|\./)
-        .filter(Boolean);
-
-      let stop = false;
-
-      asGroups.forEach((g, index) => {
-        const size = g.length;
-
-        if (groups[index] !== size) {
-          stop = true;
-        }
-      });
-
-      if (stop) {
-        return;
-      }
-      if (!stop && asGroups.length === groups.length) {
-        acc.count++;
-      }
-    }
-  }
-
-  const acc = { count: 0 };
-
-  records.forEach(({ springs, damagedGroups }) => {
-    search(springs, damagedGroups, acc);
-  });
-
-  console.log("Part 1:", acc.count);
-
-  const acc2 = { count: 0 };
-
-  records.forEach(({ springs, damagedGroups }) => {
-    const exSprings = [
-      ...springs,
-      "?",
-      ...springs,
-      "?",
-      ...springs,
-      "?",
-      ...springs,
-      "?",
-      ...springs,
-    ];
-    const exGroups = [
-      ...damagedGroups,
-      ...damagedGroups,
-      ...damagedGroups,
-      ...damagedGroups,
-      ...damagedGroups,
-    ];
-    search(exSprings, exGroups, acc2);
-  });
   /**
    * Part Two
    */
-  console.log("Part 2:", acc2.count);
+  const p2 = records.reduce(
+    (acc, { springs, damagedGroups }) => {
+      const exSprings = Array(5)
+        .fill(springs.join(""))
+        .join("?")
+        .split("");
+
+      const exGroups = Array(5)
+        .fill(damagedGroups.join(","))
+        .join(",")
+        .split(",")
+        .map(Number);
+
+      search(exSprings, exGroups, acc);
+
+      return acc;
+    },
+    { count: 0 }
+  );
+
+  console.log("Part 2:", p2.count);
 };
 
 console.log("Day", filename);
