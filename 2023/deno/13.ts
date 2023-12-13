@@ -10,16 +10,10 @@ const isExample = Deno.args.includes("--example");
  * Helpers
  */
 
-const rotateCW = <T>(grid: T[][]) => {
-  return grid.reduce<T[][]>((acc, row, rowIndex) => {
-    return row.reduce((prev, cell, y, src) => {
-      const x = src.length - 1 - rowIndex;
-      prev[y] = prev[y] || [];
-      prev[y][x] = cell;
-      return prev;
-    }, acc);
-  }, []);
-};
+const transpose = <T>(arr: T[][]) =>
+  arr[0].map((_, colIndex) =>
+    arr.map((row) => row[colIndex])
+  );
 
 function mirrorFinder(
   grid: string[][],
@@ -61,11 +55,7 @@ function getReflections(
     mirrorFinder(grid, y, skipRow)
   );
 
-  // Crucial assumption... if we find a row first
-  // then take that, do not ever take both row and col
-  if (row != null) return { row };
-
-  const rotated = rotateCW(grid);
+  const rotated = transpose(grid);
 
   const colCandidates = rotated
     .map((row, xC) => [row, xC] as const)
@@ -79,7 +69,7 @@ function getReflections(
     mirrorFinder(rotated, x, skipCol)
   );
 
-  return { col };
+  return { row, col };
 }
 
 const sumReflections = (
