@@ -21,6 +21,74 @@ const rotateCW = <T>(grid: T[][]) => {
   }, []);
 };
 
+function mirrorFinder(
+  grid: string[][],
+  coord: number,
+  skip?: number
+) {
+  if (coord === skip) return false;
+
+  let d = 0;
+  while (true) {
+    const above = grid[coord - d];
+    const below = grid[coord + d + 1];
+    if (above != null && below != null) {
+      if (above.join("") === below.join("")) {
+        d++;
+        continue;
+      }
+      return false;
+    }
+
+    return true;
+  }
+}
+
+function getReflections(
+  grid: string[][],
+  skipRow?: number | undefined,
+  skipCol?: number | undefined
+): { row?: number; col?: number } {
+  const rowCandidates = grid
+    .map((row, y) => [row, y] as const)
+    .filter(
+      ([row], i, src) =>
+        row.join("") === src[i + 1]?.[0]?.join("")
+    )
+    .map(([, index]) => index);
+
+  const row = rowCandidates.find((y) =>
+    mirrorFinder(grid, y, skipRow)
+  );
+
+  // Crucial assumption... if we find a row first
+  // then take that, do not ever take both row and col
+  if (row != null) return { row };
+
+  const rotated = rotateCW(grid);
+
+  const colCandidates = rotated
+    .map((row, xC) => [row, xC] as const)
+    .filter(
+      ([row], i, src) =>
+        row.join("") === src[i + 1]?.[0]?.join("")
+    )
+    .map(([, index]) => index);
+
+  const col = colCandidates.find((x) =>
+    mirrorFinder(rotated, x, skipCol)
+  );
+
+  return { col };
+}
+
+const sumReflections = (
+  acc: number,
+  { col = -1, row = -1 }
+) => {
+  return acc + col + 1 + 100 * (row + 1);
+};
+
 const solve = async (path: string) => {
   const input = await Deno.readTextFile(path);
 
@@ -29,275 +97,49 @@ const solve = async (path: string) => {
    */
 
   const map = input.split("\n\n").map((pattern) => {
-    const grid = pattern
-      .split("\n")
-      .map((row) => row.split(""));
-    return {
-      grid,
-      rotated: rotateCW(grid),
-    };
+    return pattern.split("\n").map((row) => row.split(""));
   });
 
-  const reflections = map.map(({ grid, rotated }) => {
-    const rowCandidates = grid
-      .map((row, y) => [row, y] as const)
-      .filter(
-        ([row], i, src) =>
-          row.join("") === src[i + 1]?.[0]?.join("")
-      )
-      .map(([, index]) => index);
-
-    const colCandidates = rotated
-      .map((row, xC) => [row, xC] as const)
-      .filter(
-        ([row], i, src) =>
-          row.join("") === src[i + 1]?.[0]?.join("")
-      )
-      .map(([, index]) => index);
-
-    const row = rowCandidates.find((y) => {
-      let d = 0;
-      while (true) {
-        const above = grid[y - d];
-        const below = grid[y + d + 1];
-        if (
-          typeof above !== "undefined" &&
-          typeof below !== "undefined"
-        ) {
-          if (above.join("") === below.join("")) {
-            d++;
-            continue;
-          }
-          return false;
-        }
-
-        return true;
-      }
-    });
-
-    if (typeof row === "number") return { row };
-
-    const col = colCandidates.find((y) => {
-      let d = 0;
-      while (true) {
-        const above = rotated[y - d];
-        const below = rotated[y + d + 1];
-        if (
-          typeof above !== "undefined" &&
-          typeof below !== "undefined"
-        ) {
-          if (above.join("") === below.join("")) {
-            d++;
-            continue;
-          }
-          return false;
-        }
-
-        return true;
-      }
-    });
-
-    return { col };
+  const reflections = map.map((grid) => {
+    return getReflections(grid);
   });
 
-  const summary = reflections.reduce(
-    (acc, { col = -1, row = -1 }) => {
-      return acc + (col + 1) + 100 * (row + 1);
-    },
-    0
+  console.log(
+    "Part 1:",
+    reflections.reduce(sumReflections, 0)
   );
-
-  console.log("Part 1:", summary);
 
   /**
    * Part Two
    */
-  function getReflections(
-    pattern: string[][],
-    skipRow?: number | undefined,
-    skipCol?: number | undefined
-  ): { row?: number; col?: number } {
-    const grid = pattern;
 
-    const rotated = rotateCW(grid);
+  const newReflections = map.map((pattern) => {
+    const original = getReflections(pattern);
+    for (const y in pattern) {
+      const row = pattern[y];
 
-    const rowCandidates = grid
-      .map((row, y) => [row, y] as const)
-      .filter(
-        ([row], i, src) =>
-          row.join("") === src[i + 1]?.[0]?.join("")
-      )
-      .map(([, index]) => index);
+      for (const x in row) {
+        const cell = row[x];
 
-    const colCandidates = rotated
-      .map((row, xC) => [row, xC] as const)
-      .filter(
-        ([row], i, src) =>
-          row.join("") === src[i + 1]?.[0]?.join("")
-      )
-      .map(([, index]) => index);
+        const mut = cell === "#" ? "." : "#";
 
-    const row = rowCandidates.find((y) => {
-      if (y === skipRow) return false;
-      let d = 0;
-      while (true) {
-        const above = grid[y - d];
-        const below = grid[y + d + 1];
-        if (
-          typeof above !== "undefined" &&
-          typeof below !== "undefined"
-        ) {
-          if (above.join("") === below.join("")) {
-            d++;
-            continue;
-          }
-          return false;
-        }
+        const mutPat = pattern.map((row) => [...row]);
+        mutPat[y][x] = mut;
 
-        return true;
+        const next = getReflections(
+          mutPat,
+          original.row,
+          original.col
+        );
+
+        if (next.col == null && next.row == null) continue;
+
+        return next;
       }
-    });
+    }
 
-    if (typeof row === "number") return { row };
-
-    const col = colCandidates.find((y) => {
-      if (y === skipCol) return false;
-      let d = 0;
-      while (true) {
-        const above = rotated[y - d];
-        const below = rotated[y + d + 1];
-        if (
-          typeof above !== "undefined" &&
-          typeof below !== "undefined"
-        ) {
-          if (above.join("") === below.join("")) {
-            d++;
-            continue;
-          }
-          return false;
-        }
-
-        return true;
-      }
-    });
-
-    return { col };
-  }
-
-  const newMap = input
-    .split("\n\n")
-    .map((pattern) =>
-      pattern.split("\n").map((row) => row.split(""))
-    )
-    .map((pattern) => {
-      const original = getReflections(pattern);
-      // const key = `${
-      //   original.col != null ? `col:${original.col}` : " "
-      // } ${
-      //   original.row != null ? `row:${original.row}` : " "
-      // }`
-      //   .trim()
-      //   .split(" ")[0];
-      // const key = JSON.stringify(original);
-      // console.log({ original, key });
-      // console.log(
-      //   pattern.map((row) => row.join("")).join("\n")
-      // );
-
-      // const seen = new Set<string>();
-
-      for (const y in pattern) {
-        const row = pattern[y];
-
-        for (const x in row) {
-          const cell = row[x];
-
-          const mut = cell === "#" ? "." : "#";
-
-          const mutPat = pattern.map((row) => [...row]);
-          mutPat[y][x] = mut;
-
-          const next = getReflections(
-            mutPat,
-            original.row,
-            original.col
-          );
-          if (next.col == null && next.row == null)
-            continue;
-
-          // console.log({ original, next });
-          return next;
-
-          // if (JSON.stringify(next) !== key) {
-          //   console.log({ next, original });
-          //   result = JSON.stringify(next);
-          // }
-
-          // const nextKey = `${
-          //   next.col != null ? `col:${next.col}` : " "
-          // } ${
-          //   next.row != null ? `row:${next.row}` : " "
-          // }`.trim();
-
-          // if (!nextKey) return;
-
-          // console.log({ nextKey, x, y });
-          // nextKey.split(" ").forEach((c) => seen.add(c));
-        }
-      }
-      // console.log(result, index);
-
-      // if (original.row == null) {
-      //   return original;
-      // }
-      // return { col: original.col };
-
-      return original;
-
-      // const [diff] = [...seen.values()].filter(
-      //   (s) => !key.includes(s)
-      // );
-      // // console.log({ diff });
-      // if (diff == null) {
-      //   // console.log({ original, key }, "\n");
-      //   return original;
-      // }
-
-      // const result: {
-      //   row: number | undefined;
-      //   col: number | undefined;
-      // } = {
-      //   row:
-      //     diff != null
-      //       ? Number(diff.replace("row:", ""))
-      //       : undefined,
-      //   col:
-      //     diff != null
-      //       ? Number(diff.replace("col:", ""))
-      //       : undefined,
-      // };
-      // if (
-      //   typeof result.row === "number" &&
-      //   isNaN(result.row)
-      // ) {
-      //   result.row = undefined;
-      // }
-      // if (
-      //   typeof result.col === "number" &&
-      //   isNaN(result.col)
-      // ) {
-      //   result.col = undefined;
-      // }
-      // // console.log({ result, original, key }, "\n");
-      // return result;
-    });
-
-  const summary2 = newMap.reduce(
-    (acc, { col = -1, row = -1 }) => {
-      return acc + col + 1 + 100 * (row + 1);
-    },
-    0
-  );
+    return original;
+  });
 
   // 24678 wrong
   // 24684 wrong
@@ -305,7 +147,10 @@ const solve = async (path: string) => {
   // 38219 wrong
   // 31830 wrong
   // 31836 right!
-  console.log("Part 2:", summary2);
+  console.log(
+    "Part 2:",
+    newReflections.reduce(sumReflections, 0)
+  );
 };
 
 console.log("Day", filename);
