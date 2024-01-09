@@ -1,5 +1,3 @@
-import z3Lib from "npm:z3-solver";
-
 const pathname = new URL("", import.meta.url).pathname;
 const filename = pathname
   ?.split("/")
@@ -12,6 +10,169 @@ const debug = Deno.args.includes("--debug");
 /**
  * Helpers
  */
+
+function gcd(a: bigint, b: bigint) {
+  if (!b) {
+    if (b === 0n) return a;
+    throw new Error("Invalid b input");
+  }
+  return gcd(b, a % b);
+}
+
+class Fraction {
+  num: bigint;
+  den: bigint;
+
+  constructor(num: bigint, den = 1n) {
+    this.num = num;
+    this.den = den;
+  }
+
+  static add(lhs: Fraction, rhs: Fraction): Fraction {
+    const [newNum, newDen] = [
+      lhs.num * rhs.den + rhs.num * lhs.den,
+      lhs.den * rhs.den,
+    ];
+
+    const factor = gcd(newNum, newDen);
+    return new Fraction(newNum / factor, newDen / factor);
+  }
+
+  static sub(lhs: Fraction, rhs: Fraction): Fraction {
+    return Fraction.add(
+      lhs,
+      new Fraction(-1n * rhs.num, rhs.den)
+    );
+  }
+
+  static prod(lhs: Fraction, rhs: Fraction): Fraction {
+    const [newNum, newDen] = [
+      lhs.num * rhs.num,
+      lhs.den * rhs.den,
+    ];
+    const factor = gcd(newNum, newDen);
+    return new Fraction(newNum / factor, newDen / factor);
+  }
+
+  static inv(lhs: Fraction): Fraction {
+    if (lhs.num === 0n) {
+      return new Fraction(0n);
+    }
+    return new Fraction(lhs.den, lhs.num);
+  }
+
+  static div(lhs: Fraction, rhs: Fraction): Fraction {
+    return Fraction.prod(lhs, Fraction.inv(rhs));
+  }
+
+  static isZero(lhs: Fraction): boolean {
+    return lhs.num === 0n;
+  }
+
+  static abs(lhs: Fraction): Fraction {
+    return new Fraction(
+      lhs.num < 0n ? -lhs.num : lhs.num,
+      lhs.den < 0n ? -lhs.den : lhs.den
+    );
+  }
+
+  static lessThan(lhs: Fraction, rhs: Fraction): boolean {
+    return lhs.num * rhs.den < rhs.num * lhs.den;
+  }
+
+  evaluate(): bigint {
+    return this.num / this.den;
+  }
+
+  print() {
+    return `${this.num}/${this.den}`;
+  }
+}
+
+function eliminationByGauss(mat: Fraction[][]) {
+  let y = 0;
+  let x = 0;
+
+  const width = mat[0].length;
+  const height = mat.length;
+
+  while (y < height && x < width) {
+    const kCol = mat.map((row) => row[x]);
+
+    let max: Fraction | null = null;
+
+    kCol.forEach((v) => {
+      if (
+        max === null ||
+        Fraction.lessThan(max, Fraction.abs(v))
+      ) {
+        max = v;
+      }
+    });
+
+    if (max === null) {
+      throw new Error("No max");
+    }
+    const yMax = kCol.indexOf(max);
+
+    if (Fraction.isZero(mat[yMax][x])) {
+      // no pivot
+      x++;
+    } else {
+      // row swap
+      [mat[y], mat[yMax]] = [mat[yMax], mat[y]];
+
+      for (let dy = y + 1; dy < height; dy++) {
+        const f = Fraction.div(mat[dy][x], mat[y][x]);
+
+        mat[dy][x] = new Fraction(0n);
+
+        for (let dx = x + 1; dx < width; dx++) {
+          mat[dy][dx] = Fraction.sub(
+            mat[dy][dx],
+            Fraction.prod(f, mat[y][dx])
+          );
+        }
+      }
+
+      y++;
+      x++;
+    }
+  }
+
+  return mat;
+}
+
+function findSolutions(mat: Fraction[][]) {
+  return mat.reduce<Fraction[]>((acc, curr, index, src) => {
+    if (acc.length === 0) {
+      const [a, b] = curr.slice(-2);
+      return [Fraction.div(b, a)];
+    }
+
+    const [q, ...rest] = curr.slice(
+      src.length - 1 - index,
+      curr.length - 1
+    );
+
+    const qs = rest
+      .map((r, i) =>
+        Fraction.prod(Fraction.div(r, q), acc[i])
+      )
+      .reduce(
+        (a, b) => Fraction.add(a, b),
+        new Fraction(0n)
+      );
+
+    return [
+      Fraction.sub(
+        Fraction.div(curr[curr.length - 1], q),
+        qs
+      ),
+      ...acc,
+    ];
+  }, []);
+}
 
 const solve = async (path: string) => {
   const input = await Deno.readTextFile(path);
@@ -111,134 +272,130 @@ const solve = async (path: string) => {
   /**
    * Part Two
    */
-  const [p, w, q] = data.slice(0, 3);
+  const dist = (arr: number[]) =>
+    arr.map((v) => Math.abs(v)).reduce((a, b) => a + b, 0);
 
-  /**
-   * we want rx,ry,rz, and drx,dry,drz
-   *
-   * px + dpx * tp = rx + drx * tp
-   * py + dpy * tp = ry + dry * tp
-   * pz + dpz * tp = rz + drz * tp
-   *
-   * wx + dwx * tw = rx + drx * tw
-   * wy + dwy * tw = ry + dry * tw
-   * wz + dwz * tw = rz + drz * tw
-   *
-   * qx + dqx * tq = rx + drx * tq
-   * qy + dqy * tq = ry + dry * tq
-   * qz + dqz * tq = rz + drz * tq
-   *
-   * unknowns-> tq,tp,tw, rx,ry,rz, drx,dry,drz
-   *
-   * 9 eqs, 9 unknowns
-   *
-   * tp = (px - rx)/(drx - dpx)
-   * tw = (wx - rx)/(drx - dwx)
-   * qw = (qx - rx)/(drx - dqx)
-   *
-   * py * (drx - dpx) + dpy * (px - rx) = ry * (drx - dpx) + dry
-   * pz * (drx - dpx) + dpz * (px - rx) = rz * (drx - dpx) + drz
-   *
-   * wy * (drx - dwx) + dwy * (wx - rx) = ry * (drx - dwx) + dry
-   * wz * (drx - dwx) + dwz * (wx - rx) = rz * (drx - dwx) + drz
-   *
-   * qy * (drx - dqx) + dqy * (qx - rx) = ry * (drx - dqx) + dry
-   * qz * (drx - dqx) + dqz * (qx - rx) = rz * (drx - dqx) + drz
-   *
-   * 6 eqs, 6 vars rx,ry,rz,drx,dry,drz
-   *
-   * dry = py * (drx - dpx) + dpy * (px - rx) - ry * (drx - dpx)
-   *     = wy * (drx - dwx) + dwy * (wx - rx) - ry * (drx - dwx)
-   *     = qy * (drx - dqx) + dqy * (qx - rx) - ry * (drx - dqx)
-   *
-   * py * (drx - dpx) + dpy * (px - rx)
-   * - wy * (drx - dwx) - dwy * (wx - rx)
-   * = ry * (drx - dpx) - ry * (drx - dwx)
-   *  = ry (drx - dpx - drx + dwx)
-   *  = ry (dwx - dpx)
-   *
-   * py*drx - py*dpx + dpy*px - dpy*rx
-   * - wy*drx + wy*dwx - dwy*wx + dwy*rx = ry(dwx - dpx)
-   *
-   * drx*(py - wy) - py*dpx + dpy*px + rx*(dwy - dpy) + wy*dwx - wx*dwy
-   * = ry (dwx - dpx) ...(1)
-   *
-   * py * (drx - dpx) + dpy * (px - rx) - qy * (drx - dqx) - dqy * (qx - rx)
-   *  = ry * (drx - dpx) - ry * (drx - dqx)
-   *
-   * py*drx - py*dpx + dpy*px - dpy*rx - qy*drx + qy*dqx - dqy*qx + dqy*rx
-   * = ry*(dqx - dpx)
-   *
-   * drx(py-qy) - py*dpx + dpy*px + rx*(dqy - dpy) + qy*dqx - qx*dqy
-   * = ry*(dqx - dpx) ...(2)
-   *
-   * wy * (drx - dwx) + dwy * (wx - rx) - qy * (drx - dqx) - dqy * (qx - rx)
-   * = ry * (drx - dwx) - ry * (drx - dqx)
-   *
-   * drx(wy-qy) - wy*dwx + dwy*wx - rx * dwy + qy*dqx - dqy*qz + dqy *rx
-   * = ry (dqx - dwx)
-   *
-   * drx*(wy-qy) - wy*dwx + wx*dwy + rx*(dqy - dwy) + qy*dqx - qz*dqy
-   * = ry (dqx - dwx) ..(3)
-   */
+  const [p, w, q] = (
+    isExample
+      ? data.slice(0, 3)
+      : // Magic stuff ... still needs analysis
+        data
+          .toSorted((a, b) => dist(b.pos) - dist(a.pos))
+          .slice(-20)
+  ).map(({ pos, vel }) => {
+    const [x, y, z] = pos.map((v) => BigInt(v));
+    const [dx, dy, dz] = vel.map((v) => BigInt(v));
+    return { x, y, z, dx, dy, dz };
+  });
 
-  const { Context } = await z3Lib.init();
-  const z3 = Context("p2");
+  // TODO: Link to equation derivation
+  const matrix = [
+    // z, y, x, dz, dy, dx = C
+    [
+      0n,
+      -(p.dx - q.dx),
+      p.dy - q.dy,
+      0n,
+      p.x - q.x,
+      -(p.y - q.y),
+      q.y * q.dx - q.x * q.dy - (p.y * p.dx - p.x * p.dy),
+    ],
+    [
+      0n,
+      -(p.dx - w.dx),
+      p.dy - w.dy,
+      0n,
+      p.x - w.x,
+      -(p.y - w.y),
+      w.y * w.dx - w.x * w.dy - (p.y * p.dx - p.x * p.dy),
+    ],
+    [
+      -(p.dy - q.dy),
+      p.dz - q.dz,
+      0n,
+      p.y - q.y,
+      -(p.z - q.z),
+      0n,
+      q.z * q.dy - q.y * q.dz - (p.z * p.dy - p.y * p.dz),
+    ],
+    [
+      -(p.dy - w.dy),
+      p.dz - w.dz,
+      0n,
+      p.y - w.y,
+      -(p.z - w.z),
+      0n,
+      w.z * w.dy - w.y * w.dz - (p.z * p.dy - p.y * p.dz),
+    ],
+    [
+      -(p.dx - q.dx),
+      0n,
+      p.dz - q.dz,
+      p.x - q.x,
+      0n,
+      -(p.z - q.z),
+      q.z * q.dx - q.x * q.dz - (p.z * p.dx - p.x * p.dz),
+    ],
+    [
+      -(p.dx - w.dx),
+      0n,
+      p.dz - w.dz,
+      p.x - w.x,
+      0n,
+      -(p.z - w.z),
+      w.z * w.dx - w.x * w.dz - (p.z * p.dx - p.x * p.dz),
+    ],
+  ].map((row) => row.map((num) => new Fraction(num)));
 
-  const x = z3.Real.const("x");
-  const y = z3.Real.const("y");
-  const z = z3.Real.const("z");
+  // console.log(
+  //   matrix
+  //     .map((row) =>
+  //       row
+  //         .map((x) => `${x.print()}`.padStart(20, " "))
+  //         .join("")
+  //     )
+  //     .join("\n")
+  // );
 
-  const dx = z3.Real.const("dx");
-  const dy = z3.Real.const("dy");
-  const dz = z3.Real.const("dz");
+  eliminationByGauss(matrix);
 
-  const solver = new z3.Solver();
+  const zeroCount = (list: Fraction[]) => {
+    let count = 0;
+    let index = 0;
+    while (true) {
+      if (Fraction.isZero(list[index])) {
+        count++;
+        index++;
+      } else {
+        break;
+      }
+    }
+    return count;
+  };
 
-  let i = 0;
-  for (const vec of [p, w, q]) {
-    const { pos, vel } = vec;
-    const time = z3.Real.const(`t-${i}`);
+  matrix.sort(
+    (lhs, rhs) => zeroCount(rhs) - zeroCount(lhs)
+  );
 
-    solver.add(time.ge(0));
-    solver.add(
-      time.mul(dx).add(x).eq(time.mul(vel[0]).add(pos[0]))
-    );
-
-    solver.add(
-      time.mul(dy).add(y).eq(time.mul(vel[1]).add(pos[1]))
-    );
-
-    solver.add(
-      time.mul(dz).add(z).eq(time.mul(vel[2]).add(pos[2]))
-    );
-
-    i++;
-  }
-  // Deno Panics here...
-  // Deno has panicked. This is a bug in Deno. Please report this (NO)
-  await solver.check();
-  // Used Node.js for this last bit
-
-  const model = solver.model();
-  const arr = [
-    // @ts-expect-error value not present in types
-    model.eval(x).value().numerator,
-    // @ts-expect-error value not present in types
-    model.eval(y).value().numerator,
-    // @ts-expect-error value not present in types
-    model.eval(z).value().numerator,
-  ];
-
-  // 27671002969301356719n too high
-  // 886858737029295n
-  console.log(arr.reduce((a, b) => a + b, 0n));
+  console.log(
+    "Part 2:",
+    findSolutions(matrix)
+      .slice(0, 3)
+      .reduce(
+        (a, b) => Fraction.add(a, b),
+        new Fraction(0n)
+      )
+      .evaluate()
+      .toString()
+    // "\n",
+    // 886858737029295n
+  );
 };
 
 console.log("Day", filename);
 if (isExample) {
   console.log("Example");
-  await solve(`./input/example.in`);
+  await solve(`./input/${filename}.example.in`);
   console.log("---");
 } else {
   await solve(`./input/${filename}.in`);
