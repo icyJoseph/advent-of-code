@@ -10,59 +10,240 @@ const isExample = Deno.args.includes("--example");
  * Helpers
  */
 
-const balancedKey = (from: string, node: string) =>
-  [from, node].toSorted().join(" -> ");
+type Edge = {
+  label: string;
+  weight: number;
+};
 
-function bfs<T>({
-  start,
-  end,
-  adj,
-  totals,
-}: {
-  start: string;
-  end: string;
-  adj: Map<string, string[]>;
-  totals: Map<string, number>;
-}) {
-  const q: Array<{ label: string; path: string[] }> = [];
-  const visited = new Set<string>();
+const createEdgeLabel = (from: string, to: string) => {
+  return [from, to].toSorted().join(" <-> ");
+};
 
-  q.push({ label: start, path: [start] });
+const createEdge = (
+  from: string,
+  to: string,
+  weight = 1
+): Edge => {
+  const label = createEdgeLabel(from, to);
+  return { label, weight };
+};
 
-  let path: string[] = [];
+class Graph {
+  constructor(
+    public nodes: Set<string>,
+    public edges: Map<string, Edge>
+  ) {}
 
-  while (true) {
-    const current = q.shift();
+  clone() {
+    const nodes = new Set(this.nodes);
+    const edges = new Map<string, Edge>();
 
-    if (current == null) break;
+    this.edges.forEach((edge, label) => {
+      edges.set(label, { ...edge });
+    });
 
-    const around = adj.get(current.label);
-    // console.log(around);
-    if (!around) continue;
-
-    for (const vec of around) {
-      if (vec === end) {
-        // console.log("END", current, vec, end);
-        path = [...current.path, vec];
-        break;
-      }
-
-      if (visited.has(vec)) continue;
-
-      visited.add(vec);
-
-      q.push({ label: vec, path: [...current.path, vec] });
-    }
+    return new Graph(nodes, edges);
   }
 
-  path.forEach((node, index, src) => {
-    if (index === src.length - 1) return;
+  findEdge(from: string, to: string) {
+    const label = createEdgeLabel(from, to);
 
-    const key = balancedKey(node, src[index + 1]);
+    return this.edges.get(label);
+  }
 
-    totals.set(key, (totals.get(key) ?? 0) + 1);
-  });
+  cache: Map<string, Array<Edge & { dest: string }>> =
+    new Map();
+
+  getEdges(from: string) {
+    const cached = this.cache.get(from);
+    if (cached) return cached;
+
+    const edges = [...this.edges.values()]
+      .filter((edge) => edge.label.includes(from))
+      .map((edge) => ({
+        ...edge,
+        dest: edge.label
+          .replace(from, "")
+          .replace(" <-> ", ""),
+      }));
+
+    this.cache.set(from, edges);
+
+    return edges;
+  }
+
+  mergeVertices(keep: string, toss: string) {
+    this.cache = new Map();
+
+    const targetEdges = [...this.edges.keys()].filter(
+      (edge) => edge.includes(toss)
+    );
+
+    if (targetEdges.length === 0) return;
+
+    const openEdges = targetEdges
+      .map((edge) => this.edges.get(edge))
+      .filter(<T>(edge: T | undefined): edge is T => !!edge)
+      .map(({ label, weight }) => ({
+        weight,
+        dest: label.replace(toss, "").replace(" <-> ", ""),
+      }));
+
+    const closedEdges = openEdges
+      .filter(({ dest }) => dest !== keep)
+      .map(({ dest, weight }) => {
+        return createEdge(dest, keep, weight);
+      });
+
+    const edgeMap = new Map<string, number>();
+
+    const unchangedEdges = [...this.edges.keys()]
+      .filter((edge) => !edge.includes(toss))
+      .map((edge) => this.edges.get(edge))
+      .filter(
+        <T>(edge: T | undefined): edge is T => !!edge
+      );
+
+    unchangedEdges.forEach(({ label, weight }) => {
+      edgeMap.set(label, weight);
+    });
+
+    closedEdges.forEach(({ label, weight }) => {
+      const current = edgeMap.get(label) ?? 0;
+
+      edgeMap.set(label, current + weight);
+    });
+
+    const newEdges = new Map();
+
+    edgeMap.forEach((weight, label) => {
+      newEdges.set(label, { label, weight });
+    });
+
+    this.edges = newEdges;
+    this.nodes.delete(toss);
+  }
 }
+
+const sum = (a: number, b: number) => a + b;
+
+function maxAdj(graph: Graph) {
+  const start = graph.nodes.keys().next().value;
+
+  let [beforeLast, last]: [string, string] = [start, start];
+  let weight = -Infinity;
+
+  const candidates = new Set<string>(
+    Array.from(graph.nodes.keys())
+  );
+
+  const blob = new Set([start]);
+  const nearby = new Set(
+    graph.getEdges(start).map(({ dest }) => dest)
+  );
+
+  candidates.delete(start);
+
+  while (candidates.size) {
+    let next: string | null = null;
+    let max = 0;
+
+    for (const candidate of nearby) {
+      const localWeight = graph
+        .getEdges(candidate)
+        .filter((edge) => blob.has(edge.dest))
+        .map((edge) => edge.weight)
+        .reduce(sum, 0);
+
+      if (localWeight > max) {
+        next = candidate;
+        max = localWeight;
+      }
+    }
+
+    if (!next)
+      throw new Error("Failed to find a next node");
+
+    candidates.delete(next);
+    weight = max;
+
+    nearby.delete(next);
+    blob.add(next);
+
+    [beforeLast, last] = [last, next];
+
+    graph.getEdges(next).forEach((edge) => {
+      if (blob.has(edge.dest)) return;
+      nearby.add(edge.dest);
+    });
+  }
+
+  return [[beforeLast, last], weight] as const;
+}
+
+// Stoer Wagner
+function findMinCut(graph: Graph) {
+  console.log(
+    "nodes:",
+    graph.nodes.size,
+    "edges:",
+    graph.edges.size
+  );
+
+  const currentPartition = new Set<string>();
+
+  let currentBestPartition: Set<string> = new Set();
+
+  let currentBest: ReturnType<typeof maxAdj> | null = null;
+
+  while (graph.nodes.size > 1) {
+    const cutOfThePhase = maxAdj(graph);
+
+    if (
+      currentBest === null ||
+      cutOfThePhase[1] < currentBest[1]
+    ) {
+      currentBest = cutOfThePhase;
+
+      currentBestPartition = new Set(currentPartition);
+
+      currentBestPartition.add(cutOfThePhase[0][1]);
+    }
+
+    currentPartition.add(cutOfThePhase[0][1]);
+
+    graph.mergeVertices(
+      cutOfThePhase[0][0],
+      cutOfThePhase[0][1]
+    );
+  }
+
+  return currentBestPartition;
+}
+
+const buildPartition = (
+  partition: Set<string>,
+  graph: Graph
+) => {
+  const nodes = Array.from(partition);
+
+  const group = new Set();
+
+  nodes.forEach((current, index, src) => {
+    const others = src.slice(index);
+
+    others.forEach((other) => {
+      const edge = graph.findEdge(current, other);
+
+      if (!edge) return;
+
+      group.add(current);
+      group.add(other);
+    });
+  });
+
+  return group;
+};
 
 const solve = async (path: string) => {
   const input = await Deno.readTextFile(path);
@@ -71,142 +252,36 @@ const solve = async (path: string) => {
    * Part One
    */
 
-  const map = new Map<string, string[]>();
+  const nodes = new Set<string>();
+  const edges = new Map<string, Edge>();
 
-  const data = input.split("\n").map((row) => {
-    const [from, rhs] = row.split(": ");
+  input.split("\n").forEach((row) => {
+    const [node, targets] = row.split(": ");
 
-    const to = rhs.split(" ").map((r) => r.trim());
+    nodes.add(node);
 
-    return { from, to };
-  });
-
-  data.forEach(({ from, to }) => {
-    to.forEach((node) => {
-      const currentFrom = map.get(from) ?? [];
-      map.set(from, [...currentFrom, node]);
-
-      const currentNode = map.get(node) ?? [];
-      map.set(node, [...currentNode, from]);
+    targets.split(" ").forEach((other) => {
+      const edge = createEdge(node, other);
+      edges.set(edge.label, edge);
+      nodes.add(other);
     });
   });
 
-  let x = 0;
-  const getId = () => x++;
+  const totalNodeSize = nodes.size;
 
-  // x->y pair to numeric id
-  const edgeIds = new Map<string, number>();
-  // numeric id to x->y pair
-  const edgeIdLookup = new Map<number, string>();
+  const jointGraph = new Graph(nodes, edges);
 
-  const graph: string[] = ["digraph {", 'node[label=""];'];
+  const originalGraph = jointGraph.clone();
 
-  map.forEach((to, from) => {
-    to.forEach((n) => {
-      const key = balancedKey(from, n);
-
-      if (!edgeIds.has(key)) {
-        const keyId = getId();
-        edgeIds.set(key, keyId);
-        edgeIdLookup.set(keyId, key);
-      }
-
-      const label = edgeIds.get(key);
-
-      graph.push(
-        `${from} -> ${n} [dir=none] [label="${label}"];`
-      );
-    });
-  });
-
-  graph.push("}");
-
-  await Deno.writeFile(
-    isExample ? "./25-example.dot" : "./25.dot",
-    new TextEncoder().encode(graph.join("\n"))
+  const partition = buildPartition(
+    findMinCut(jointGraph),
+    originalGraph
   );
 
-  const total = map.size;
-
-  const cutEdges = (
-    edges: number[],
-    adj: Map<string, string[]>
-  ) => {
-    const [firstEdge] = edges;
-
-    const start = edgeIdLookup
-      .get(firstEdge)
-      ?.split(" -> ")[0];
-
-    const q = [start];
-    const seen = new Set();
-
-    while (true) {
-      const next = q.pop();
-
-      if (!next) break;
-
-      const around = adj.get(next);
-
-      if (!around) continue;
-
-      for (const n of around) {
-        const key = balancedKey(next, n);
-
-        if (edges.find((e) => e === edgeIds.get(key))) {
-          continue;
-        }
-
-        if (seen.has(n)) {
-          continue;
-        }
-
-        seen.add(n);
-        q.push(n);
-      }
-    }
-
-    return seen.size * (total - seen.size);
-  };
-
-  // manual observation of the .svg file created from
-  // dot -Ksfdp -T svg 25-example.dot > 25-example.svg or
-  // dot -Ksfdp -T svg 25.dot > 25.svg
-  // const edges = isExample ? [22, 29, 2] : [1433, 241, 551];
-
-  if (isExample) {
-    return console.log(
-      "Example part 1:",
-      cutEdges([22, 29, 2], map)
-    );
-  }
-
-  const totals = new Map<string, number>();
-
-  const nodes = Array.from(map.keys());
-
-  nodes.forEach((node, index, src) => {
-    bfs({
-      start: node,
-      end:
-        index === src.length - 1 ? src[0] : src[index + 1],
-      adj: map,
-      totals,
-    });
-  });
-
-  const highTraffic = [
-    ...new Set(
-      Array.from(totals.entries())
-        .toSorted((lhs, rhs) => rhs[1] - lhs[1])
-        .slice(0, 3)
-        .map(([edge]) => edgeIds.get(edge))
-        .flat(1)
-        .filter(<T>(v: T | undefined): v is T => v != null)
-    ),
-  ];
-
-  return console.log("Part 1:", cutEdges(highTraffic, map));
+  console.log(
+    "Part 1:",
+    partition.size * (totalNodeSize - partition.size)
+  );
 };
 
 console.log("Day", filename);
