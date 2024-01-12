@@ -10,136 +10,112 @@ const isExample = Deno.args.includes("--example");
  * Helpers
  */
 
-type Edge = {
-  label: string;
-  weight: number;
-};
+type Node = string;
+type Edges = Map<Node, number>;
 
-const createEdgeLabel = (from: string, to: string) => {
-  return [from, to].toSorted().join(" <-> ");
-};
+type SlimGraph = Map<Node, Edges>;
+type SlimEdge = { from: Node; dest: Node; weight: number };
 
-const createEdge = (
-  from: string,
-  to: string,
-  weight = 1
-): Edge => {
-  const label = createEdgeLabel(from, to);
-  return { label, weight };
-};
+function cloneGraph(graph: SlimGraph): SlimGraph {
+  const clone: SlimGraph = new Map();
 
-class Graph {
-  constructor(
-    public nodes: Set<string>,
-    public edges: Map<string, Edge>
-  ) {}
+  graph.forEach((edges, node) => {
+    clone.set(node, new Map(edges));
+  });
 
-  clone() {
-    const nodes = new Set(this.nodes);
-    const edges = new Map<string, Edge>();
+  return clone;
+}
 
-    this.edges.forEach((edge, label) => {
-      edges.set(label, { ...edge });
-    });
+function findEdge(
+  from: Node,
+  dest: Node,
+  graph: SlimGraph
+): SlimEdge | null {
+  const weight = graph.get(from)?.get(dest);
 
-    return new Graph(nodes, edges);
-  }
+  if (typeof weight === "undefined") return null;
 
-  findEdge(from: string, to: string) {
-    const label = createEdgeLabel(from, to);
+  return { from, dest, weight };
+}
 
-    return this.edges.get(label);
-  }
+function getEdges(
+  from: Node,
+  graph: SlimGraph
+): SlimEdge[] {
+  const edges: SlimEdge[] = [];
 
-  cache: Map<string, Array<Edge & { dest: string }>> =
-    new Map();
+  graph.get(from)?.forEach((weight, dest) => {
+    edges.push({ from, dest, weight });
+  });
 
-  getEdges(from: string) {
-    const cached = this.cache.get(from);
-    if (cached) return cached;
+  return edges;
+}
 
-    const edges = [...this.edges.values()]
-      .filter((edge) => edge.label.includes(from))
-      .map((edge) => ({
-        ...edge,
-        dest: edge.label
-          .replace(from, "")
-          .replace(" <-> ", ""),
-      }));
+function mergeNodes(
+  keep: Node,
+  toss: Node,
+  graph: SlimGraph
+) {
+  getEdges(toss, graph).forEach(({ dest, weight }) => {
+    if (dest === keep) return;
+    // node that toss points towards
+    const destinations = graph.get(dest);
 
-    this.cache.set(from, edges);
+    if (!destinations) throw new Error("Missing dest node");
 
-    return edges;
-  }
-
-  mergeVertices(keep: string, toss: string) {
-    this.cache = new Map();
-
-    const targetEdges = [...this.edges.keys()].filter(
-      (edge) => edge.includes(toss)
+    // tell the node to point to keep, or update its weight
+    destinations.set(
+      keep,
+      (destinations.get(keep) ?? 0) + weight
     );
 
-    if (targetEdges.length === 0) return;
+    // remove connection back to toss
+    destinations.delete(toss);
 
-    const openEdges = targetEdges
-      .map((edge) => this.edges.get(edge))
-      .filter(<T>(edge: T | undefined): edge is T => !!edge)
-      .map(({ label, weight }) => ({
-        weight,
-        dest: label.replace(toss, "").replace(" <-> ", ""),
-      }));
+    // update entry on the graph
+    graph.set(dest, destinations);
 
-    const closedEdges = openEdges
-      .filter(({ dest }) => dest !== keep)
-      .map(({ dest, weight }) => {
-        return createEdge(dest, keep, weight);
-      });
+    // get current state of keep
+    const keepEdges = graph.get(keep);
 
-    const edgeMap = new Map<string, number>();
+    if (!keepEdges) throw new Error("Missing keep node");
 
-    const unchangedEdges = [...this.edges.keys()]
-      .filter((edge) => !edge.includes(toss))
-      .map((edge) => this.edges.get(edge))
-      .filter(
-        <T>(edge: T | undefined): edge is T => !!edge
-      );
+    // tells keep to point to the node, or update its weight
+    keepEdges.set(
+      dest,
+      (keepEdges.get(dest) ?? 0) + weight
+    );
+    // update keep entry on the graph
+    graph.set(keep, keepEdges);
 
-    unchangedEdges.forEach(({ label, weight }) => {
-      edgeMap.set(label, weight);
-    });
+    graph.get(toss)?.delete(dest);
+  });
 
-    closedEdges.forEach(({ label, weight }) => {
-      const current = edgeMap.get(label) ?? 0;
+  graph.get(keep)?.delete(toss);
+  graph.get(toss)?.delete(keep);
 
-      edgeMap.set(label, current + weight);
-    });
+  console.assert(
+    graph.get(toss)?.size === 0,
+    "Did not merge toss into keep correctly"
+  );
 
-    const newEdges = new Map();
-
-    edgeMap.forEach((weight, label) => {
-      newEdges.set(label, { label, weight });
-    });
-
-    this.edges = newEdges;
-    this.nodes.delete(toss);
-  }
+  // drop toss
+  graph.delete(toss);
 }
 
 const sum = (a: number, b: number) => a + b;
 
-function maxAdj(graph: Graph) {
-  const start = graph.nodes.keys().next().value;
+function maxAdj(graph: SlimGraph) {
+  const start = graph.keys().next().value;
 
   let [beforeLast, last]: [string, string] = [start, start];
   let weight = -Infinity;
 
-  const candidates = new Set<string>(
-    Array.from(graph.nodes.keys())
-  );
+  const candidates = new Set(Array.from(graph.keys()));
 
   const blob = new Set([start]);
   const nearby = new Set(
-    graph.getEdges(start).map(({ dest }) => dest)
+    getEdges(start, graph).map(({ dest }) => dest)
   );
 
   candidates.delete(start);
@@ -149,8 +125,7 @@ function maxAdj(graph: Graph) {
     let max = 0;
 
     for (const candidate of nearby) {
-      const localWeight = graph
-        .getEdges(candidate)
+      const localWeight = getEdges(candidate, graph)
         .filter((edge) => blob.has(edge.dest))
         .map((edge) => edge.weight)
         .reduce(sum, 0);
@@ -172,7 +147,7 @@ function maxAdj(graph: Graph) {
 
     [beforeLast, last] = [last, next];
 
-    graph.getEdges(next).forEach((edge) => {
+    getEdges(next, graph).forEach((edge) => {
       if (blob.has(edge.dest)) return;
       nearby.add(edge.dest);
     });
@@ -181,22 +156,14 @@ function maxAdj(graph: Graph) {
   return [[beforeLast, last], weight] as const;
 }
 
-// Stoer Wagner
-function findMinCut(graph: Graph) {
-  console.log(
-    "nodes:",
-    graph.nodes.size,
-    "edges:",
-    graph.edges.size
-  );
-
+function stoerWagnerMinCut(graph: SlimGraph) {
   const currentPartition = new Set<string>();
 
   let currentBestPartition: Set<string> = new Set();
 
   let currentBest: ReturnType<typeof maxAdj> | null = null;
 
-  while (graph.nodes.size > 1) {
+  while (graph.size > 1) {
     const cutOfThePhase = maxAdj(graph);
 
     if (
@@ -212,19 +179,20 @@ function findMinCut(graph: Graph) {
 
     currentPartition.add(cutOfThePhase[0][1]);
 
-    graph.mergeVertices(
+    mergeNodes(
       cutOfThePhase[0][0],
-      cutOfThePhase[0][1]
+      cutOfThePhase[0][1],
+      graph
     );
   }
 
   return currentBestPartition;
 }
 
-const buildPartition = (
-  partition: Set<string>,
-  graph: Graph
-) => {
+function buildSlimPartition(
+  partition: Set<Node>,
+  original: SlimGraph
+) {
   const nodes = Array.from(partition);
 
   const group = new Set();
@@ -233,7 +201,7 @@ const buildPartition = (
     const others = src.slice(index);
 
     others.forEach((other) => {
-      const edge = graph.findEdge(current, other);
+      const edge = findEdge(current, other, original);
 
       if (!edge) return;
 
@@ -243,7 +211,7 @@ const buildPartition = (
   });
 
   return group;
-};
+}
 
 const solve = async (path: string) => {
   const input = await Deno.readTextFile(path);
@@ -251,32 +219,40 @@ const solve = async (path: string) => {
   /**
    * Part One
    */
-
-  const nodes = new Set<string>();
-  const edges = new Map<string, Edge>();
+  const slimGraph: SlimGraph = new Map();
 
   input.split("\n").forEach((row) => {
     const [node, targets] = row.split(": ");
 
-    nodes.add(node);
+    const forward =
+      slimGraph.get(node) ?? new Map<Node, number>();
 
-    targets.split(" ").forEach((other) => {
-      const edge = createEdge(node, other);
-      edges.set(edge.label, edge);
-      nodes.add(other);
+    slimGraph.set(node, forward);
+
+    targets.split(" ").forEach((dest) => {
+      forward.set(dest, 1);
+
+      const back =
+        slimGraph.get(dest) ?? new Map<Node, number>();
+
+      back.set(node, 1);
+
+      slimGraph.set(dest, back);
     });
+
+    slimGraph.set(node, forward);
   });
 
-  const totalNodeSize = nodes.size;
+  const original = cloneGraph(slimGraph);
 
-  const jointGraph = new Graph(nodes, edges);
+  const bestCutPartition = stoerWagnerMinCut(slimGraph);
 
-  const originalGraph = jointGraph.clone();
-
-  const partition = buildPartition(
-    findMinCut(jointGraph),
-    originalGraph
+  const partition = buildSlimPartition(
+    bestCutPartition,
+    original
   );
+
+  const totalNodeSize = original.size;
 
   console.log(
     "Part 1:",
