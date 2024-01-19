@@ -82,7 +82,7 @@ const solve = async (path: string) => {
           return;
         } else {
           current = workflows.find(
-            (w) => w.name === next.dest
+            (w) => w.name === next.dest,
           )!;
           continue;
         }
@@ -98,7 +98,7 @@ const solve = async (path: string) => {
         return;
       } else {
         current = workflows.find(
-          (w) => w.name === last.dest
+          (w) => w.name === last.dest,
         )!;
       }
     }
@@ -109,14 +109,14 @@ const solve = async (path: string) => {
       const { x, m, a, s } = ratings[index];
 
       return acc + x + m + a + s;
-    }, 0)
+    }, 0),
   );
 
   /**
    * Part Two
    */
 
-  const notCmp = (str: string) => {
+  const complement = (str: string) => {
     if (str.includes(">")) {
       // x>3 -> x<4
       const [name, bound] = str.split(">");
@@ -134,7 +134,7 @@ const solve = async (path: string) => {
           ? s.cmp!
           : `${row.seq
               .slice(0, index)
-              .map((s) => notCmp(s.cmp!))
+              .map((s) => complement(s.cmp!))
               .join(" && ")} ${
               s.cmp ? `&& ${s.cmp}` : ""
             }`.trim();
@@ -178,30 +178,10 @@ const solve = async (path: string) => {
       break;
   }
 
-  while (true) {
-    const rejectedNode = reverse.get("R")!;
-
-    const next = rejectedNode.slice().flatMap((row) => {
-      if (row.from === "in") return row;
-      const src = reverse.get(row.from)!;
-
-      return src.map((p) => ({
-        from: p.from,
-        to: row.to,
-        when: `${row.when} && ${p.when}`,
-      }));
-    });
-
-    reverse.set("R", next);
-
-    if (reverse.get("R")?.every((r) => r.from === "in"))
-      break;
-  }
   const acceptedNode = reverse.get("A")!;
-  const rejectedNode = reverse.get("R")!;
 
   const parse2Range = (
-    str: string
+    str: string,
   ): [Range, Range, Range, Range] => {
     const x = [1, 4000];
     const m = [1, 4000];
@@ -256,157 +236,22 @@ const solve = async (path: string) => {
     ];
   };
 
-  const onRanges = acceptedNode.map(({ when }) => ({
-    range: parse2Range(when),
-    state: "on",
-  }));
-  const offRanges = rejectedNode.map(({ when }) => ({
-    range: parse2Range(when),
-    state: "off",
-  }));
-
-  //   console.log(parse2Range("x<1416 && a<2006 && s<1351"));
-  //   console.log(
-  //     parse2Range("true && true && s>2770 && true")
-  //   );
+  const acceptedRanges = acceptedNode.map(({ when }) =>
+    parse2Range(when),
+  );
 
   type Range = [from: number, to: number];
-  type Cuboid = [Range, Range, Range, Range];
+  type Ranges = [Range, Range, Range, Range];
 
-  const calcVolume = ([xr, yr, zr, wr]: Cuboid) =>
+  const calcVolume = ([xr, yr, zr, wr]: Ranges) =>
     [xr, yr, zr, wr].reduce(
       (prev, [lower, upper]) => prev * (upper - lower + 1),
-      1
+      1,
     );
 
-  const axes = [0, 1, 2, 3] as const;
-
-  const slice = (
-    cuboid: Cuboid,
-    overlap: Cuboid
-  ): Cuboid[] => {
-    const leftover = cuboid;
-
-    const result: Cuboid[] = [];
-
-    for (const axis of axes) {
-      // For this axis:
-      // from where the cuboid starts, until the lower overlap face starts
-      const before: Range = [
-        leftover[axis][0],
-        overlap[axis][0] - 1,
-      ];
-      // from where the upper overlap face ends, to the end of the cuboid
-      const after: Range = [
-        overlap[axis][1] + 1,
-        leftover[axis][1],
-      ];
-
-      // keep those that go upwards, relative to this axis
-      // and using the leftover cuboid, replace the new bounds
-      const newCuboids: Cuboid[] = [before, after]
-        .filter(([from, to]) => to >= from)
-        .map(([from, to]) => {
-          const newCuboid: Cuboid = [
-            leftover[0],
-            leftover[1],
-            leftover[2],
-            leftover[3],
-          ];
-
-          newCuboid[axis] = [from, to];
-
-          return newCuboid;
-        });
-
-      result.push(...newCuboids);
-
-      const [from, to] = overlap[axis];
-
-      leftover[axis] = [from, to];
-    }
-
-    return result;
-  };
-
-  const rangeOverlap = (left: Range, right: Range) => {
-    return left[0] <= right[1] && left[1] >= right[0];
-  };
-
-  const haveOverlap = (left: Cuboid, right: Cuboid) =>
-    rangeOverlap(left[0], right[0]) &&
-    rangeOverlap(left[1], right[1]) &&
-    rangeOverlap(left[2], right[2]) &&
-    rangeOverlap(left[3], right[3]);
-
-  function intersectAxis(left: Range, right: Range): Range {
-    return [
-      Math.max(left[0], right[0]),
-      Math.min(left[1], right[1]),
-    ];
-  }
-
-  const calcOverlapCuboid = (
-    cuboid: Cuboid,
-    other: Cuboid
-  ): Cuboid => {
-    return [
-      intersectAxis(cuboid[0], other[0]),
-      intersectAxis(cuboid[1], other[1]),
-      intersectAxis(cuboid[2], other[2]),
-      intersectAxis(cuboid[3], other[3]),
-    ];
-  };
-
-  const fracture = (
-    cuboid: Cuboid,
-    other: Cuboid
-  ): Cuboid | Cuboid[] => {
-    if (!haveOverlap(cuboid, other)) {
-      return cuboid;
-    }
-
-    const overlap = calcOverlapCuboid(cuboid, other);
-
-    return slice(cuboid, overlap);
-  };
-
-  const isCuboid = (
-    value: Cuboid | Cuboid[]
-  ): value is Cuboid => {
-    const flat = value.flat(1);
-
-    return (
-      flat.length === 8 &&
-      flat.every((n) => typeof n === "number")
-    );
-  };
-
-  /**
-   * Actual solution
-   */
-
-  let cuboids: Cuboid[] = [];
-
-  for (const { state, range: cube } of [
-    ...offRanges,
-    ...onRanges,
-  ]) {
-    cuboids = cuboids.reduce((prev: Cuboid[], group) => {
-      const result = fracture(group, cube);
-
-      return isCuboid(result)
-        ? [...prev, result]
-        : [...prev, ...result];
-    }, []);
-
-    if (state === "on") {
-      cuboids.push(cube);
-    }
-  }
   console.log(
     "Part 2:",
-    cuboids.map(calcVolume).reduce(sum)
+    acceptedRanges.map(calcVolume).reduce(sum),
   );
 };
 
