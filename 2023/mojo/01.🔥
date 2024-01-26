@@ -1,0 +1,36 @@
+from collections.optional import Optional
+
+
+fn main() raises:
+    var f = open("./input/01.in", "r")
+    var lines = f.read().split("\n")
+    f.close()
+
+    let total = len(lines)
+
+    var part_one = 0
+
+    for index in range(0, total):
+        let line = lines[index].strip()
+
+        let line_len = len(line)
+
+        var first = Optional[String]()
+        var last = Optional[String]()
+
+        for i in range(0, line_len):
+            let ch = line[i]
+            if ch.tolower() == ch.toupper():
+                first = Optional(ch)
+                break
+
+        for ci in range(0, line_len):
+            let i = line_len - ci - 1
+            let ch = line[i]
+            if ch.tolower() == ch.toupper():
+                last = Optional(ch)
+                break
+
+        part_one += atol(first.value() + last.value())
+
+    print("Part one:", part_one)
