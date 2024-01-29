@@ -1,4 +1,9 @@
 from collections.optional import Optional
+from collections.vector import DynamicVector
+
+
+fn is_digit(ch: String) -> Bool:
+    return ch.tolower() == ch.toupper()
 
 
 fn main() raises:
@@ -15,22 +20,52 @@ fn main() raises:
 
         let line_len = len(line)
 
-        var first = Optional[String]()
-        var last = Optional[String]()
+        var first = Optional[Int]()
+        var last = Optional[Int]()
 
         for i in range(0, line_len):
             let ch = line[i]
-            if ch.tolower() == ch.toupper():
-                first = Optional(ch)
-                break
+            if is_digit(ch):
+                if not first:
+                    first = Optional(atol(ch))
 
-        for ci in range(0, line_len):
-            let i = line_len - ci - 1
-            let ch = line[i]
-            if ch.tolower() == ch.toupper():
-                last = Optional(ch)
-                break
+                last = Optional(atol(ch))
 
-        part_one += atol(first.value() + last.value())
+        part_one += 10 * first.value() + last.value()
 
     print("Part one:", part_one)
+
+    let word_ref: String = "one, two, three, four, five, six, seven, eight, nine"
+    let words = word_ref.split(", ")
+    let words_len = len(words)
+
+    var part_two = 0
+
+    for index in range(0, total):
+        let line = lines[index].strip()
+
+        let line_len = len(line)
+
+        var first = Optional[Int]()
+        var last = Optional[Int]()
+
+        for i in range(0, line_len):
+            let ch = line[i]
+
+            if is_digit(ch):
+                if not first:
+                    first = Optional(atol(ch))
+                last = Optional(atol(ch))
+
+            for w_index in range(0, words_len):
+                let word = words[w_index]
+                let upper = i + len(word)
+
+                if word == line[i:upper]:
+                    let digit = w_index + 1
+                    if not first:
+                        first = Optional(digit)
+                    last = Optional(digit)
+
+        part_two += 10 * first.value() + last.value()
+    print("Part two:", part_two)
