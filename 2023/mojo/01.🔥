@@ -1,23 +1,18 @@
 from collections.optional import Optional
-from collections.vector import DynamicVector
-
-
-fn is_digit(ch: String) -> Bool:
-    return ch.tolower() == ch.toupper()
+from algorithm import parallelize
 
 
 fn main() raises:
     var f = open("./input/01.in", "r")
-    var lines = f.read().split("\n")
-    f.close()
-
+    let lines = f.read().split("\n")
     let total = len(lines)
+    f.close()
 
     var part_one = 0
 
-    for index in range(0, total):
-        let line = lines[index].strip()
-
+    @parameter
+    fn worker(row: Int):
+        let line = lines[row]
         let line_len = len(line)
 
         var first = Optional[Int]()
@@ -25,25 +20,30 @@ fn main() raises:
 
         for i in range(0, line_len):
             let ch = line[i]
-            if is_digit(ch):
-                if not first:
-                    first = Optional(atol(ch))
 
-                last = Optional(atol(ch))
+            try:
+                let digit = atol(ch)
+                if not first:
+                    first = Optional(digit)
+
+                last = Optional(digit)
+            except:
+                continue
 
         part_one += 10 * first.value() + last.value()
+
+    parallelize[worker](total, 1)
 
     print("Part one:", part_one)
 
     let word_ref: String = "one, two, three, four, five, six, seven, eight, nine"
     let words = word_ref.split(", ")
     let words_len = len(words)
-
     var part_two = 0
 
-    for index in range(0, total):
-        let line = lines[index].strip()
-
+    @parameter
+    fn long_worker(row: Int) capturing:
+        let line = lines[row].strip()
         let line_len = len(line)
 
         var first = Optional[Int]()
@@ -52,20 +52,28 @@ fn main() raises:
         for i in range(0, line_len):
             let ch = line[i]
 
-            if is_digit(ch):
+            try:
+                let digit = atol(ch)
                 if not first:
-                    first = Optional(atol(ch))
-                last = Optional(atol(ch))
+                    first = Optional(digit)
+                last = Optional(digit)
+            except:
+                for w_index in range(0, words_len):
+                    let word = words[w_index]
+                    let upper = i + len(word)
 
-            for w_index in range(0, words_len):
-                let word = words[w_index]
-                let upper = i + len(word)
-
-                if word == line[i:upper]:
-                    let digit = w_index + 1
-                    if not first:
-                        first = Optional(digit)
-                    last = Optional(digit)
+                    if word == line[i:upper]:
+                        let digit = w_index + 1
+                        if not first:
+                            first = Optional(digit)
+                        last = Optional(digit)
 
         part_two += 10 * first.value() + last.value()
+
+    parallelize[long_worker](total, 1)
+
     print("Part two:", part_two)
+
+    # Need to keep these in scope, to avoid crash out
+    _ = lines
+    _ = words
