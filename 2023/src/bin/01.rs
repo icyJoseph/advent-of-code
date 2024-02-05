@@ -1,79 +1,61 @@
 #[aoc2023::main(01)]
 fn main(input: &str) -> (u32, u32) {
-    let lines = input.lines();
-
     let mut part_one = 0;
-
-    for line in lines {
-        let mut first: Option<u32> = None;
-        let mut last: Option<u32> = None;
-
-        line.chars().for_each(|c| {
-            if let Some(digit) = c.to_digit(10) {
-                first.get_or_insert(digit);
-                last.replace(digit);
-            }
-        });
-
-        let Some (first) = first else {
-            panic!("No first digit");
-        };
-
-        let Some (last) = last else {
-            panic!("No last digit");
-        };
-
-        part_one += first * 10 + last;
-    }
+    let mut part_two = 0;
 
     let words: Vec<(u32, &str)> = "one, two, three, four, five, six, seven, eight, nine"
         .split(", ")
         .enumerate()
-        .map(|(v, ch)| (v as u32 + 1, ch))
+        .map(|(v, word)| (v as u32 + 1, word))
         .collect();
 
-    let mut part_two = 0;
-
     for line in input.lines() {
-        let mut first: Option<u32> = None;
-        let mut last: Option<u32> = None;
+        let mut p1_first: Option<u32> = None;
+        let mut p1_last: Option<u32> = None;
 
-        line.chars()
-            .enumerate()
-            .for_each(|(i, ch)| match ch.to_digit(10) {
-                Some(digit) => {
-                    first.get_or_insert(digit);
-                    last.replace(digit);
+        let mut p2_first: Option<u32> = None;
+        let mut p2_last: Option<u32> = None;
+
+        for (i, ch) in line.chars().enumerate() {
+            match ch {
+                '1'..='9' => {
+                    let digit = ch.to_digit(10).unwrap();
+                    p1_first.get_or_insert(digit);
+                    p1_last.replace(digit);
+
+                    p2_first.get_or_insert(digit);
+                    p2_last.replace(digit);
                 }
-                _ => {
+                'o' | 't' | 'f' | 's' | 'e' | 'n' => {
                     for &(digit, word) in &words {
-                        let upper = i + word.len();
-
-                        if line.len() < upper {
-                            continue;
+                        if line[i..].starts_with(word) {
+                            p2_first.get_or_insert(digit);
+                            p2_last.replace(digit);
+                            break;
                         }
-
-                        if word != &line[i..upper] {
-                            continue;
-                        }
-
-                        first.get_or_insert(digit);
-                        last.replace(digit);
-
-                        break;
                     }
                 }
-            });
+                _ => {}
+            };
+        }
 
-        let Some (first) = first else {
+        let Some(p1_first) = p1_first else {
             panic!("No first digit");
         };
 
-        let Some (last) = last else {
+        let Some(p1_last) = p1_last else {
+            panic!("No last digit");
+        };
+        let Some(p2_first) = p2_first else {
+            panic!("No first digit");
+        };
+
+        let Some(p2_last) = p2_last else {
             panic!("No last digit");
         };
 
-        part_two += first * 10 + last;
+        part_one += p1_first * 10 + p1_last;
+        part_two += p2_first * 10 + p2_last;
     }
 
     (part_one, part_two)
