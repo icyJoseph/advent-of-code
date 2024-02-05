@@ -23,7 +23,7 @@ const fn is_symbol(ch: char) -> bool {
     }
 }
 
-fn find_gears<'a>(arr: &'a str, at: usize, y: usize, gears: &mut Vec<(usize, usize)>) -> bool {
+fn find_gears(arr: &str, at: usize, y: usize, gears: &mut Vec<(usize, usize)>) -> bool {
     let lower = if at == 0 { 0 } else { at - 1 };
     let upper = if at == arr.len() - 1 { at } else { at + 1 };
 
@@ -58,9 +58,9 @@ fn main(input: &str) -> (u32, u32) {
     let mut part_two = 0;
 
     while let Some(current) = it.next() {
-        let next = it.peek();
-
         let (y, row) = current;
+
+        let next = it.peek();
 
         let mut current_part: Option<Part> = None;
 
