@@ -1,93 +1,78 @@
 use std::collections::{HashMap, HashSet};
 
-type Point = (usize, usize);
-
-#[derive(Debug, PartialEq, Eq, Hash)]
 struct Part {
-    members: Vec<Point>,
+    id: usize,
     value: u32,
+    is_valid: bool,
 }
 
 impl Part {
-    fn add_member(&mut self, member: Point, digit: u32) {
-        self.members.push(member);
+    fn update_value(&mut self, digit: u32) {
         self.value = self.value * 10 + digit;
+    }
+
+    fn set_valid(&mut self) {
+        self.is_valid = true;
     }
 }
 
-const fn as_key(x: usize, y: usize, width: usize) -> usize {
-    y * width + x
+const fn is_symbol(ch: char) -> bool {
+    match ch {
+        '0'..='9' | '.' => false,
+        _ => true,
+    }
 }
 
-// adjacency around a point
-fn calc_adj(members: &[Point], width: usize, height: usize) -> impl Iterator<Item = usize> + '_ {
-    members
-        .iter()
-        .map(move |point| {
-            let (x, y) = *point;
+fn find_gears<'a>(arr: &'a str, at: usize, y: usize, gears: &mut Vec<(usize, usize)>) -> bool {
+    let lower = if at == 0 { 0 } else { at - 1 };
+    let upper = if at == arr.len() - 1 { at } else { at + 1 };
 
-            let mut around = vec![];
+    let mut any_symbol = false;
+    let mut x = lower;
 
-            if y > 0 {
-                around.push(as_key(x, y - 1, width));
+    for ch in arr[lower..=upper].chars() {
+        if is_symbol(ch) {
+            any_symbol = true;
+        }
 
-                if x > 0 {
-                    around.push(as_key(x - 1, y, width));
-                    around.push(as_key(x - 1, y - 1, width));
-                }
-            }
+        if ch == '*' {
+            gears.push((x, y))
+        }
+        x += 1;
+    }
 
-            if y < height - 1 {
-                around.push(as_key(x, y + 1, width));
-
-                if x < width - 1 {
-                    around.push(as_key(x + 1, y, width));
-                    around.push(as_key(x + 1, y + 1, width));
-                }
-            }
-
-            if y > 0 && x < width - 1 {
-                around.push(as_key(x + 1, y - 1, width));
-            }
-            if x > 0 && y < height - 1 {
-                around.push(as_key(x - 1, y + 1, width));
-            }
-
-            around
-        })
-        .flatten()
+    any_symbol
 }
 
 #[aoc2023::main(03)]
 fn main(input: &str) -> (u32, u32) {
-    let height = input.lines().count();
-    let Some(first) = input.lines().nth(0) else {
-        panic!("No first row");
-    };
-    let width = first.chars().count();
+    let mut it = input.lines().enumerate().peekable();
 
-    let mut parts: Vec<Part> = vec![];
-    let mut gears = HashMap::<usize, HashSet<usize>>::new();
-    let mut occupied = HashSet::<usize>::new();
+    let mut prev: Option<(usize, &str)> = None;
 
-    for (y, row) in input.lines().enumerate() {
+    let mut gears = HashMap::<(usize, usize), HashSet<usize>>::new();
+    let mut parts = HashMap::<usize, u32>::new();
+    let mut part_id = 0;
+
+    let mut part_one = 0;
+    let mut part_two = 0;
+
+    while let Some(current) = it.next() {
+        let next = it.peek();
+
+        let (y, row) = current;
+
         let mut current_part: Option<Part> = None;
 
         for (x, ch) in row.chars().enumerate() {
             let Some(digit) = ch.to_digit(10) else {
-                match ch {
-                    '*' => {
-                        gears.insert(as_key(x, y, width), HashSet::new());
-                        occupied.insert(y * width + x);
-                    }
-                    _ if ch != '.' => {
-                        occupied.insert(y * width + x);
-                    }
-                    _ => {}
-                }
+                let Some(part) = current_part.take() else {
+                    continue;
+                };
 
-                if let Some(part) = current_part.take() {
-                    parts.push(part);
+                if part.is_valid {
+                    part_one += part.value;
+                    parts.insert(part.id, part.value);
                 }
 
                 continue;
@@ -95,62 +80,70 @@ fn main(input: &str) -> (u32, u32) {
 
             match current_part {
                 Some(mut part) => {
-                    part.add_member((x, y), digit);
+                    part.update_value(digit);
                     current_part = Some(part);
                 }
                 None => {
                     current_part = Some(Part {
-                        members: vec![(x, y)],
+                        id: part_id,
                         value: digit,
+                        is_valid: false,
                     });
+                    part_id += 1;
                 }
             }
+
+            let Some(mut part) = current_part.take() else {
+                panic!("Expected a part to work with");
+            };
+
+            let mut acc_gears: Vec<(usize, usize)> = vec![];
+
+            let in_row = find_gears(&row, x, y, &mut acc_gears);
+
+            let in_prev = match prev {
+                Some((_, p_row)) => find_gears(&p_row, x, y - 1, &mut acc_gears),
+                None => false,
+            };
+
+            let in_next = match next {
+                Some((_, n_row)) => find_gears(&n_row, x, y + 1, &mut acc_gears),
+                None => false,
+            };
+
+            if in_row || in_prev || in_next {
+                part.set_valid();
+            }
+
+            for &(sx, sy) in &acc_gears {
+                gears
+                    .entry((sx, sy))
+                    .or_insert(HashSet::new())
+                    .insert(part.id);
+            }
+
+            current_part = Some(part);
         }
 
-        if let Some(part) = current_part.take() {
-            parts.push(part);
+        prev = Some(current);
+
+        let Some(part) = current_part else {
+            continue;
+        };
+
+        if part.is_valid {
+            part_one += part.value;
+            parts.insert(part.id, part.value);
         }
     }
 
-    let mut part_one = 0;
-
-    let mut ratios = HashMap::<usize, u32>::new();
-
-    for (i, part) in parts.iter().enumerate() {
-        let adj = calc_adj(&part.members, width, height);
-
-        let mut part_one_done = 0;
-
-        for point in adj {
-            if part_one_done == 0 && occupied.contains(&point) {
-                part_one_done = part.value;
-            }
-
-            gears.entry(point).and_modify(|set| {
-                set.insert(i);
-
-                if set.len() == 2 {
-                    if ratios.contains_key(&point) {
-                        return;
-                    }
-
-                    ratios.insert(
-                        point,
-                        set.iter().fold(1, |acc, index| acc * parts[*index].value),
-                    );
-                } else {
-                    ratios.remove(&point);
-                }
-            });
+    for (_, ids) in gears {
+        if ids.len() == 2 {
+            part_two += ids
+                .iter()
+                .filter_map(|id| parts.get(id))
+                .fold(1, |acc, curr| acc * curr);
         }
-
-        part_one += part_one_done;
-    }
-
-    let mut part_two = 0;
-
-    for (_, ratio) in ratios {
-        part_two += ratio;
     }
 
     (part_one, part_two)
