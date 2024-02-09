@@ -1,0 +1,59 @@
+from collections.optional import Optional
+from algorithm import parallelize
+
+
+fn main() raises:
+    var f = open("./input/02.in", "r")
+    let lines = f.read().split("\n")
+    let total = len(lines)
+    f.close()
+
+    var part_one = 0
+    var part_two = 0
+
+    for index in range(0, total):
+        let game = lines[index].split(": ")
+        let sets = game[1].split("; ")
+        var game_value = index + 1
+
+        var max_red = Optional[Int]()
+        var max_green = Optional[Int]()
+        var max_blue = Optional[Int]()
+
+        for draw_index in range(0, len(sets)):
+            let roll = sets[draw_index].split(", ")
+
+            for dice in range(0, len(roll)):
+                let result = roll[dice].split(" ")
+
+                let value = atol(result[0])
+
+                let color = result[1]
+
+                if color == "red":
+                    if 12 < value:
+                        game_value = 0
+
+                    if not max_red or max_red.value() < value:
+                        max_red = Optional(value)
+
+                if color == "green":
+                    if 13 < value:
+                        game_value = 0
+
+                    if not max_green or max_green.value() < value:
+                        max_green = Optional(value)
+
+                if color == "blue":
+                    if 14 < value:
+                        game_value = 0
+                    if not max_blue or max_blue.value() < value:
+                        max_blue = Optional(value)
+
+        part_one += game_value
+
+        part_two += max_red.value() * max_green.value() * max_blue.value()
+
+    print("Part one:", part_one)
+
+    print("Part two:", part_two)
