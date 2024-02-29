@@ -1,5 +1,6 @@
 #[derive(Debug, Copy, Clone)]
 enum Card {
+    None,
     Num(usize),
     T,
     J,
@@ -23,6 +24,9 @@ impl Card {
             Card::Q => 12,
             Card::K => 13,
             Card::A => 14,
+            _ => {
+                panic!("Invalid play card")
+            }
         }
     }
 
@@ -83,7 +87,7 @@ impl Hand {
     }
 
     fn new(spec: &str, bid: usize) -> Self {
-        let mut cards = [Card::Num(0); 5];
+        let mut cards = [Card::None; 5];
         let mut members = [0; 13];
 
         for (i, ch) in spec.chars().enumerate() {
@@ -128,48 +132,48 @@ impl Hand {
     }
 }
 
+fn compare_cards(lhs: &Hand, rhs: &Hand) -> std::cmp::Ordering {
+    if lhs.kind == rhs.kind {
+        // tie breaker
+        for i in 0..5 {
+            let lhs = lhs.cards[i].get_value(lhs.with_joker);
+            let rhs = rhs.cards[i].get_value(rhs.with_joker);
+
+            if lhs == rhs {
+                continue;
+            }
+
+            return lhs.cmp(&rhs);
+        }
+    }
+
+    lhs.kind.cmp(&rhs.kind)
+}
+
 #[aoc2023::main(07)]
 fn main(input: &str) -> (usize, usize) {
     let mut hands: Vec<Hand> = vec![];
 
     for line in input.lines() {
         let mut desc = line.split(" ");
-        let Some(hand) = desc.next() else {
+        let Some(cards) = desc.next() else {
             panic!("cannot parse hand");
         };
 
         let Some(bid) = desc.next() else {
-            panic!("cannot parse bid");
+            panic!("cannot read bid");
         };
 
         let Ok(bid) = bid.parse::<usize>() else {
             panic!("cannot parse bid");
         };
 
-        hands.push(Hand::new(hand, bid));
+        hands.push(Hand::new(cards, bid));
     }
 
     for i in 0..hands.len() {
         hands[i].update_kind(false);
     }
-
-    let compare_cards = |lhs: &Hand, rhs: &Hand| {
-        if lhs.kind == rhs.kind {
-            // tie breaker
-            for i in 0..5 {
-                let lhs = lhs.cards[i].get_value(lhs.with_joker);
-                let rhs = rhs.cards[i].get_value(rhs.with_joker);
-
-                if lhs == rhs {
-                    continue;
-                }
-
-                return lhs.cmp(&rhs);
-            }
-        }
-
-        lhs.kind.cmp(&rhs.kind)
-    };
 
     hands.sort_by(compare_cards);
 
