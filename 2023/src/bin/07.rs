@@ -1,17 +1,71 @@
-use std::collections::HashMap;
+#[derive(Debug, Copy, Clone)]
+enum Card {
+    Num(usize),
+    T,
+    J,
+    Q,
+    K,
+    A,
+}
 
-fn get_type(card: &str) -> usize {
-    let mut freq: HashMap<char, usize> = HashMap::new();
-
-    for ch in card.chars() {
-        freq.entry(ch).and_modify(|c| *c += 1).or_insert(1);
+impl Card {
+    fn get_value(&self, with_joker: bool) -> usize {
+        match self {
+            Card::Num(n) => *n,
+            Card::T => 10,
+            Card::J => {
+                if with_joker {
+                    0
+                } else {
+                    11
+                }
+            }
+            Card::Q => 12,
+            Card::K => 13,
+            Card::A => 14,
+        }
     }
 
-    let mut sign = freq.values().copied().collect::<Vec<_>>();
+    fn get_position(&self) -> usize {
+        self.get_value(false) - 2
+    }
+}
 
-    sign.sort_by(|a, b| b.cmp(&a));
+#[derive(Debug)]
+struct Hand {
+    members: [usize; 13],
+    cards: [Card; 5],
+    bid: usize,
+    kind: usize,
+    with_joker: bool,
+}
 
-    match sign[..] {
+fn get_kind(members: [usize; 13], with_joker: bool) -> usize {
+    let joker_index = Card::J.get_position();
+
+    if members[joker_index] == 5 {
+        return 6;
+    }
+
+    let mut copy = members.to_vec();
+
+    if with_joker {
+        copy[joker_index] = 0;
+    }
+
+    copy = copy
+        .iter()
+        .filter(|&x| *x != 0)
+        .copied()
+        .collect::<Vec<usize>>();
+
+    copy.sort_by(|a, b| b.cmp(&a));
+
+    if with_joker {
+        copy[0] += members[joker_index];
+    }
+
+    match copy[..] {
         [5] => 6,
         [4, 1] => 5,
         [3, 2] => 4,
@@ -22,51 +76,61 @@ fn get_type(card: &str) -> usize {
     }
 }
 
-fn get_type_jk(card: &str) -> usize {
-    if card == "JJJJJ" {
-        return 6;
+impl Hand {
+    fn update_kind(&mut self, with_joker: bool) {
+        self.kind = get_kind(self.members, with_joker);
+        self.with_joker = with_joker;
     }
 
-    let mut freq: HashMap<char, usize> = HashMap::new();
+    fn new(spec: &str, bid: usize) -> Self {
+        let mut cards = [Card::Num(0); 5];
+        let mut members = [0; 13];
 
-    for ch in card.chars() {
-        freq.entry(ch).and_modify(|c| *c += 1).or_insert(1);
-    }
+        for (i, ch) in spec.chars().enumerate() {
+            match ch {
+                '2'..='9' => {
+                    let Some(digit) = ch.to_digit(10) else {
+                        panic!("Rust stuff");
+                    };
 
-    let j_freq = freq.remove_entry(&'J');
+                    cards[i] = Card::Num(digit as usize);
+                }
+                'T' => {
+                    cards[i] = Card::T;
+                }
+                'J' => {
+                    cards[i] = Card::J;
+                }
+                'Q' => {
+                    cards[i] = Card::Q;
+                }
+                'K' => {
+                    cards[i] = Card::K;
+                }
+                'A' => {
+                    cards[i] = Card::A;
+                }
+                _ => {
+                    panic!("invalid card char")
+                }
+            }
 
-    let mut sign = freq.values().copied().collect::<Vec<_>>();
+            members[cards[i].get_position()] += 1;
+        }
 
-    sign.sort_by(|a, b| b.cmp(&a));
-
-    sign[0] += match j_freq {
-        Some((_, c)) => c,
-        None => 0,
-    };
-
-    match sign[..] {
-        [5] => 6,
-        [4, 1] => 5,
-        [3, 2] => 4,
-        [3, 1, 1] => 3,
-        [2, 2, 1] => 2,
-        [2, 1, 1, 1] => 1,
-        _ => 0,
+        Hand {
+            cards,
+            members,
+            bid,
+            kind: 0,
+            with_joker: false,
+        }
     }
 }
 
 #[aoc2023::main(07)]
 fn main(input: &str) -> (usize, usize) {
-    let mut strength = [
-        'A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2',
-    ]
-    .iter()
-    .rev()
-    .enumerate()
-    .map(|(a, b)| (b, a + 1))
-    .collect::<HashMap<&char, usize>>();
-
-    let mut hands: Vec<(Vec<char>, usize, usize, usize)> = vec![];
+    let mut hands: Vec<Hand> = vec![];
 
     for line in input.lines() {
         let mut desc = line.split(" ");
@@ -82,57 +146,52 @@ fn main(input: &str) -> (usize, usize) {
             panic!("cannot parse bid");
         };
 
-        hands.push((
-            hand.chars().collect::<Vec<_>>(),
-            bid,
-            get_type(&hand),
-            get_type_jk(&hand),
-        ));
+        hands.push(Hand::new(hand, bid));
     }
 
-    hands.sort_by(|lhs, rhs| {
-        if lhs.2 == rhs.2 {
+    for i in 0..hands.len() {
+        hands[i].update_kind(false);
+    }
+
+    let compare_cards = |lhs: &Hand, rhs: &Hand| {
+        if lhs.kind == rhs.kind {
+            // tie breaker
             for i in 0..5 {
-                if lhs.0[i] == rhs.0[i] {
+                let lhs = lhs.cards[i].get_value(lhs.with_joker);
+                let rhs = rhs.cards[i].get_value(rhs.with_joker);
+
+                if lhs == rhs {
                     continue;
                 }
 
-                return strength.get(&lhs.0[i]).cmp(&strength.get(&rhs.0[i]));
+                return lhs.cmp(&rhs);
             }
         }
 
-        return lhs.2.cmp(&rhs.2);
-    });
+        lhs.kind.cmp(&rhs.kind)
+    };
+
+    hands.sort_by(compare_cards);
 
     let mut part_one = 0;
 
     for (pos, hand) in hands.iter().enumerate() {
-        let (_, bid, _, _) = hand;
+        let bid = hand.bid;
         let rank = pos + 1;
 
         part_one += rank * bid;
     }
 
-    strength.entry(&'J').and_modify(|c| *c = 0);
+    for i in 0..hands.len() {
+        hands[i].update_kind(true);
+    }
 
-    hands.sort_by(|lhs, rhs| {
-        if lhs.3 == rhs.3 {
-            for i in 0..5 {
-                if lhs.0[i] == rhs.0[i] {
-                    continue;
-                }
-
-                return strength.get(&lhs.0[i]).cmp(&strength.get(&rhs.0[i]));
-            }
-        }
-
-        return lhs.3.cmp(&rhs.3);
-    });
+    hands.sort_by(compare_cards);
 
     let mut part_two = 0;
 
     for (pos, hand) in hands.iter().enumerate() {
-        let (_, bid, _, _) = hand;
+        let bid = hand.bid;
         let rank = pos + 1;
 
         part_two += rank * bid;
