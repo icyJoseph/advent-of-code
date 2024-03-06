@@ -8,11 +8,15 @@ fn main(input: &str) -> (usize, usize) {
 
     let mut start: Point = (0, 0);
 
+    let mut total_tiles = 0;
+
     for (y, line) in input.lines().enumerate() {
         let mut chunk: [Vec<(char, Point)>; 3] = [vec![], vec![], vec![]];
 
         for (x, ch) in line.chars().enumerate() {
             let center: Point = (3 * x + 1, 3 * y + 1);
+
+            total_tiles += 1;
 
             let template = match ch {
                 '|' => VERTICAL,
@@ -54,15 +58,11 @@ fn main(input: &str) -> (usize, usize) {
 
     let root = normal(start.0, start.1, width);
 
-    let distance = walk_loop(root, &adj, &flat_grid, width * height);
-
-    let Some(&max_distance) = distance.iter().max() else {
-        panic!("No max distance")
-    };
+    let max_distance = walk_loop(root, &adj, &flat_grid, width * height);
 
     let outside = bfs_outside(0, &adj, &flat_grid);
 
-    (max_distance / 3, (width / 3) * (height / 3) - outside.len())
+    (max_distance / 3, total_tiles - outside.len())
 }
 
 type Adj = Vec<Vec<usize>>;
@@ -95,17 +95,16 @@ fn calc_adj(height: usize, width: usize) -> Adj {
     adj
 }
 
-fn walk_loop(root: usize, adj: &Adj, graph: &[(char, usize)], size: usize) -> Vec<usize> {
+fn walk_loop(root: usize, adj: &Adj, graph: &[(char, usize)], size: usize) -> usize {
     let mut distances = vec![0; size];
+    let mut max_distance = 0;
 
     let mut visited = vec![false; size];
 
     let mut q = VecDeque::new();
 
     visited[root] = true;
-
     q.push_back(root);
-
     distances[root] = 0;
 
     while let Some(elem) = q.pop_front() {
@@ -116,6 +115,11 @@ fn walk_loop(root: usize, adj: &Adj, graph: &[(char, usize)], size: usize) -> Ve
 
             if graph[vec].0 == '.' {
                 distances[vec] = distances[elem] + 1;
+
+                if distances[vec] > max_distance {
+                    max_distance = distances[vec];
+                }
+
                 visited[vec] = true;
 
                 q.push_back(vec);
@@ -123,7 +127,7 @@ fn walk_loop(root: usize, adj: &Adj, graph: &[(char, usize)], size: usize) -> Ve
         }
     }
 
-    distances
+    max_distance
 }
 
 fn bfs_outside(root: usize, adj: &Adj, graph: &[(char, usize)]) -> HashSet<usize> {
