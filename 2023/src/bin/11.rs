@@ -7,21 +7,24 @@ struct Point {
     y: usize,
 }
 
-fn calc_distance(from: usize, to: usize, occupied: &HashSet<usize>, multiplier: usize) -> usize {
+fn calc_distance(from: usize, to: usize, occupied: &HashSet<usize>) -> (usize, usize) {
     let lower = min(from, to);
     let upper = max(from, to);
 
-    let mut dist = 0;
+    let mut short = 0;
+    let mut long = 0;
 
     for i in lower..upper {
         if occupied.contains(&i) {
-            dist += 1;
+            short += 1;
+            long += 1;
         } else {
-            dist += 1 * multiplier;
+            short += 2;
+            long += 1_000_000;
         }
     }
 
-    dist
+    (short, long)
 }
 
 #[aoc2023::main(11)]
@@ -51,15 +54,12 @@ fn main(input: &str) -> (usize, usize) {
         let others = &points[i + 1..];
 
         for other in others {
-            let x_dist = calc_distance(current.x, other.x, &x_occupied, 2);
-            let y_dist = calc_distance(current.y, other.y, &y_occupied, 2);
+            let x_dist = calc_distance(current.x, other.x, &x_occupied);
+            let y_dist = calc_distance(current.y, other.y, &y_occupied);
 
-            p1 += x_dist + y_dist;
+            p1 += x_dist.0 + y_dist.0;
 
-            let x_dist = calc_distance(current.x, other.x, &x_occupied, 1_000_000);
-            let y_dist = calc_distance(current.y, other.y, &y_occupied, 1_000_000);
-
-            p2 += x_dist + y_dist;
+            p2 += x_dist.1 + y_dist.1;
         }
     }
 
