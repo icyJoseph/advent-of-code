@@ -11,20 +11,20 @@ fn calc_distance(from: usize, to: usize, occupied: &HashSet<usize>) -> (usize, u
     let lower = min(from, to);
     let upper = max(from, to);
 
-    let mut short = 0;
-    let mut long = 0;
+    let mut planets = 0;
 
-    for i in lower..upper {
-        if occupied.contains(&i) {
-            short += 1;
-            long += 1;
-        } else {
-            short += 2;
-            long += 1_000_000;
+    for &n in occupied {
+        if lower <= n && n < upper {
+            planets += 1;
         }
     }
 
-    (short, long)
+    let empty = upper - lower - planets;
+
+    let short_dist = planets + 2 * empty;
+    let long_dist = planets + 1_000_000 * empty;
+
+    (short_dist, long_dist)
 }
 
 #[aoc2023::main(11)]
@@ -58,7 +58,6 @@ fn main(input: &str) -> (usize, usize) {
             let y_dist = calc_distance(current.y, other.y, &y_occupied);
 
             p1 += x_dist.0 + y_dist.0;
-
             p2 += x_dist.1 + y_dist.1;
         }
     }
