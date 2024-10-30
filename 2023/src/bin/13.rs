@@ -1,13 +1,37 @@
+use std::cmp::min;
+
 #[derive(Debug)]
-struct Mirror<'a> {
+struct Mirror {
     cols: usize,
     rows: usize,
-    data: Vec<&'a str>,
+    data: Vec<Vec<char>>,
 }
 
-impl<'a> Mirror<'_> {
-    fn new(desc: &'a str) -> Mirror<'a> {
-        let data: Vec<&str> = desc.lines().collect();
+fn is_palindrome(line: &[char]) -> bool {
+    if line.len() == 0 {
+        return false;
+    }
+
+    let mut it = line.iter();
+
+    for _ in 0..line.len() / 2 {
+        let lhs = it.next();
+        let rhs = it.next_back();
+
+        if lhs != rhs {
+            return false;
+        }
+    }
+
+    true
+}
+
+impl Mirror {
+    fn new(desc: &str) -> Mirror {
+        let data: Vec<_> = desc
+            .lines()
+            .map(|l| l.chars().collect::<Vec<_>>())
+            .collect::<_>();
 
         let cols = data[0].len();
 
@@ -16,44 +40,30 @@ impl<'a> Mirror<'_> {
         Mirror { cols, rows, data }
     }
 
-    fn slice_rows(&self, from: usize, to: usize, rev: bool) -> String {
-        let mut rows = Vec::new();
+    fn slice_rows(&self, from: usize, to: usize) -> bool {
+        for i in 0..self.cols {
+            let slice = self.data[from..=to]
+                .iter()
+                .filter_map(|r| r.get(i))
+                .copied()
+                .collect::<Vec<_>>();
 
-        for at in from..=to {
-            if let Some(row) = self.data.get(at) {
-                rows.push(*row);
+            if !is_palindrome(&slice) {
+                return false;
             }
         }
 
-        if rev {
-            rows.reverse();
-        }
-
-        rows.join("\n")
+        true
     }
 
-    fn slice_cols(&self, from: usize, to: usize, rev: bool) -> String {
-        let mut cols = Vec::new();
-
-        for at in from..=to {
-            let payload = self
-                .data
-                .iter()
-                .filter_map(|r| r.chars().nth(at))
-                .collect::<String>();
-
-            if payload.is_empty() {
-                break;
+    fn slice_cols(&self, from: usize, to: usize) -> bool {
+        for row in &self.data {
+            if !is_palindrome(&row[from..=to]) {
+                return false;
             }
-
-            cols.push(payload)
         }
 
-        if rev {
-            cols.reverse();
-        }
-
-        cols.join("\n")
+        true
     }
 
     fn find_col_reflection(&self, at: usize) -> Option<usize> {
@@ -61,13 +71,16 @@ impl<'a> Mirror<'_> {
             return None;
         }
 
-        let delta = std::cmp::min(at, self.cols - at - 2);
+        let tail_count = self.cols - at - 1;
+        let head_count = at + 1;
 
-        if self.slice_cols(at - delta, at, false) == self.slice_cols(at + 1, at + 1 + delta, true) {
+        let count = min(head_count, tail_count);
+
+        if self.slice_cols(head_count - count, at + count) {
             return Some(at);
         }
 
-        return self.find_col_reflection(at + 1);
+        self.find_col_reflection(at + 1)
     }
 
     fn find_row_reflection(&self, at: usize) -> Option<usize> {
@@ -75,13 +88,16 @@ impl<'a> Mirror<'_> {
             return None;
         }
 
-        let delta = std::cmp::min(at, self.rows - at - 2);
+        let tail_count = self.rows - at - 1;
+        let head_count = at + 1;
 
-        if self.slice_rows(at - delta, at, false) == self.slice_rows(at + 1, at + 1 + delta, true) {
+        let count = min(head_count, tail_count);
+
+        if self.slice_rows(head_count - count, at + count) {
             return Some(at);
         }
 
-        return self.find_row_reflection(at + 1);
+        self.find_row_reflection(at + 1)
     }
 
     fn find_reflection(&self) -> usize {
@@ -99,6 +115,7 @@ impl<'a> Mirror<'_> {
 #[aoc2023::main(13)]
 fn main(input: &str) -> (usize, usize) {
     let mut part_one = 0;
+
     for line in input.split("\n\n") {
         let mirror = Mirror::new(line);
 
