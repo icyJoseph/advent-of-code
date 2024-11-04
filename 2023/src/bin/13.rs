@@ -7,25 +7,6 @@ struct Mirror {
     data: Vec<Vec<char>>,
 }
 
-fn is_palindrome(line: &[char]) -> bool {
-    if line.len() == 0 {
-        return false;
-    }
-
-    let mut it = line.iter();
-
-    for _ in 0..line.len() / 2 {
-        let lhs = it.next();
-        let rhs = it.next_back();
-
-        if lhs != rhs {
-            return false;
-        }
-    }
-
-    true
-}
-
 enum Slice {
     Row,
     Col,
@@ -45,49 +26,53 @@ impl Mirror {
         Mirror { cols, rows, data }
     }
 
-    fn slice_rows(&self, from: usize, to: usize) -> bool {
-        for i in 0..self.cols {
-            let slice = self.data[from..=to]
-                .iter()
-                .filter_map(|r| r.get(i))
-                .copied()
-                .collect::<Vec<_>>();
+    fn check_rows(&self, from: usize, to: usize) -> bool {
+        let middle = (from + to) / 2;
 
-            if !is_palindrome(&slice) {
-                return false;
+        for r in from..=middle {
+            for c in 0..self.cols {
+                if self.data[r][c] != self.data[to + from - r][c] {
+                    return false;
+                }
             }
         }
 
-        true
+        from < to
     }
 
-    fn slice_cols(&self, from: usize, to: usize) -> bool {
+    fn check_cols(&self, from: usize, to: usize) -> bool {
         for row in &self.data {
-            if !is_palindrome(&row[from..=to]) {
-                return false;
+            let mut it = row[from..=to].iter();
+
+            for _ in 0..it.len() / 2 {
+                let lhs = it.next();
+                let rhs = it.next_back();
+
+                if lhs != rhs {
+                    return false;
+                }
             }
         }
 
-        true
+        from < to
     }
 
     fn find_reflection_index(&self, at: usize, line: Slice, skip: Option<usize>) -> Option<usize> {
+        let total = match line {
+            Slice::Row => self.rows,
+            Slice::Col => self.cols,
+        };
+
+        if at == total {
+            return None;
+        }
+
         match skip {
-            Some(index) if at == index => {
-                // noop
-            }
+            Some(index) if index == at => {}
+
             _ => {
-                let total = match line {
-                    Slice::Row => self.rows,
-                    Slice::Col => self.cols,
-                };
-
-                if at == total {
-                    return None;
-                }
-
-                let tail_count = total - at - 1;
                 let head_count = at + 1;
+                let tail_count = total - head_count;
 
                 let count = min(head_count, tail_count);
 
@@ -95,8 +80,8 @@ impl Mirror {
                 let to = at + count;
 
                 let result = match line {
-                    Slice::Row => self.slice_rows(from, to),
-                    Slice::Col => self.slice_cols(from, to),
+                    Slice::Row => self.check_rows(from, to),
+                    Slice::Col => self.check_cols(from, to),
                 };
 
                 if result {
