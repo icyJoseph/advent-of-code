@@ -6,13 +6,13 @@ fn main(input: &str) -> (usize, u64) {
         panic!("no time");
     };
 
-    let time = time.split(" ").filter_map(|n| n.parse::<usize>().ok());
+    let time = time.split(' ').filter_map(|n| n.parse::<usize>().ok());
 
     let Some(distance) = lines.next() else {
         panic!("no distance");
     };
 
-    let distance = distance.split(" ").filter_map(|n| n.parse::<usize>().ok());
+    let distance = distance.split(' ').filter_map(|n| n.parse::<usize>().ok());
 
     let race = time.zip(distance);
 
@@ -35,7 +35,7 @@ fn main(input: &str) -> (usize, u64) {
         panic!("no time");
     };
 
-    let Ok(time) = time.replace("Time:", "").replace(" ", "").parse::<u64>() else {
+    let Ok(time) = time.replace("Time:", "").replace(' ', "").parse::<u64>() else {
         panic!("Can't parse large time");
     };
 
@@ -45,7 +45,7 @@ fn main(input: &str) -> (usize, u64) {
 
     let Ok(distance) = distance
         .replace("Distance:", "")
-        .replace(" ", "")
+        .replace(' ', "")
         .parse::<u64>()
     else {
         panic!("Can't parse large distance");

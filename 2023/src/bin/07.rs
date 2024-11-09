@@ -63,7 +63,7 @@ fn get_kind(members: [usize; 13], with_joker: bool) -> usize {
         .copied()
         .collect::<Vec<usize>>();
 
-    copy.sort_by(|a, b| b.cmp(&a));
+    copy.sort_by(|a, b| b.cmp(a));
 
     if with_joker {
         copy[0] += members[joker_index];
@@ -155,7 +155,7 @@ fn main(input: &str) -> (usize, usize) {
     let mut hands: Vec<Hand> = vec![];
 
     for line in input.lines() {
-        let mut desc = line.split(" ");
+        let mut desc = line.split(' ');
         let Some(cards) = desc.next() else {
             panic!("cannot parse hand");
         };
@@ -171,9 +171,9 @@ fn main(input: &str) -> (usize, usize) {
         hands.push(Hand::new(cards, bid));
     }
 
-    for i in 0..hands.len() {
-        hands[i].update_kind(false);
-    }
+    hands.iter_mut().for_each(|hand| {
+        hand.update_kind(false);
+    });
 
     hands.sort_by(compare_cards);
 
@@ -186,9 +186,9 @@ fn main(input: &str) -> (usize, usize) {
         part_one += rank * bid;
     }
 
-    for i in 0..hands.len() {
-        hands[i].update_kind(true);
-    }
+    hands.iter_mut().for_each(|hand| {
+        hand.update_kind(true);
+    });
 
     hands.sort_by(compare_cards);
 

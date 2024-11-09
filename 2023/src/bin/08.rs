@@ -46,21 +46,18 @@ fn main(input: &str) -> (usize, usize) {
     for step in cycle {
         part_one += 1;
 
-        match current {
-            Some([lhs, rhs]) => {
-                let next = match step {
-                    'L' => lhs,
-                    'R' => rhs,
-                    _ => panic!("Rust stuff"),
-                };
+        if let Some([lhs, rhs]) = current {
+            let next = match step {
+                'L' => lhs,
+                'R' => rhs,
+                _ => panic!("Rust stuff"),
+            };
 
-                if *next == "ZZZ" {
-                    break;
-                }
-
-                current = graph.get(next);
+            if *next == "ZZZ" {
+                break;
             }
-            _ => {}
+
+            current = graph.get(next);
         }
     }
 
@@ -73,28 +70,22 @@ fn main(input: &str) -> (usize, usize) {
 
     let mut periods = vec![];
 
-    let mut count = 0;
-    for step in cycle {
-        count += 1;
+    for (count, step) in cycle.enumerate() {
+        nodes.iter_mut().for_each(|node| {
+            if let Some([lhs, rhs]) = graph.get(*node) {
+                let next = match step {
+                    'L' => lhs,
+                    'R' => rhs,
+                    _ => panic!("Rust stuff"),
+                };
 
-        for i in 0..nodes.len() {
-            match graph.get(nodes[i]) {
-                Some([lhs, rhs]) => {
-                    let next = match step {
-                        'L' => lhs,
-                        'R' => rhs,
-                        _ => panic!("Rust stuff"),
-                    };
-
-                    if next.ends_with('Z') {
-                        periods.push(count);
-                    }
-
-                    nodes[i] = next;
+                if next.ends_with('Z') {
+                    periods.push(count + 1);
                 }
-                _ => {}
+
+                *node = next;
             }
-        }
+        });
 
         if periods.len() == nodes.len() {
             break;

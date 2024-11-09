@@ -12,7 +12,7 @@ fn main(input: &str) -> (usize, usize) {
 
             let results = tail
                 .split("; ")
-                .map(|draw| draw.split(", ").map(|dice| dice.split(" ")));
+                .map(|draw| draw.split(", ").map(|dice| dice.split(' ')));
 
             let mut max_red: usize = 0;
             let mut max_green: usize = 0;
@@ -60,7 +60,5 @@ fn main(input: &str) -> (usize, usize) {
 
             (p1, p2)
         })
-        .fold((0, 0), |acc, curr| {
-            return (acc.0 + curr.0, acc.1 + curr.1);
-        })
+        .fold((0, 0), |acc, curr| (acc.0 + curr.0, acc.1 + curr.1))
 }

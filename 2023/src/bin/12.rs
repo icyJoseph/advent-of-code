@@ -7,7 +7,7 @@ struct Counter {
 
 impl Counter {
     fn new() -> Self {
-        return Counter { current: 0 };
+        Counter { current: 0 }
     }
 
     fn inc(&mut self) {
@@ -19,7 +19,7 @@ impl Counter {
     }
 
     fn get_value(&self) -> usize {
-        return self.current;
+        self.current
     }
 }
 
@@ -28,7 +28,7 @@ fn main(input: &str) -> (usize, usize) {
     let mut part_one = 0;
 
     for line in input.lines() {
-        let mut spec = line.split(" ");
+        let mut spec = line.split(' ');
 
         let Some(springs) = spec.next() else {
             panic!("Can't read map");
@@ -39,7 +39,7 @@ fn main(input: &str) -> (usize, usize) {
         };
 
         let config = config
-            .split(",")
+            .split(',')
             .filter_map(|x| x.parse::<usize>().ok())
             .collect::<Vec<_>>();
 
@@ -57,7 +57,7 @@ fn main(input: &str) -> (usize, usize) {
     let mut part_two = 0;
 
     for line in input.lines() {
-        let mut spec = line.split(" ");
+        let mut spec = line.split(' ');
 
         let Some(springs) = spec.next() else {
             panic!("Can't read map");
@@ -68,7 +68,7 @@ fn main(input: &str) -> (usize, usize) {
         };
 
         let config = config
-            .split(",")
+            .split(',')
             .filter_map(|x| x.parse::<usize>().ok())
             .collect::<Vec<_>>();
 
@@ -94,7 +94,7 @@ fn search(
     config: &[usize],
     carry: &mut Counter,
     seen: &mut HashMap<String, usize>,
-) -> () {
+) {
     let springs_key: String = springs.iter().collect::<String>();
     let configs_key: String = config
         .iter()
@@ -114,7 +114,7 @@ fn search(
         return;
     }
 
-    let space_needed = if config.len() == 0 {
+    let space_needed = if config.is_empty() {
         0
     } else {
         config.iter().sum::<usize>() + config.len() - 1
@@ -151,7 +151,7 @@ fn search(
             let long_block = springs[..config[0]]
                 .iter()
                 .collect::<String>()
-                .replace("?", "#");
+                .replace('?', "#");
 
             let mut should_search = true;
 
@@ -193,5 +193,4 @@ fn search(
     }
 
     carry.inc_by(local.get_value());
-    return;
 }

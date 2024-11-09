@@ -22,7 +22,7 @@ fn main(input: &str) -> (i32, i32) {
 
     for row in input.lines() {
         let values = row
-            .split(" ")
+            .split(' ')
             .filter_map(|c| c.parse::<i32>().ok())
             .collect::<Vec<_>>();
 

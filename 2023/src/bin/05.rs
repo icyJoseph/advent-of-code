@@ -5,7 +5,7 @@ const fn mapper(value: u64, rule: (u64, u64, u64)) -> u64 {
         return dest + value - from;
     }
 
-    return value;
+    value
 }
 
 fn expand_range(range: (u64, u64, bool), rule: &[u64]) -> Vec<(u64, u64, bool)> {
@@ -65,14 +65,14 @@ fn main(input: &str) -> (u64, u64) {
     };
 
     let seeds: Vec<u64> = seeds
-        .split(" ")
+        .split(' ')
         .filter_map(|n| n.parse::<u64>().ok())
         .collect();
 
     let mut groups: Vec<Vec<Vec<u64>>> = vec![];
 
     while let Some(row) = lines.next() {
-        if row == "" {
+        if row.is_empty() {
             continue;
         }
 
@@ -83,19 +83,19 @@ fn main(input: &str) -> (u64, u64) {
         let mut local_rules: Vec<Vec<u64>> = vec![];
 
         let rule = row
-            .split(" ")
+            .split(' ')
             .filter_map(|n| n.parse::<u64>().ok())
             .collect::<Vec<u64>>();
 
         local_rules.push(rule);
 
-        while let Some(line) = lines.next() {
-            if line == "" {
+        for line in lines.by_ref() {
+            if line.is_empty() {
                 break;
             }
 
             let rule = line
-                .split(" ")
+                .split(' ')
                 .filter_map(|n| n.parse::<u64>().ok())
                 .collect::<Vec<u64>>();
 

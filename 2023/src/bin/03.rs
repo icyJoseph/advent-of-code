@@ -17,10 +17,7 @@ impl Part {
 }
 
 const fn is_symbol(ch: char) -> bool {
-    match ch {
-        '0'..='9' | '.' => false,
-        _ => true,
-    }
+    !matches!(ch, '0'..='9' | '.')
 }
 
 fn find_gears(arr: &str, at: usize, y: usize, gears: &mut Vec<(usize, usize)>) -> bool {
@@ -99,27 +96,24 @@ fn main(input: &str) -> (u32, u32) {
 
             let mut acc_gears: Vec<(usize, usize)> = vec![];
 
-            let in_row = find_gears(&row, x, y, &mut acc_gears);
-
             let in_prev = match prev {
-                Some((_, p_row)) => find_gears(&p_row, x, y - 1, &mut acc_gears),
+                Some((_, p_row)) => find_gears(p_row, x, y - 1, &mut acc_gears),
                 None => false,
             };
 
             let in_next = match next {
-                Some((_, n_row)) => find_gears(&n_row, x, y + 1, &mut acc_gears),
+                Some((_, n_row)) => find_gears(n_row, x, y + 1, &mut acc_gears),
                 None => false,
             };
+
+            let in_row = find_gears(row, x, y, &mut acc_gears);
 
             if in_row || in_prev || in_next {
                 part.set_valid();
             }
 
             for &(sx, sy) in &acc_gears {
-                gears
-                    .entry((sx, sy))
-                    .or_insert(HashSet::new())
-                    .insert(part.id);
+                gears.entry((sx, sy)).or_default().insert(part.id);
             }
 
             current_part = Some(part);
@@ -139,10 +133,7 @@ fn main(input: &str) -> (u32, u32) {
 
     for (_, ids) in gears {
         if ids.len() == 2 {
-            part_two += ids
-                .iter()
-                .filter_map(|id| parts.get(id))
-                .fold(1, |acc, curr| acc * curr);
+            part_two += ids.iter().filter_map(|id| parts.get(id)).product::<u32>();
         }
     }
 

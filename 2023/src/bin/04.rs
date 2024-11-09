@@ -26,14 +26,12 @@ fn main(input: &str) -> (usize, usize) {
         };
 
         let winning = winning
-            .split(" ")
-            .into_iter()
+            .split(' ')
             .filter_map(|n| n.trim().parse::<u32>().ok())
             .collect::<HashSet<u32>>();
 
         let result = result
-            .split(" ")
-            .into_iter()
+            .split(' ')
             .filter_map(|n| n.trim().parse::<u32>().ok());
 
         let mut matches = 0;
