@@ -1,5 +1,5 @@
 #[derive(Debug)]
-struct State(u32);
+struct State(usize);
 
 impl State {
     fn new() -> Self {
@@ -7,7 +7,7 @@ impl State {
     }
 
     fn hash(&mut self, ch: char) -> &mut Self {
-        let code = ch as u32;
+        let code = ch as usize;
 
         self.0 += code;
         self.0 *= 17;
@@ -15,22 +15,160 @@ impl State {
 
         self
     }
-}
 
-#[aoc2023::main(15)]
-fn main(input: &str) -> (u32, usize) {
-    let steps = input.split(',');
-
-    let mut part_one = 0;
-
-    for step in steps {
+    fn hash_word(word: &str) -> usize {
         let mut state = State::new();
-        for ch in step.chars() {
+        for ch in word.chars() {
             state.hash(ch);
         }
 
-        part_one += state.0;
+        state.0
+    }
+}
+
+#[derive(Debug)]
+struct Lense {
+    label: String,
+    length: usize,
+}
+
+impl Lense {
+    fn new(label: Option<&str>, focal_length: Option<&str>) -> Self {
+        match (label, focal_length) {
+            (Some(label), Some(focal_length)) => {
+                let Ok(length) = focal_length.parse::<usize>() else {
+                    panic!("Invalid focal length");
+                };
+
+                Lense {
+                    label: label.to_string(),
+                    length,
+                }
+            }
+            (_, _) => panic!("Invalid lense inputs"),
+        }
     }
 
-    (part_one, 0)
+    fn new_vec(input: &str) -> Vec<Self> {
+        input
+            .split(',')
+            .filter_map(|r| {
+                if r.ends_with('-') {
+                    return None;
+                }
+
+                let mut spec = r.split('=');
+
+                Some(Lense::new(spec.next(), spec.next()))
+            })
+            .collect::<Vec<_>>()
+    }
+}
+
+#[derive(Debug)]
+struct Box<'a> {
+    id: usize,
+    lenses: Vec<&'a Lense>,
+}
+
+impl<'a> Box<'a> {
+    fn new(id: usize) -> Self {
+        Box {
+            id,
+            lenses: Vec::new(),
+        }
+    }
+
+    fn add(&mut self, lense: &'a Lense) {
+        let label = &lense.label;
+
+        if let Some(position) = self.lenses.iter().position(|l| l.label == *label) {
+            self.lenses[position] = lense;
+            return;
+        }
+
+        self.lenses.push(lense);
+    }
+
+    fn remove(&mut self, label: &str) {
+        if let Some(position) = self.lenses.iter().position(|l| l.label == label) {
+            self.lenses.remove(position);
+        }
+    }
+}
+
+struct Boxes<'a>([Box<'a>; 256]);
+
+impl<'a> Boxes<'a> {
+    fn new() -> Self {
+        Boxes(core::array::from_fn(Box::new))
+    }
+
+    fn process(&mut self, instruction: &str, lenses: &'a [Lense]) {
+        if instruction.ends_with('-') {
+            let label = &instruction[0..instruction.len() - 1];
+
+            let index = State::hash_word(label);
+
+            if let Some(current_box) = self.0.get_mut(index) {
+                current_box.remove(label);
+            }
+
+            return;
+        }
+
+        let mut spec = instruction.split('=');
+
+        let Some(label) = spec.next() else {
+            panic!("No label, {instruction}");
+        };
+
+        let Some(length) = spec.next() else {
+            panic!("No label, {instruction}");
+        };
+
+        let Ok(length) = length.parse::<usize>() else {
+            panic!("Invalid length {length}");
+        };
+
+        let index = State::hash_word(label);
+
+        if let Some(lense) = lenses
+            .iter()
+            .find(|l| l.label == label && l.length == length)
+        {
+            if let Some(current_box) = self.0.get_mut(index) {
+                current_box.add(lense)
+            }
+        };
+    }
+
+    fn calc_power(&self) -> usize {
+        self.0
+            .iter()
+            .map(|current_box| {
+                current_box
+                    .lenses
+                    .iter()
+                    .enumerate()
+                    .map(|(index, lense)| (current_box.id + 1) * (index + 1) * (lense.length))
+                    .sum::<usize>()
+            })
+            .sum::<usize>()
+    }
+}
+
+#[aoc2023::main(15)]
+fn main(input: &str) -> (usize, usize) {
+    let mut part_one = 0;
+
+    let mut boxes = Boxes::new();
+    let lenses = Lense::new_vec(input);
+
+    for instruction in input.split(',') {
+        part_one += State::hash_word(instruction);
+        boxes.process(instruction, &lenses);
+    }
+
+    (part_one, boxes.calc_power())
 }
