@@ -1,4 +1,3 @@
-#[derive(Debug)]
 struct State(usize);
 
 impl State {
@@ -26,7 +25,6 @@ impl State {
     }
 }
 
-#[derive(Debug)]
 struct Lense {
     label: String,
     length: usize,
@@ -65,7 +63,6 @@ impl Lense {
     }
 }
 
-#[derive(Debug)]
 struct Box<'a> {
     id: usize,
     lenses: Vec<&'a Lense>,
@@ -82,18 +79,22 @@ impl<'a> Box<'a> {
     fn add(&mut self, lense: &'a Lense) {
         let label = &lense.label;
 
-        if let Some(position) = self.lenses.iter().position(|l| l.label == *label) {
-            self.lenses[position] = lense;
-            return;
+        match self.lenses.iter().position(|l| l.label == *label) {
+            Some(position) => {
+                self.lenses[position] = lense;
+            }
+            None => {
+                self.lenses.push(lense);
+            }
         }
-
-        self.lenses.push(lense);
     }
 
     fn remove(&mut self, label: &str) {
-        if let Some(position) = self.lenses.iter().position(|l| l.label == label) {
-            self.lenses.remove(position);
-        }
+        let Some(position) = self.lenses.iter().position(|l| l.label == label) else {
+            return;
+        };
+
+        self.lenses.remove(position);
     }
 }
 
@@ -131,15 +132,17 @@ impl<'a> Boxes<'a> {
             panic!("Invalid length {length}");
         };
 
-        let index = State::hash_word(label);
-
-        if let Some(lense) = lenses
+        let Some(lense) = lenses
             .iter()
             .find(|l| l.label == label && l.length == length)
-        {
-            if let Some(current_box) = self.0.get_mut(index) {
-                current_box.add(lense)
-            }
+        else {
+            return;
+        };
+
+        let index = State::hash_word(label);
+
+        if let Some(current_box) = self.0.get_mut(index) {
+            current_box.add(lense)
         };
     }
 
