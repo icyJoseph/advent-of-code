@@ -65,7 +65,6 @@ const solve = async (path: string) => {
       id,
       lenses: [] as Array<{
         label: string;
-        seq: string;
         length: number;
       }>,
     }));
