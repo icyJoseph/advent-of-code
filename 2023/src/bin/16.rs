@@ -1,15 +1,11 @@
-#[derive(Clone, Debug, Copy)]
+use std::collections::HashSet;
+
+#[derive(Debug, Clone, Copy)]
 enum Dir {
-    Up,
+    Up = 1,
     Down,
     Left,
     Right,
-}
-
-impl std::fmt::Display for Dir {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -25,14 +21,12 @@ impl Beam {
     }
 
     fn move_on(&mut self) -> &mut Self {
-        // println!("{self:?}");
         match self.dir {
             Dir::Left => self.head.0 = self.head.0.saturating_sub(1),
             Dir::Right => self.head.0 += 1,
             Dir::Up => self.head.1 = self.head.1.saturating_sub(1),
             Dir::Down => self.head.1 += 1,
         }
-        // println!("{self:?}");
 
         self
     }
@@ -69,8 +63,8 @@ impl Beam {
         }
     }
 
-    fn hash(&self) -> String {
-        format!("{}::{}::{}", self.head.0, self.head.1, self.dir)
+    fn hash(&self) -> usize {
+        1_000_000 * (self.dir as usize) + self.head.1 * 1_000 + self.head.0
     }
 }
 
@@ -158,54 +152,73 @@ impl Grid {
 
         new_beam
     }
+
+    fn beam_stream(&self, start: &Beam) -> usize {
+        let mut touched: HashSet<usize> = HashSet::new();
+        let mut seen: HashSet<usize> = HashSet::new();
+
+        let mut beams = vec![*start];
+
+        touched.insert(self.normal_coord(beams[0].head));
+
+        loop {
+            if beams.is_empty() {
+                break;
+            }
+
+            let mut acc = vec![];
+
+            for beam in beams.iter_mut() {
+                if seen.contains(&beam.hash()) {
+                    continue;
+                }
+
+                seen.insert(beam.hash());
+
+                if self.in_bounds(beam.head) {
+                    touched.insert(self.normal_coord(beam.head));
+                }
+
+                if let Some(new_beam) = self.beam(beam) {
+                    acc.push(new_beam);
+                }
+
+                acc.push(*beam);
+            }
+
+            beams = acc;
+        }
+
+        for beam in beams.iter() {
+            if self.in_bounds(beam.head) {
+                touched.insert(self.normal_coord(beam.head));
+            }
+        }
+
+        touched.len()
+    }
 }
 
 #[aoc2023::main(16)]
 fn main(input: &str) -> (usize, usize) {
     let grid = Grid::new(input);
 
-    use std::collections::HashSet;
+    let start = Beam::new((0, 0), Dir::Right);
 
-    let mut touched: HashSet<usize> = HashSet::new();
-    let mut seen: HashSet<String> = HashSet::new();
+    let part_one = grid.beam_stream(&start);
 
-    let mut beams = vec![Beam::new((0, 0), Dir::Right)];
+    let part_two = (0..grid.1)
+        .flat_map(|c| {
+            [
+                Beam::new((c, 0), Dir::Down),
+                Beam::new((c, grid.2 - 1), Dir::Up),
+                Beam::new((grid.1 - 1, c), Dir::Right),
+                Beam::new((0, c), Dir::Left),
+            ]
+        })
+        .map(|start| grid.beam_stream(&start))
+        .max()
+        .unwrap_or(0);
 
-    touched.insert(grid.normal_coord(beams[0].head));
-
-    loop {
-        if beams.is_empty() {
-            break;
-        }
-
-        let mut acc = vec![];
-
-        for beam in beams.iter_mut() {
-            if seen.contains(&beam.hash()) {
-                continue;
-            }
-
-            seen.insert(beam.hash());
-
-            if grid.in_bounds(beam.head) {
-                touched.insert(grid.normal_coord(beam.head));
-            }
-
-            if let Some(new_beam) = grid.beam(beam) {
-                acc.push(new_beam);
-            }
-
-            acc.push(*beam);
-        }
-
-        beams = acc;
-    }
-
-    for beam in beams.iter() {
-        if grid.in_bounds(beam.head) {
-            touched.insert(grid.normal_coord(beam.head));
-        }
-    }
-
-    (touched.len(), 0)
+    (part_one, part_two)
 }
