@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 enum Dir {
     Up = 1,
     Down,
@@ -8,7 +8,7 @@ enum Dir {
     Right,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 struct Beam {
     // (x, y)
     head: (usize, usize),
@@ -56,13 +56,6 @@ impl Beam {
         self.move_on()
     }
 
-    fn split(&self) -> Self {
-        Beam {
-            head: self.head,
-            dir: self.dir,
-        }
-    }
-
     fn hash(&self) -> usize {
         1_000_000 * (self.dir as usize) + self.head.1 * 1_000 + self.head.0
     }
@@ -90,7 +83,7 @@ impl Grid {
         position.0 < width && position.1 < height
     }
 
-    fn beam(&self, beam: &mut Beam) -> Option<Beam> {
+    fn move_beam(&self, beam: &mut Beam) -> Option<Beam> {
         let Some(row) = &self.0.get(beam.head.1) else {
             return None;
         };
@@ -124,7 +117,7 @@ impl Grid {
                     beam.move_on();
                 }
                 Dir::Up | Dir::Down => {
-                    let mut split_beam = beam.split();
+                    let mut split_beam = *beam;
                     beam.rotate_clockwise();
 
                     split_beam.rotate_counter_clockwise();
@@ -134,7 +127,7 @@ impl Grid {
             },
             '|' => match beam.dir {
                 Dir::Left | Dir::Right => {
-                    let mut split_beam = beam.split();
+                    let mut split_beam = *beam;
                     beam.rotate_clockwise();
 
                     split_beam.rotate_counter_clockwise();
@@ -166,7 +159,7 @@ impl Grid {
                 break;
             }
 
-            let mut acc = vec![];
+            let mut acc = Vec::new();
 
             for beam in beams.iter_mut() {
                 if seen.contains(&beam.hash()) {
@@ -179,7 +172,7 @@ impl Grid {
                     touched.insert(self.normal_coord(beam.head));
                 }
 
-                if let Some(new_beam) = self.beam(beam) {
+                if let Some(new_beam) = self.move_beam(beam) {
                     acc.push(new_beam);
                 }
 
@@ -187,12 +180,6 @@ impl Grid {
             }
 
             beams = acc;
-        }
-
-        for beam in beams.iter() {
-            if self.in_bounds(beam.head) {
-                touched.insert(self.normal_coord(beam.head));
-            }
         }
 
         touched.len()
@@ -211,9 +198,10 @@ fn main(input: &str) -> (usize, usize) {
         .flat_map(|c| {
             [
                 Beam::new((c, 0), Dir::Down),
+                // grid is a square
                 Beam::new((c, grid.2 - 1), Dir::Up),
-                Beam::new((grid.1 - 1, c), Dir::Right),
                 Beam::new((0, c), Dir::Left),
+                Beam::new((grid.1 - 1, c), Dir::Right),
             ]
         })
         .map(|start| grid.beam_stream(&start))
