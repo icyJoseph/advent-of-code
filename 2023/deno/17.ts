@@ -15,7 +15,7 @@ const isExample = Deno.args.includes("--example");
 function bubbleUp<T>(
   items: Array<T>,
   compare: (a: T, b: T) => number,
-  j: number
+  j: number,
 ): void {
   let i = ((j - 1) / 2) >> 0; // parent node index
   while (j > 0 && compare(items[i], items[j]) < 0) {
@@ -31,7 +31,7 @@ function sinkDown<T>(
   items: Array<T>,
   compare: (a: T, b: T) => number,
   i: number,
-  n?: number
+  n?: number,
 ): void {
   let j, k: number;
   n = n ?? items.length;
@@ -63,7 +63,7 @@ class Heap<T> {
   private items: Array<T>;
 
   public constructor(
-    private compare: (a: T, b: T) => number
+    private compare: (a: T, b: T) => number,
   ) {
     this.items = new Array<T>();
   }
@@ -100,77 +100,59 @@ class Heap<T> {
   }
 }
 
-const inBound = (n: number, bound: number, lower = 0) =>
-  n >= lower && n < bound;
-
 type Entry = {
   score: number;
-  current: [number, number];
+  x: number;
+  y: number;
   steps: number;
-  dir: number[];
+  dir: { dx: number; dy: number; rank: number };
 };
 
-const getScore = (
-  entry: Entry,
-  grid: { cell: string }[][]
-) => {
-  const dist =
-    Math.abs(grid.length - entry.current[1]) +
-    Math.abs(grid[0].length - entry.current[0]);
-
-  return dist + entry.score;
+const compareEntries = (lhs: Entry, rhs: Entry) => {
+  return rhs.score + rhs.y + rhs.x -
+    (lhs.score + lhs.y + lhs.x);
 };
-const compareScoreFn =
-  (grid: { cell: string }[][]) =>
-  (lhs: Entry, rhs: Entry) => {
-    return -getScore(lhs, grid) + getScore(rhs, grid);
-  };
+
+const hashEntry = (x: number, y: number, rank: number, steps: number) => {
+  // works only in grids less than 1000 items wide or tall
+  return 1_000_000_000 + y * 10_000_000 + x * 10_000 + steps * 10 +
+    rank;
+};
 
 const [D, L, U, R] = [
   [0, 1], // Down
   [-1, 0], // Left
   [0, -1], // Up
   [1, 0], // Right
-];
+].map(([dx, dy], rank) => ({ dx, dy, rank }));
 
 const dirs = [D, L, U, R];
-
-const reverse = new Map();
-
-reverse.set(D, U);
-reverse.set(U, D);
-reverse.set(L, R);
-reverse.set(R, L);
 
 function bfs({
   start,
   end,
   grid,
-  width,
-  height,
   stepRule,
 }: {
   start: [number, number];
   end: [number, number];
-  grid: { cell: string }[][];
-  width: number;
-  height: number;
+  grid: { cell: number }[][];
   stepRule: (prev: number, current: number) => boolean;
 }) {
-  const compare = compareScoreFn(grid);
+  const q = new Heap<Entry>(compareEntries);
 
-  const q = new Heap<Entry>(compare);
-
-  const visited: Record<string, number> = {};
+  const visited: Map<number, number> = new Map();
 
   q.push({
-    current: start,
+    x: start[0],
+    y: start[1],
     score: 0,
     steps: 0,
     dir: D,
   });
   q.push({
-    current: start,
+    x: start[0],
+    y: start[1],
     score: 0,
     steps: 0,
     dir: R,
@@ -182,61 +164,59 @@ function bfs({
     if (node == null) break;
 
     if (
-      node.current[0] === end[0] &&
-      node.current[1] === end[1] &&
+      node.x === end[0] &&
+      node.y === end[1] &&
       stepRule(node.steps, node.steps)
     ) {
       return node.score;
     }
 
-    // [x,y]
-    const adj = dirs
-      .map((dir) => {
-        const [dx, dy] = dir;
-        const current: [number, number] = [
-          node.current[0] + dx,
-          node.current[1] + dy,
-        ];
-        return {
-          current,
-          steps: dir === node.dir ? node.steps + 1 : 1,
+    dirs
+      .forEach((dir) => {
+        const x = node.x + dir.dx;
+        const y = node.y + dir.dy;
+
+        const cell = grid[y]?.[x]?.cell;
+
+        if (!cell) {
+          return;
+        }
+
+        if (
+          dir.dx + node.dir.dx === 0 &&
+          dir.dy + node.dir.dy === 0
+        ) {
+          return;
+        }
+
+        const steps = dir === node.dir ? node.steps + 1 : 1;
+
+        if (!stepRule(node.steps, steps)) {
+          return;
+        }
+
+        const key = hashEntry(x, y, dir.rank, steps);
+
+        const currentScore = visited.get(key) ?? Infinity;
+
+        const score = node.score + cell;
+
+        if (currentScore <= score) {
+          return;
+        }
+
+        visited.set(key, score);
+
+        const entry = {
+          x,
+          y,
+          steps,
           dir,
+          score,
         };
-      })
-      // prevent reverse
-      .filter(({ dir }) => reverse.get(dir) !== node.dir)
-      // prevent out of bounds
-      .filter(
-        ({ current: [x, y] }) =>
-          inBound(x, width) && inBound(y, height)
-      )
-      // update scores
-      .map(({ current, ...rest }) => {
-        return {
-          ...rest,
-          current,
-          score:
-            node.score +
-            Number(grid[current[1]][current[0]].cell),
-        };
-      })
-      .filter(({ steps }) => {
-        return stepRule(node.steps, steps);
-      });
-
-    for (const entry of adj) {
-      const { current, dir, score, steps } = entry;
-      const key = `${current[0]}::${current[1]}::${dir}::${steps}`;
-
-      const currentScore = visited[key] ?? Infinity;
-
-      if (currentScore > score) {
-        visited[key] = score;
 
         q.push(entry);
-        continue;
-      }
-    }
+      });
   }
   return null;
 }
@@ -251,7 +231,7 @@ const solve = async (path: string) => {
   const grid = input
     .split("\n")
     .map((row, y) =>
-      row.split("").map((cell, x) => ({ cell, x, y }))
+      row.split("").map((cell, x) => ({ cell: Number(cell), x, y }))
     );
 
   const width = grid[0].length;
@@ -261,8 +241,6 @@ const solve = async (path: string) => {
     start: [0, 0],
     grid,
     end: [width - 1, height - 1],
-    width,
-    height,
     stepRule: (_, current) => current <= 3,
   });
 
@@ -284,11 +262,8 @@ const solve = async (path: string) => {
       start: [0, 0],
       grid,
       end: [width - 1, height - 1],
-      width,
-      height,
-      stepRule: (prev, steps) =>
-        (steps > prev || prev >= 4) && steps < 11,
-    })
+      stepRule: (prev, steps) => (steps > prev || prev >= 4) && steps < 11,
+    }),
   );
 };
 
