@@ -115,7 +115,7 @@ const compareEntries = (lhs: Entry, rhs: Entry) => {
 
 const hashEntry = (x: number, y: number, rank: number, steps: number) => {
   // works only in grids less than 1000 items wide or tall
-  return 1_000_000_000 + y * 10_000_000 + x * 10_000 + steps * 10 +
+  return y * 10_000_000 + x * 10_000 + steps * 10 +
     rank;
 };
 
