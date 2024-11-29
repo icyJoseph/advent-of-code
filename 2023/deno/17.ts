@@ -14,11 +14,11 @@ const isExample = Deno.args.includes("--example");
 // my own had a bug...
 function bubbleUp<T>(
   items: Array<T>,
-  compare: (a: T, b: T) => number,
+  compare: (a: T, b: T) => boolean,
   j: number,
 ): void {
   let i = ((j - 1) / 2) >> 0; // parent node index
-  while (j > 0 && compare(items[i], items[j]) < 0) {
+  while (j > 0 && !compare(items[i], items[j])) {
     // restore the property
     [items[i], items[j]] = [items[j], items[i]];
 
@@ -29,7 +29,7 @@ function bubbleUp<T>(
 
 function sinkDown<T>(
   items: Array<T>,
-  compare: (a: T, b: T) => number,
+  compare: (a: T, b: T) => boolean,
   i: number,
   n?: number,
 ): void {
@@ -37,13 +37,13 @@ function sinkDown<T>(
   n = n ?? items.length;
   while (true) {
     (j = 2 * i + 1), (k = i);
-    if (j < n && compare(items[j], items[k]) > 0) {
+    if (j < n && compare(items[j], items[k])) {
       // left child violates the property
       k = j;
     }
 
     j++;
-    if (j < n && compare(items[j], items[k]) > 0) {
+    if (j < n && compare(items[j], items[k])) {
       // right child violates the property (even more)
       k = j;
     }
@@ -63,7 +63,7 @@ class Heap<T> {
   private items: Array<T>;
 
   public constructor(
-    private compare: (a: T, b: T) => number,
+    private compare: (a: T, b: T) => boolean,
   ) {
     this.items = new Array<T>();
   }
@@ -109,7 +109,7 @@ type Entry = {
 };
 
 const compareEntries = (lhs: Entry, rhs: Entry) => {
-  return rhs.score + rhs.y + rhs.x -
+  return (rhs.score + rhs.y + rhs.x) >
     (lhs.score + lhs.y + lhs.x);
 };
 
@@ -231,7 +231,11 @@ const solve = async (path: string) => {
   const grid = input
     .split("\n")
     .map((row, y) =>
-      row.split("").map((cell, x) => ({ cell: Number(cell), x, y }))
+      row.split("").map((cell, x) => ({
+        cell: Number(cell),
+        x,
+        y,
+      }))
     );
 
   const width = grid[0].length;
