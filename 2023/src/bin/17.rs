@@ -104,7 +104,10 @@ impl PartialEq for Move {
 
 impl Eq for Move {}
 
-fn search(end: Point, grid: &[Vec<usize>]) -> usize {
+fn search<F>(end: &Point, grid: &[Vec<usize>], step_rule: F) -> usize
+where
+    F: (Fn(usize, usize) -> bool),
+{
     let mut q: BinaryHeap<Reverse<Move>> = BinaryHeap::new();
 
     let mut visited: HashMap<usize, usize> = HashMap::new();
@@ -117,7 +120,7 @@ fn search(end: Point, grid: &[Vec<usize>]) -> usize {
             break;
         };
 
-        if current_node.position == end && current_node.steps <= 3 {
+        if current_node.position == *end && step_rule(current_node.steps, current_node.steps) {
             return current_node.score;
         }
 
@@ -134,7 +137,7 @@ fn search(end: Point, grid: &[Vec<usize>]) -> usize {
                     1
                 };
 
-                if steps > 3 {
+                if !step_rule(current_node.steps, steps) {
                     return;
                 }
 
@@ -184,7 +187,10 @@ fn main(input: &str) -> (usize, usize) {
 
     let end = Point::new(width - 1, height - 1);
 
-    let part_one = search(end, &grid);
+    let part_one = search(&end, &grid, |_, current| current <= 3);
+    let part_two = search(&end, &grid, |prev, current| {
+        (current > prev || prev >= 4) && current < 11
+    });
 
-    (part_one, 0)
+    (part_one, part_two)
 }
