@@ -48,12 +48,19 @@ const solve = (input: string, ans: Answer) => {
    * Part Two
    */
 
-  for (const [i, byte] of enumerate(bytes)) {
+  let upper = bytes.length;
+  let lower = 0;
+  let pivot = Math.floor(upper / 2);
+
+  const results = new Map<number, boolean>();
+  let lowest = Infinity;
+
+  while (true) {
     const flat = grid.flat();
 
     bytes
       .map(([x, y]) => coordToIndex(x, y, width))
-      .slice(0, i + 1)
+      .slice(0, pivot + 1)
       .forEach((entry) => {
         flat[entry] = "#";
       });
@@ -65,13 +72,23 @@ const solve = (input: string, ans: Answer) => {
       adj,
     });
 
-    if (Number.isInteger(steps)) {
-      continue;
+    if (Number.isFinite(steps)) {
+      results.set(pivot, false);
+      const temp = pivot;
+      pivot = pivot + Math.floor((upper - pivot) / 2);
+      lower = temp;
+    } else {
+      results.set(pivot, true);
+      lowest = Math.min(pivot, lowest);
+      const temp = pivot;
+      pivot = lower + Math.floor((pivot - lower) / 2);
+      upper = temp;
     }
 
-    ans.p2 = byte.join(",");
-    break;
+    if (results.has(pivot)) break;
   }
+
+  ans.p2 = bytes[lowest].join(",");
 };
 
 /**
