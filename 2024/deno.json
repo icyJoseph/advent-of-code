@@ -1,0 +1,6 @@
+{
+  "tasks": {
+    "dev": "deno run --watch --no-clear-screen --allow-read",
+    "solve": "deno run --allow-read"
+  }
+}
