@@ -113,6 +113,9 @@ fn main(input: &str) -> (usize, usize) {
 
     let mut p2 = 0;
 
+    let fwd = ['S', 'A', 'M'];
+    let back = ['M', 'A', 'S'];
+
     for (y, row) in grid.iter().enumerate() {
         if y == 0 || y == height - 1 {
             continue;
@@ -126,13 +129,11 @@ fn main(input: &str) -> (usize, usize) {
                 continue;
             }
 
-            let diag_up = format!("{}{}{}", grid[y - 1][x - 1], grid[y][x], grid[y + 1][x + 1]);
-            let diag_down = format!("{}{}{}", grid[y + 1][x - 1], grid[y][x], grid[y - 1][x + 1]);
+            let diag_up = [grid[y - 1][x - 1], grid[y][x], grid[y + 1][x + 1]];
+            let diag_down = [grid[y + 1][x - 1], grid[y][x], grid[y - 1][x + 1]];
 
-            if diag_up == "SAM" || diag_up == "MAS" {
-                if diag_down == "MAS" || diag_down == "SAM" {
-                    p2 += 1;
-                }
+            if (diag_up == fwd || diag_up == back) && (diag_down == fwd || diag_down == back) {
+                p2 += 1;
             }
         }
     }
