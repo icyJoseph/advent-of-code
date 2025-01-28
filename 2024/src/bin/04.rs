@@ -1,98 +1,90 @@
-fn calc_adj(width: usize, height: usize) -> Vec<Vec<Vec<(usize, usize)>>> {
-    let mut result: Vec<Vec<Vec<(usize, usize)>>> = vec![];
+fn calc_adj(width: usize, height: usize, size: usize, grid: &Vec<Vec<char>>) -> Vec<char> {
+    let mut result: Vec<char> = vec![];
+
+    let mut right = vec![];
+    let mut left = vec![];
+
+    let mut up = vec![];
+    let mut down = vec![];
+
+    let mut right_up = vec![];
+    let mut right_down = vec![];
+
+    let mut left_up = vec![];
+    let mut left_down = vec![];
 
     for x in 0..width {
         for y in 0..height {
-            let mut acc = vec![];
-
-            let mut right = vec![];
-            let mut left = vec![];
-
-            let mut up = vec![];
-            let mut down = vec![];
-
-            let mut right_up = vec![];
-            let mut right_down = vec![];
-            let mut left_up = vec![];
-            let mut left_down = vec![];
-
-            for d in 0..4 {
+            for d in 0..size {
                 let next_x = x + d;
                 let next_y = y + d;
 
                 if next_x < width {
-                    right.push((next_x, y));
+                    right.push(grid[y][next_x]);
+                } else {
+                    right.clear();
+                    right_up.clear();
+                    right_down.clear();
                 }
 
                 if next_y < height {
-                    down.push((x, next_y));
+                    down.push(grid[next_y][x]);
+                } else {
+                    down.clear();
+                    right_down.clear();
+                    left_down.clear();
                 }
 
                 if next_x < width && next_y < height {
-                    right_down.push((next_x, next_y));
+                    right_down.push(grid[next_y][next_x]);
                 }
 
                 if d <= x {
                     let prev_x = x - d;
 
-                    left.push((prev_x, y));
+                    left.push(grid[y][prev_x]);
 
                     if next_y < height {
-                        left_down.push((prev_x, next_y));
+                        left_down.push(grid[next_y][prev_x]);
                     }
+                } else {
+                    left.clear();
+                    left_down.clear();
+                    left_up.clear();
                 }
 
                 if d <= y {
                     let prev_y = y - d;
 
-                    up.push((x, prev_y));
+                    up.push(grid[prev_y][x]);
 
                     if next_x < width {
-                        right_up.push((next_x, prev_y));
+                        right_up.push(grid[prev_y][next_x]);
                     }
+                } else {
+                    up.clear();
+                    right_up.clear();
+                    left_up.clear();
                 }
 
                 if d <= x && d <= y {
                     let prev_x = x - d;
                     let prev_y = y - d;
 
-                    left_up.push((prev_x, prev_y));
+                    left_up.push(grid[prev_y][prev_x]);
                 }
             }
 
-            if right.len() == 4 {
-                acc.push(right);
-            }
+            result.append(&mut right);
+            result.append(&mut right_up);
+            result.append(&mut right_down);
 
-            if right_up.len() == 4 {
-                acc.push(right_up);
-            }
+            result.append(&mut left);
+            result.append(&mut left_up);
+            result.append(&mut left_down);
 
-            if right_down.len() == 4 {
-                acc.push(right_down);
-            }
-
-            if left.len() == 4 {
-                acc.push(left);
-            }
-
-            if left_up.len() == 4 {
-                acc.push(left_up);
-            }
-
-            if left_down.len() == 4 {
-                acc.push(left_down);
-            }
-
-            if up.len() == 4 {
-                acc.push(up);
-            }
-
-            if down.len() == 4 {
-                acc.push(down);
-            }
-
-            result.push(acc);
+            result.append(&mut up);
+            result.append(&mut down);
         }
     }
 
@@ -111,16 +103,11 @@ fn main(input: &str) -> (usize, usize) {
     let width = grid[0].len();
     let height = grid.len();
 
-    for entry in calc_adj(width, height) {
-        for section in entry {
-            let word = section
-                .iter()
-                .map(|(x, y)| grid[*y][*x])
-                .collect::<String>();
+    let size = 4;
 
-            if word == "XMAS" {
-                p1 += 1;
-            }
+    for section in calc_adj(width, height, size, &grid)[..].chunks(size) {
+        if section[..] == ['X', 'M', 'A', 'S'] {
+            p1 += 1;
         }
     }
 
