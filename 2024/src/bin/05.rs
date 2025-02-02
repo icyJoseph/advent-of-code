@@ -16,6 +16,8 @@ fn main(input: &str) -> (usize, usize) {
 
     let mut p1 = 0;
 
+    let mut invalid_printers = vec![];
+
     for printer in printers {
         let mut correct = true;
 
@@ -43,8 +45,42 @@ fn main(input: &str) -> (usize, usize) {
             if let Ok(middle) = printer[printer.len() / 2].parse::<usize>() {
                 p1 += middle;
             }
+        } else {
+            invalid_printers.push(printer);
         }
     }
 
-    (p1, 0)
+    let mut p2 = 0;
+
+    for printer in invalid_printers.iter_mut() {
+        loop {
+            let broken_rule = rules.iter().find(|(before, after)| {
+                let before_pos = printer.iter().position(|c| c == before);
+                let after_pos = printer.iter().position(|c| c == after);
+
+                match (before_pos, after_pos) {
+                    (Some(b), Some(a)) => a < b,
+                    _ => false,
+                }
+            });
+
+            match broken_rule {
+                None => break,
+                Some((before, after)) => {
+                    let before_pos = printer.iter().position(|c| c == before);
+                    let after_pos = printer.iter().position(|c| c == after);
+
+                    if let (Some(b), Some(a)) = (before_pos, after_pos) {
+                        printer.swap(a, b);
+                    }
+                }
+            }
+        }
+
+        if let Ok(middle) = printer[printer.len() / 2].parse::<usize>() {
+            p2 += middle;
+        }
+    }
+
+    (p1, p2)
 }
