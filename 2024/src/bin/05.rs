@@ -54,26 +54,23 @@ fn main(input: &str) -> (usize, usize) {
 
     for printer in invalid_printers.iter_mut() {
         loop {
-            let broken_rule = rules.iter().find(|(before, after)| {
+            let mut did_swap = false;
+
+            for (before, after) in rules.iter() {
                 let before_pos = printer.iter().position(|c| c == before);
                 let after_pos = printer.iter().position(|c| c == after);
 
                 match (before_pos, after_pos) {
-                    (Some(b), Some(a)) => a < b,
-                    _ => false,
-                }
-            });
-
-            match broken_rule {
-                None => break,
-                Some((before, after)) => {
-                    let before_pos = printer.iter().position(|c| c == before);
-                    let after_pos = printer.iter().position(|c| c == after);
-
-                    if let (Some(b), Some(a)) = (before_pos, after_pos) {
+                    (Some(b), Some(a)) if a < b => {
                         printer.swap(a, b);
+                        did_swap = true;
                     }
+                    _ => continue,
                 }
+            }
+
+            if !did_swap {
+                break;
             }
         }
 
