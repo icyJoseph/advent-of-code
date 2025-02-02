@@ -19,12 +19,12 @@ pub fn main(args: TokenStream, input: TokenStream) -> TokenStream {
       fn main() {
         let now = ::std::time::Instant::now();
         let (p1, p2) = aoc_solution(INPUT.trim_end());
-        let time = now.elapsed().as_micros();
+        let time = now.elapsed();
         println!("\n");
         println!("Part one: {p1}");
         println!("Part two: {p2}");
         println!("\n");
-        println!("Time: {time}μs");
+        println!("Time: {time:?}");
       }
     };
 
