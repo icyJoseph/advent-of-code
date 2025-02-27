@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 enum Direction {
-    Up,
+    Up = 0,
     Right,
     Down,
     Left,
@@ -71,7 +71,7 @@ impl Guard {
 
 #[aoc2024::main(06)]
 fn main(input: &str) -> (usize, usize) {
-    let grid = input
+    let mut grid = input
         .lines()
         .map(|row| row.chars().collect::<Vec<char>>())
         .collect::<Vec<Vec<char>>>();
@@ -96,5 +96,34 @@ fn main(input: &str) -> (usize, usize) {
         seen.insert(y * height + x);
     }
 
-    (seen.len(), 0)
+    let mut p2 = 0;
+
+    for (y, row) in grid.iter().enumerate() {
+        for (x, cell) in row.iter().enumerate() {
+            if *cell == '#' {
+                continue;
+            }
+
+            let mut grid = grid.clone();
+            grid[y][x] = '#';
+
+            let mut guard = Guard::new(guard_x, guard_y);
+
+            let mut seen: HashSet<usize> = HashSet::new();
+
+            seen.insert((guard.y * height + guard.x) * 10 + guard.dir as usize);
+
+            while let Ok((x, y)) = guard.walk(&grid) {
+                let cache = (y * height + x) * 10 + guard.dir as usize;
+
+                if seen.contains(&cache) {
+                    p2 += 1;
+                    break;
+                }
+                seen.insert(cache);
+            }
+        }
+    }
+
+    (seen.len(), p2)
 }
