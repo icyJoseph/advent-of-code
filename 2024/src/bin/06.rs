@@ -13,6 +13,7 @@ struct Guard {
     y: usize,
     start_x: usize,
     start_y: usize,
+    height: usize,
     dir: Direction,
 }
 
@@ -27,10 +28,11 @@ fn step(coord: (usize, usize), dir: &Direction) -> (Option<usize>, Option<usize>
 }
 
 impl Guard {
-    fn new(x: usize, y: usize) -> Self {
+    fn new(x: usize, y: usize, height: usize) -> Self {
         Guard {
             x,
             y,
+            height,
             start_x: x,
             start_y: y,
             dir: Direction::Up,
@@ -77,11 +79,15 @@ impl Guard {
             _ => Err(()),
         }
     }
+
+    fn hash(&self) -> usize {
+        self.y * self.height + self.x
+    }
 }
 
 #[aoc2024::main(06)]
 fn main(input: &str) -> (usize, usize) {
-    let grid = input
+    let mut grid = input
         .lines()
         .map(|row| row.chars().collect::<Vec<char>>())
         .collect::<Vec<Vec<char>>>();
@@ -96,47 +102,49 @@ fn main(input: &str) -> (usize, usize) {
         panic!("guard_x not found")
     };
 
-    let mut guard = Guard::new(guard_x, guard_y);
+    let mut guard = Guard::new(guard_x, guard_y, height);
+
+    let mut path: HashSet<usize> = HashSet::new();
+
+    path.insert(guard.hash());
+
+    while guard.walk(&grid).is_ok() {
+        path.insert(guard.hash());
+    }
+
+    let mut p2 = 0;
 
     let mut seen: HashSet<usize> = HashSet::new();
 
-    seen.insert(guard_y * height + guard_x);
+    for index in path.iter() {
+        let x = index % height;
+        let y = index / height;
 
-    while let Ok((x, y)) = guard.walk(&grid) {
-        seen.insert(y * height + x);
-    }
+        let cell = grid[y][x];
 
-    let p1 = seen.len();
-
-    let mut p2 = 0;
-    let mut draft = grid.clone();
-
-    for (y, row) in grid.iter().enumerate() {
-        for (x, cell) in row.iter().enumerate() {
-            seen.clear();
-            guard.reset();
-
-            if *cell == '#' {
-                continue;
-            }
-
-            draft[y][x] = '#';
-
-            seen.insert((guard.y * height + guard.x) * 10 + guard.dir as usize);
-
-            while let Ok((x, y)) = guard.walk(&draft) {
-                let cache = (y * height + x) * 10 + guard.dir as usize;
-
-                if seen.contains(&cache) {
-                    p2 += 1;
-                    break;
-                }
-                seen.insert(cache);
-            }
-
-            draft[y][x] = *cell;
+        if cell == '#' || cell == '^' {
+            continue;
         }
+
+        seen.clear();
+        guard.reset();
+
+        grid[y][x] = '#';
+
+        seen.insert(guard.hash() * 10 + guard.dir as usize);
+
+        while guard.walk(&grid).is_ok() {
+            let cache = guard.hash() * 10 + guard.dir as usize;
+
+            if seen.contains(&cache) {
+                p2 += 1;
+                break;
+            }
+            seen.insert(cache);
+        }
+
+        grid[y][x] = cell;
     }
 
-    (p1, p2)
+    (path.len(), p2)
 }
