@@ -11,6 +11,8 @@ enum Direction {
 struct Guard {
     x: usize,
     y: usize,
+    start_x: usize,
+    start_y: usize,
     dir: Direction,
 }
 
@@ -29,8 +31,16 @@ impl Guard {
         Guard {
             x,
             y,
+            start_x: x,
+            start_y: y,
             dir: Direction::Up,
         }
+    }
+
+    fn reset(&mut self) {
+        self.x = self.start_x;
+        self.y = self.start_y;
+        self.dir = Direction::Up;
     }
 
     fn rotate(&mut self) {
@@ -71,7 +81,7 @@ impl Guard {
 
 #[aoc2024::main(06)]
 fn main(input: &str) -> (usize, usize) {
-    let mut grid = input
+    let grid = input
         .lines()
         .map(|row| row.chars().collect::<Vec<char>>())
         .collect::<Vec<Vec<char>>>();
@@ -96,24 +106,25 @@ fn main(input: &str) -> (usize, usize) {
         seen.insert(y * height + x);
     }
 
+    let p1 = seen.len();
+
     let mut p2 = 0;
+    let mut draft = grid.clone();
 
     for (y, row) in grid.iter().enumerate() {
         for (x, cell) in row.iter().enumerate() {
+            seen.clear();
+            guard.reset();
+
             if *cell == '#' {
                 continue;
             }
 
-            let mut grid = grid.clone();
-            grid[y][x] = '#';
-
-            let mut guard = Guard::new(guard_x, guard_y);
-
-            let mut seen: HashSet<usize> = HashSet::new();
+            draft[y][x] = '#';
 
             seen.insert((guard.y * height + guard.x) * 10 + guard.dir as usize);
 
-            while let Ok((x, y)) = guard.walk(&grid) {
+            while let Ok((x, y)) = guard.walk(&draft) {
                 let cache = (y * height + x) * 10 + guard.dir as usize;
 
                 if seen.contains(&cache) {
@@ -122,8 +133,10 @@ fn main(input: &str) -> (usize, usize) {
                 }
                 seen.insert(cache);
             }
+
+            draft[y][x] = *cell;
         }
     }
 
-    (seen.len(), p2)
+    (p1, p2)
 }
