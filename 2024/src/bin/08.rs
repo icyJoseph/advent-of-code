@@ -22,8 +22,9 @@ fn main(input: &str) -> (usize, usize) {
         .collect::<Vec<_>>();
 
     let mut p1 = 0;
+    let mut p2 = 0;
 
-    for (_, x, y) in cells.iter() {
+    for (cell, x, y) in cells.iter() {
         let field = antennas
             .iter()
             .map(|(name, a_x, a_y)| {
@@ -39,11 +40,7 @@ fn main(input: &str) -> (usize, usize) {
             let others = &field[pos + 1..];
 
             if others.iter().any(|other| {
-                if other.0 != ant.0 {
-                    return false;
-                }
-
-                if other.2 != ant.2 {
+                if other.0 != ant.0 || other.2 != ant.2 {
                     return false;
                 }
 
@@ -53,7 +50,21 @@ fn main(input: &str) -> (usize, usize) {
                 break;
             }
         }
+
+        let delta = if *cell == '.' { 1 } else { 0 };
+
+        for (pos, ant) in field.iter().enumerate() {
+            let others = &field[pos + delta..];
+
+            if others
+                .iter()
+                .any(|other| other.0 == ant.0 && other.2 == ant.2)
+            {
+                p2 += 1;
+                break;
+            }
+        }
     }
 
-    (p1, 0)
+    (p1, p2)
 }
